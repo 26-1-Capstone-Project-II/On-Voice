@@ -3,19 +3,19 @@
     1. 제목은 다음과 같이 설정해주세요. 제목은 간결하게, 뒤에 마침표 금지.
        => "작업유형지정: 제목"
       1-1. 작업 유형은 다음과 같습니다.
-            Feat:      새로운 기능 추가
-            Design:    CSS 등 사용자 UI 디자인 변경
-            Fix:   버그 수정
-            Style:     코드 formatting, 세미콜론 누락 등 코드 자체의 변경이 없는 경우
-            Docs:      문서 수정
-            Refactor:  코드 리팩토링
-            Test:      테스트 코드, 리팩토링 테스트 코드 추가
-            Chore:     패키지 매니저 수정, 그 외 기타 수정
-            Comment:   주석 추가 및 변경
-            Rename:  	파일, 폴더의 이름 수정 또는 이동
-            Remove:  	파일 삭제
+            feat:      새로운 기능 추가
+            design:    CSS 등 사용자 UI 디자인 변경
+            fix:        버그 수정
+            style:     코드 formatting, 세미콜론 누락 등 코드 자체의 변경이 없는 경우
+            docs:      문서 수정
+            refactor:  코드 리팩토링
+            test:      테스트 코드, 리팩토링 테스트 코드 추가
+            chore:     패키지 매니저 수정, 그 외 기타 수정
+            comment:   주석 추가 및 변경
+            rename:  	파일, 폴더의 이름 수정 또는 이동
+            remove:  	파일 삭제
             !HOTFIX: 	급하게 치명적인 버그를 고쳐야 하는 경우
-            Other:     기타
+            other:     기타
     2. Reviewers에 리뷰어를 지정해주세요.
     3. Assignees에 작성자 본인(리뷰이)을 지정해주세요.
     4. labels 태그를 지정해주세요. (작업유형과 같은 역할)
