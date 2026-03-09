@@ -9,14 +9,14 @@
 import SwiftUI
 
 struct SentenceDetailView: View {
-    @ObservedObject var recognizer: SpeechRecognition
-    
+    let sentences: [SentenceComparison]
+
     var body: some View {
         ZStack {
             Color.suBlack.ignoresSafeArea()
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
-                    ForEach(recognizer.sentences) { s in
+                    ForEach(sentences) { s in
                         VStack(alignment: .leading, spacing: 10) {
                             HStack {
                                 Text("문장 \(s.index)")
@@ -27,14 +27,14 @@ struct SentenceDetailView: View {
                                     .font(.Pretendard.Medium.size14)
                                     .foregroundColor(s.isCorrect ? .point : .red)
                             }
-                            
+
                             VStack(alignment: .leading, spacing: 6) {
                                 Text("표준 발음")
                                     .font(.Pretendard.Medium.size14)
                                     .foregroundColor(.suGray3)
                                 TokenDiffBubble(pieces: s.referencePieces)
                             }
-                            
+
                             VStack(alignment: .leading, spacing: 6) {
                                 Text("내 발음")
                                     .font(.Pretendard.Medium.size14)
@@ -70,7 +70,7 @@ struct TokenDiffBubble: View {
         }
         .frame(minHeight: 56)
     }
-    
+
     private func makeAttributedString(from pieces: [WordPiece]) -> AttributedString {
         var result = AttributedString("")
         for (idx, p) in pieces.enumerated() {

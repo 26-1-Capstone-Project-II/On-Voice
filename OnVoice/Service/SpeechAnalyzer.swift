@@ -5,9 +5,9 @@
 //  Created by Lee YunJi on 7/25/25.
 //
 
-import Foundation
-import Speech
 import AVFoundation
+import Combine
+import Foundation
 
 @MainActor
 final class SpeechAnalyzer: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
@@ -16,22 +16,24 @@ final class SpeechAnalyzer: NSObject, ObservableObject, AVSpeechSynthesizerDeleg
     @Published var practiceCount: Int = 0
     @Published var recognizedText: String = ""
     @Published var currentAccuracy: Double = 0.0  // 0~100
-    
+
     // 목표 달성 여부 (80% 이상)
     var hasReachedTarget: Bool { currentAccuracy >= 80.0 }
-    
+
     // 4회 연습 완료 여부
     var hasCompletedFourAttempts: Bool { practiceCount >= 4 }
-    
+
     // 연습 가능 여부 (목표 달성하지 않았으면 계속 연습 가능)
     var canPractice: Bool { !hasReachedTarget }
 
     // Audio/TTS
     private var recorder: AVAudioRecorder?
     private let synthesizer = AVSpeechSynthesizer()
-    private var standardText: String = ""
+    private let assessmentService: PronunciationAssessmentService
+    private var practiceTargetText: String = ""
 
-    override init() {
+    init(assessmentService: PronunciationAssessmentService = PronunciationAssessmentService()) {
+        self.assessmentService = assessmentService
         super.init()
         synthesizer.delegate = self
     }
@@ -49,8 +51,8 @@ final class SpeechAnalyzer: NSObject, ObservableObject, AVSpeechSynthesizerDeleg
     func startPronunciationPractice(standardPronunciation: String) async {
         // 연습 가능한 상태인지 확인
         guard canPractice else { return }
-        
-        standardText = standardPronunciation
+
+        practiceTargetText = standardPronunciation
         speakStandard(standardPronunciation)
         // TTS 시작 후 3초 대기 → 녹음 시작
         try? await Task.sleep(nanoseconds: 3_000_000_000)
@@ -86,10 +88,13 @@ final class SpeechAnalyzer: NSObject, ObservableObject, AVSpeechSynthesizerDeleg
         practiceCount += 1
 
         // STT → 정확도 계산
-        let url = recorder?.url ?? recordingURL() // fallback
-        let hyp = (try? await transcribe(url: url)) ?? ""
-        recognizedText = hyp
-        currentAccuracy = Self.accuracyPercent(standard: standardText, hypothesis: hyp)
+        let url = recorder?.url ?? recordingURL()
+        let assessment = await assessmentService.evaluatePractice(
+            recordingURL: url,
+            standardText: practiceTargetText
+        )
+        recognizedText = assessment.recognizedText
+        currentAccuracy = assessment.accuracy
     }
 
     private func stopRecorderIfNeeded() {
@@ -114,52 +119,6 @@ final class SpeechAnalyzer: NSObject, ObservableObject, AVSpeechSynthesizerDeleg
 
     private func stopTTSIfNeeded() {
         if synthesizer.isSpeaking { synthesizer.stopSpeaking(at: .immediate) }
-    }
-
-    // MARK: - Apple STT
-    private func transcribe(url: URL) async throws -> String {
-        try await withCheckedThrowingContinuation { cont in
-            let recognizer = SFSpeechRecognizer(locale: Locale(identifier: "ko-KR"))
-            guard let recognizer, recognizer.isAvailable else {
-                cont.resume(throwing: NSError(domain: "STT", code: -1))
-                return
-            }
-            let req = SFSpeechURLRecognitionRequest(url: url)
-            req.requiresOnDeviceRecognition = false
-            recognizer.recognitionTask(with: req) { result, error in
-                if let error = error { cont.resume(throwing: error); return }
-                guard let result, result.isFinal else { return }
-                cont.resume(returning: result.bestTranscription.formattedString)
-            }
-        }
-    }
-
-    // MARK: - Accuracy Calculation
-    private static func accuracyPercent(standard: String, hypothesis: String) -> Double {
-        let ref = tokenize(standard)
-        let hyp = tokenize(hypothesis)
-        let matched = lcs(a: ref, b: hyp)
-        let denom = max(ref.count, hyp.count, 1)
-        return (Double(matched) / Double(denom)) * 100.0
-    }
-
-    private static func tokenize(_ s: String) -> [String] {
-        s.lowercased()
-            .replacingOccurrences(of: "[^ㄱ-ㅎ가-힣0-9a-z\\s]", with: " ", options: .regularExpression)
-            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
-            .split(separator: " ")
-            .map(String.init)
-    }
-
-    private static func lcs(a: [String], b: [String]) -> Int {
-        let n = a.count, m = b.count
-        var dp = Array(repeating: Array(repeating: 0, count: m+1), count: n+1)
-        for i in 1...n {
-            for j in 1...m {
-                dp[i][j] = (a[i-1] == b[j-1]) ? dp[i-1][j-1] + 1 : max(dp[i-1][j], dp[i][j-1])
-            }
-        }
-        return dp[n][m]
     }
 
     private func recordingURL() -> URL {
