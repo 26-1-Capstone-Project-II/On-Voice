@@ -17,7 +17,7 @@ struct RecordingAnalysisView: View {
     @Environment(\.presentationMode) private var presentationMode
 
     // 현재 문장 정보
-    private var currentSentence: SentenceComparison? {
+    private var currentSentence: AnalysisSentence? {
         guard currentSentenceIndex < viewModel.errorSentences.count else { return nil }
         return viewModel.errorSentences[currentSentenceIndex]
     }
@@ -127,7 +127,7 @@ struct RecordingAnalysisView: View {
     }
 
     // MARK: - Sentence Info View
-    private func sentenceInfoView(_ sentence: SentenceComparison) -> some View {
+    private func sentenceInfoView(_ sentence: AnalysisSentence) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             // 표준문장
             VStack(alignment: .leading, spacing: 8) {
@@ -135,7 +135,7 @@ struct RecordingAnalysisView: View {
                     .font(.Pretendard.SemiBold.size16)
                     .foregroundColor(.suGray2)
 
-                Text(sentence.reference)
+                Text(sentence.referenceText)
                     .font(.Pretendard.Regular.size16)
                     .foregroundColor(.white)
                     .padding(16)
@@ -165,7 +165,7 @@ struct RecordingAnalysisView: View {
                     .font(.Pretendard.SemiBold.size16)
                     .foregroundColor(.suGray2)
 
-                TokenDiffText(pieces: sentence.hypothesisPieces)
+                TokenDiffText(pieces: sentence.spokenPieces)
             }
         }
     }
@@ -281,7 +281,7 @@ struct RecordingAnalysisView: View {
 }
 
 struct TokenDiffText: View {
-    let pieces: [WordPiece]
+    let pieces: [AnalysisWordPiece]
     var body: some View {
         let views = pieces.map { piece in
             Text(piece.text)

@@ -7,11 +7,6 @@
 
 import Foundation
 
-struct PronunciationAssessment {
-    let recognizedText: String
-    let accuracy: Double
-}
-
 final class PronunciationAssessmentService {
     private let transcriptionService: AppleSpeechTranscriptionService
 
@@ -19,13 +14,13 @@ final class PronunciationAssessmentService {
         self.transcriptionService = transcriptionService
     }
 
-    func evaluatePractice(recordingURL: URL, standardText: String) async -> PronunciationAssessment {
+    func evaluatePractice(recordingURL: URL, standardText: String) async -> PracticeEvaluationResult {
         await transcriptionService.requestAuthorizationIfNeeded()
 
         let (recognizedText, _) = await transcriptionService.transcribe(url: recordingURL)
         let accuracy = accuracyPercent(standard: standardText, hypothesis: recognizedText)
 
-        return PronunciationAssessment(recognizedText: recognizedText, accuracy: accuracy)
+        return PracticeEvaluationResult(recognizedText: recognizedText, accuracy: accuracy)
     }
 
     private func accuracyPercent(standard: String, hypothesis: String) -> Double {

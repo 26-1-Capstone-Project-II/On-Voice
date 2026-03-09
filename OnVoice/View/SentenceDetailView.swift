@@ -9,7 +9,7 @@
 import SwiftUI
 
 struct SentenceDetailView: View {
-    let sentences: [SentenceComparison]
+    let sentences: [AnalysisSentence]
 
     var body: some View {
         ZStack {
@@ -39,7 +39,7 @@ struct SentenceDetailView: View {
                                 Text("내 발음")
                                     .font(.Pretendard.Medium.size14)
                                     .foregroundColor(.suGray3)
-                                TokenDiffBubble(pieces: s.hypothesisPieces)
+                                TokenDiffBubble(pieces: s.spokenPieces)
                             }
                         }
                         .padding(14)
@@ -57,7 +57,7 @@ struct SentenceDetailView: View {
 }
 
 struct TokenDiffBubble: View {
-    let pieces: [WordPiece]
+    let pieces: [AnalysisWordPiece]
     var body: some View {
         // 긴 문장도 줄바꿈 + 세로 스크롤로 안정적으로 표시
         ScrollView(.vertical, showsIndicators: false) {
@@ -71,7 +71,7 @@ struct TokenDiffBubble: View {
         .frame(minHeight: 56)
     }
 
-    private func makeAttributedString(from pieces: [WordPiece]) -> AttributedString {
+    private func makeAttributedString(from pieces: [AnalysisWordPiece]) -> AttributedString {
         var result = AttributedString("")
         for (idx, p) in pieces.enumerated() {
             var chunk = AttributedString(p.text + (idx == pieces.count - 1 ? "" : " "))

@@ -7,18 +7,6 @@
 
 import Foundation
 
-struct SpeechAnalysisResult {
-    let appleTranscript: String
-    let standardText: String
-    let standardPronunciation: String
-    let sentences: [SentenceComparison]
-    let overallAccuracy: Double
-
-    var errorSentences: [SentenceComparison] {
-        sentences.filter { $0.accuracy < 0.8 }
-    }
-}
-
 final class SpeechAnalysisService {
     private let transcriptionService: AppleSpeechTranscriptionService
 
@@ -26,7 +14,7 @@ final class SpeechAnalysisService {
         self.transcriptionService = transcriptionService
     }
 
-    func analyze(url: URL, referenceText: String? = nil) async -> SpeechAnalysisResult {
+    func analyze(url: URL, referenceText: String? = nil) async -> AnalysisResult {
         await transcriptionService.requestAuthorizationIfNeeded()
 
         let (userText, _) = await transcriptionService.transcribe(url: url)
@@ -41,8 +29,8 @@ final class SpeechAnalysisService {
         let correctCount = sentences.filter { $0.isCorrect }.count
         let overallAccuracy = sentences.isEmpty ? 0 : Double(correctCount) / Double(sentences.count)
 
-        let result = SpeechAnalysisResult(
-            appleTranscript: userText,
+        let result = AnalysisResult(
+            transcript: userText,
             standardText: standardText,
             standardPronunciation: standardPronunciation,
             sentences: sentences,
@@ -53,11 +41,11 @@ final class SpeechAnalysisService {
         return result
     }
 
-    private func log(result: SpeechAnalysisResult, userPronunciation: String) {
+    private func log(result: AnalysisResult, userPronunciation: String) {
         print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
         print("🎤 [STT 변환 결과 분석]")
         print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-        print("📱 원본 STT 결과: \(result.appleTranscript)")
+        print("📱 원본 STT 결과: \(result.transcript)")
         print("📝 표준문장: \(result.standardText)")
         print("🗣️ 표준발음: \(result.standardPronunciation)")
         print("👤 나의발음: \(userPronunciation)")
@@ -67,9 +55,9 @@ final class SpeechAnalysisService {
         for (index, sentence) in result.sentences.enumerated() {
             print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
             print("📄 문장 \(index + 1)")
-            print("📝 표준문장: \(sentence.reference)")
+            print("📝 표준문장: \(sentence.referenceText)")
             print("🗣️ 표준발음: \(sentence.standardPronunciation)")
-            print("👤 나의발음: \(sentence.hypothesis)")
+            print("👤 나의발음: \(sentence.spokenText)")
             print("📊 정확도: \(String(format: "%.1f", sentence.accuracy * 100))%")
             print("✅ 정확 여부: \(sentence.isCorrect ? "정확" : "오류")")
         }
@@ -302,13 +290,13 @@ final class SpeechAnalysisService {
         standardText: String,
         standardPronunciation: String,
         userPronunciation: String
-    ) -> [SentenceComparison] {
+    ) -> [AnalysisSentence] {
         let standardSentences = sentenceSplit(standardText)
         let standardPronSentences = sentenceSplit(standardPronunciation)
         let userPronSentences = sentenceSplit(userPronunciation)
 
         let count = max(standardSentences.count, max(standardPronSentences.count, userPronSentences.count))
-        var results: [SentenceComparison] = []
+        var results: [AnalysisSentence] = []
 
         for i in 0..<count {
             let standardSent = i < standardSentences.count ? standardSentences[i] : ""
@@ -325,20 +313,20 @@ final class SpeechAnalysisService {
             let (refPieces, hypPieces) = buildPieces(standardTokens, userTokens, backtrace: backtrace)
 
             results.append(
-                SentenceComparison(
+                AnalysisSentence(
                     index: i + 1,
-                    reference: standardSent,
+                    referenceText: standardSent,
                     standardPronunciation: standardPron,
-                    hypothesis: userPron,
+                    spokenText: userPron,
                     referencePieces: refPieces,
-                    hypothesisPieces: hypPieces,
+                    spokenPieces: hypPieces,
                     accuracy: accuracy,
                     isCorrect: accuracy >= 0.8
                 )
             )
         }
 
-        return results.filter { !$0.reference.isEmpty }
+        return results.filter { !$0.referenceText.isEmpty }
     }
 
     private func sentenceSplit(_ text: String) -> [String] {
@@ -413,11 +401,11 @@ final class SpeechAnalysisService {
         return (dp[m][n], steps)
     }
 
-    private func buildPieces(_ ref: [String], _ hyp: [String], backtrace: [Step]) -> ([WordPiece], [WordPiece]) {
+    private func buildPieces(_ ref: [String], _ hyp: [String], backtrace: [Step]) -> ([AnalysisWordPiece], [AnalysisWordPiece]) {
         var i = 0
         var j = 0
-        var refPieces: [WordPiece] = []
-        var hypPieces: [WordPiece] = []
+        var refPieces: [AnalysisWordPiece] = []
+        var hypPieces: [AnalysisWordPiece] = []
 
         for step in backtrace {
             switch step {

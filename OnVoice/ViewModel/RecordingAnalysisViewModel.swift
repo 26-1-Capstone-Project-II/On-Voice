@@ -11,7 +11,7 @@ import Foundation
 @MainActor
 final class RecordingAnalysisViewModel: ObservableObject {
     @Published private(set) var isLoading = false
-    @Published private(set) var analysis: SpeechAnalysisResult?
+    @Published private(set) var analysis: AnalysisResult?
 
     let recording: Recording
 
@@ -29,11 +29,11 @@ final class RecordingAnalysisViewModel: ObservableObject {
         analysis?.overallAccuracy ?? 0
     }
 
-    var errorSentences: [SentenceComparison] {
+    var errorSentences: [AnalysisSentence] {
         analysis?.errorSentences ?? []
     }
 
-    var sentences: [SentenceComparison] {
+    var sentences: [AnalysisSentence] {
         analysis?.sentences ?? []
     }
 
