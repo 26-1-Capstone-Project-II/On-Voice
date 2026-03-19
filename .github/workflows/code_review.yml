@@ -1,20 +1,184 @@
-name: Code Review From ChatGPT
-
-permissions:
-  contents: read
-  pull-requests: write
+name: Gemini PR Review
 
 on:
   pull_request:
-    types: [opened, synchronize]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
 
 jobs:
-  code-review:
+  review:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: anc95/ChatGPT-CodeReview@main
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check secret
+        shell: bash
+        run: |
+          if [ -z "${{ secrets.GEMINI_API_KEY }}" ]; then
+            echo "GEMINI_API_KEY secret is missing."
+            exit 1
+          fi
+
+      - name: Build PR diff
+        shell: bash
+        run: |
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+
+          echo "BASE_SHA=$BASE_SHA"
+          echo "HEAD_SHA=$HEAD_SHA"
+
+          git diff --unified=0 "$BASE_SHA" "$HEAD_SHA" \
+            -- . \
+            ':(exclude)package-lock.json' \
+            ':(exclude)yarn.lock' \
+            ':(exclude)pnpm-lock.yaml' \
+            ':(exclude)dist/**' \
+            ':(exclude)build/**' \
+            > pr.diff
+
+          if [ ! -s pr.diff ]; then
+            echo "No meaningful diff found." > pr.diff
+          fi
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path("pr.diff")
+          text = p.read_text(encoding="utf-8", errors="ignore")
+
+          limit = 120000
+          if len(text) > limit:
+              text = text[:limit] + "\n\n[TRUNCATED]"
+          p.write_text(text, encoding="utf-8")
+          PY
+
+      - name: Ask Gemini for review
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          LANGUAGE: Korean
-          MODEL: gpt-5.4-mini
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          diff_text = Path("pr.diff").read_text(encoding="utf-8", errors="ignore")
+
+          prompt_lines = [
+              "You are a senior software engineer reviewing a GitHub pull request.",
+              "",
+              "Review the diff and return:",
+              "1. A short summary",
+              "2. Critical issues",
+              "3. Improvement suggestions",
+              "4. A final verdict",
+              "",
+              "Rules:",
+              "- Be concrete and reference actual changed code patterns from the diff.",
+              "- Focus on bugs, security, performance, readability, and maintainability.",
+              "- If there are no serious issues, say so clearly.",
+              "- Keep the review concise but useful.",
+              "- Format in Markdown.",
+              "- The entire response MUST be written in Korean.",
+              "",
+              "PR diff:",
+              "```diff",
+              diff_text,
+              "```",
+          ]
+          prompt = "\\n".join(prompt_lines)
+
+          body = {
+              "contents": [
+                  {
+                      "parts": [
+                          {"text": prompt}
+                      ]
+                  }
+              ]
+          }
+
+          Path("gemini_request.json").write_text(
+              json.dumps(body, ensure_ascii=False),
+              encoding="utf-8"
+          )
+          PY
+
+          HTTP_STATUS=$(curl -sS -o gemini_response.json -w "%{http_code}" \
+            -X POST \
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent" \
+            -H "Content-Type: application/json" \
+            -H "x-goog-api-key: ${GEMINI_API_KEY}" \
+            -d @gemini_request.json)
+
+          echo "HTTP_STATUS=$HTTP_STATUS"
+          cat gemini_response.json
+
+          if [ "$HTTP_STATUS" -ne 200 ]; then
+            echo "Gemini API request failed"
+            exit 1
+          fi
+
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          raw = Path("gemini_response.json").read_text(encoding="utf-8")
+          data = json.loads(raw)
+
+          text = None
+          try:
+              parts = data["candidates"][0]["content"]["parts"]
+              text = "".join(part.get("text", "") for part in parts).strip()
+          except Exception:
+              pass
+
+          if not text:
+              text = "Gemini 응답을 파싱하지 못했습니다.\n\n```json\n" + json.dumps(data, ensure_ascii=False, indent=2)[:6000] + "\n```"
+
+          final = "## Gemini 코드 리뷰\n\n<!-- gemini-review-bot -->\n\n" + text
+          Path("review.md").write_text(final, encoding="utf-8")
+          PY
+
+      - name: Create or update PR comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const body = fs.readFileSync('review.md', 'utf8');
+            const marker = '<!-- gemini-review-bot -->';
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              per_page: 100
+            });
+
+            const existing = comments.find(comment =>
+              comment.body && comment.body.includes(marker)
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body
+              });
+            }
