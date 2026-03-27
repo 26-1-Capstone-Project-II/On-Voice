@@ -1,12 +1,12 @@
 ---
 name: '[epic] 에픽 추가 템플릿'
 about: 새로운 기능, UI 변경 등의 개발을 진행하기 전 작성하는 에픽를 위한 템플릿
-title: "[Epic]: 해야하는 태스크 에픽 이름"
+title: "해야하는 태스크 에픽 이름"
 labels: Feat
 assignees: ''
 
 ---
-<!-- Epic일 경우 제목 헤더로 [Epic]을 추가해주세요! -->
+<!-- Epic과 issue를 꼭 구분해주세요! -->
 
 ## Summary
 <!-- (ex. main뷰 구현, CRUD 추가) -->
