@@ -14,14 +14,14 @@ struct ContentView: View {
                 Tab("모아보기", systemImage: "square.grid.2x2") {}
                 Tab("설정", systemImage: "person") {}
             }
-            .background(Color.suBlack)
-            .tint(Color.point)
+            .background(Color.bg)
+            .tint(Color.main)
             .onAppear {
-                UITabBar.appearance().unselectedItemTintColor = .suGray4
-                UITabBar.appearance().barTintColor = .suGray9
-                UITabBar.appearance().backgroundColor = .suGray9
+                UITabBar.appearance().unselectedItemTintColor = .gray4
+                UITabBar.appearance().barTintColor = .gray9
+                UITabBar.appearance().backgroundColor = .gray9
             }
-        }.background(Color.suBlack)
+        }.background(Color.bg)
     }
 }
 

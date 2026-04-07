@@ -6,7 +6,63 @@
 //
 import SwiftUI
 
+enum OnVoiceTextStyle {
+    case head1
+    case head2
+    case title1
+    case title2
+    case body1
+    case body2
+    case body3
+    case body4
+    case body5
+    case caption1
+
+    var font: Font {
+        switch self {
+        case .head1:
+            return .Pretendard.Bold.size32
+        case .head2:
+            return .Pretendard.Bold.size28
+        case .title1:
+            return .Pretendard.Medium.size24
+        case .title2:
+            return .Pretendard.Medium.size20
+        case .body1:
+            return .Pretendard.SemiBold.size18
+        case .body2:
+            return .Pretendard.Medium.size18
+        case .body3:
+            return .Pretendard.SemiBold.size16
+        case .body4:
+            return .Pretendard.Medium.size16
+        case .body5:
+            return .Pretendard.Medium.size14
+        case .caption1:
+            return .Pretendard.SemiBold.size12
+        }
+    }
+}
+
+private struct OnVoiceTextStyleModifier: ViewModifier {
+    let style: OnVoiceTextStyle
+    let color: Color?
+
+    func body(content: Content) -> some View {
+        let styledContent = content.font(style.font)
+        if let color {
+            styledContent.foregroundColor(color)
+        } else {
+            styledContent
+        }
+    }
+}
+
 extension Font{
+    static func onVoice(_ style: OnVoiceTextStyle) -> Font {
+        style.font
+    }
+
     enum Pretendard {
         ///font-weight : 700
         enum Bold {
@@ -71,5 +127,11 @@ extension Font{
             static let size26: Font = .custom("Pretendard-Regular", size: 26)
             static let size28: Font = .custom("Pretendard-Regular", size: 28)
         }
+    }
+}
+
+extension View {
+    func onVoiceTextStyle(_ style: OnVoiceTextStyle, color: Color? = nil) -> some View {
+        modifier(OnVoiceTextStyleModifier(style: style, color: color))
     }
 }

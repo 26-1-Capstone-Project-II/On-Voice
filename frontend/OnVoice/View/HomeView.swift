@@ -14,19 +14,17 @@ struct HomeView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color.suBlack.ignoresSafeArea()
+                Color.bg.ignoresSafeArea()
                 VStack(alignment: .leading, spacing: 18) {
                     VStack(alignment: .leading){
                         Image("logo")
                             .padding(.top, 18)
                         Text(todayDateString())
-                            .font(.Pretendard.Bold.size32)
-                            .foregroundColor(.suGray1)
+                            .onVoiceTextStyle(.head1, color: .gray1)
                             .padding(.top, 16)
                             .frame(maxWidth: .infinity, alignment: .leading)
                         Text("기록")
-                            .font(.Pretendard.Medium.size16)
-                            .foregroundColor(.suGray2)
+                            .onVoiceTextStyle(.body4, color: .gray2)
                             .padding(.top, 24)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
@@ -40,23 +38,22 @@ struct HomeView: View {
                                 } label: {
                                     HStack {
                                         Image(systemName: "microphone.circle.fill")
-                                            .foregroundColor(.point)
+                                            .foregroundColor(.main)
                                             .padding(.leading, 12)
                                         VStack(alignment: .leading, spacing: 4) {
                                             Text("새로운 대화 기록")
-                                                .font(.Pretendard.Medium.size16)
-                                                .foregroundColor(.white)
+                                                .onVoiceTextStyle(.body4, color: .white)
                                             Text("\(rec.formattedDate)  \(rec.formattedDuration)")
                                                 .font(.Pretendard.Regular.size14)
-                                                .foregroundColor(.suGray4)
+                                                .foregroundColor(.gray4)
                                         }
                                         Spacer()
                                         Image(systemName: "chevron.right")
-                                            .foregroundColor(.suGray3)
+                                            .foregroundColor(.gray3)
                                             .padding(.trailing, 12)
                                     }
                                     .frame(height: 56)
-                                    .background(Color.suGray7)
+                                    .background(Color.gray7)
                                     .clipShape(RoundedRectangle(cornerRadius: 12))
                                     .padding(.horizontal, 20)
                                 }
