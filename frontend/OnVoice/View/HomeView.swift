@@ -9,87 +9,85 @@ import SwiftUI
 
 struct HomeView: View {
     @EnvironmentObject var recorder: AudioRecorder
+    @Binding var selectedTab: OnVoiceTab
     @State private var isShowingSituationRecognition = false
+    @State private var selectedRecording: Recording?
+
+    private var displayedRecordings: [(index: Int, recording: Recording)] {
+        Array(recorder.recordings.reversed().enumerated()).map { offset, recording in
+            (recorder.recordings.count - offset, recording)
+        }
+    }
 
     var body: some View {
         NavigationStack {
-            ZStack {
+            ZStack(alignment: .bottom) {
                 Color.bg.ignoresSafeArea()
-                VStack(alignment: .leading, spacing: 18) {
-                    VStack(alignment: .leading){
-                        Image("logo")
-                            .padding(.top, 18)
-                        Text(todayDateString())
-                            .onVoiceTextStyle(.head1, color: .gray1)
-                            .padding(.top, 16)
-                            .frame(maxWidth: .infinity, alignment: .leading)
+
+                VStack(spacing: 0) {
+                    HomeHeaderView(
+                        title: todayDateString(),
+                        showsProfileButton: true
+                    )
+
+                    VStack(alignment: .leading, spacing: 0) {
                         Text("기록")
-                            .onVoiceTextStyle(.body4, color: .gray2)
-                            .padding(.top, 24)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    .padding(.horizontal, 20)
-        
-                    ScrollView {
-                        VStack(spacing: 12) {
-                            ForEach(recorder.recordings) { rec in
-                                NavigationLink {
-                                    AnalysisSummaryView(recording: rec)
-                                } label: {
-                                    HStack {
-                                        Image(systemName: "microphone.circle.fill")
-                                            .foregroundColor(.main)
-                                            .padding(.leading, 12)
-                                        VStack(alignment: .leading, spacing: 4) {
-                                            Text("새로운 대화 기록")
-                                                .onVoiceTextStyle(.body4, color: .white)
-                                            Text("\(rec.formattedDate)  \(rec.formattedDuration)")
-                                                .font(.Pretendard.Regular.size14)
-                                                .foregroundColor(.gray4)
-                                        }
-                                        Spacer()
-                                        Image(systemName: "chevron.right")
-                                            .foregroundColor(.gray3)
-                                            .padding(.trailing, 12)
-                                    }
-                                    .frame(height: 56)
-                                    .background(Color.gray7)
-                                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                                    .padding(.horizontal, 20)
-                                }
+                            .onVoiceTextStyle(.body2, color: .sub)
+                            .padding(.top, 18)
+                        if displayedRecordings.isEmpty {
+                            VStack(spacing: 0) {
+                                EmptyRecordView()
+                                    .padding(.top, 88)
+                                Spacer()
                             }
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                        } else {
+                            ScrollView(showsIndicators: false) {
+                                VStack(spacing: 16) {
+                                    ForEach(displayedRecordings, id: \.recording.id) { item in
+                                        RecordingRowView(
+                                            title: "새로운 대화 기록 (\(item.index))",
+                                            subtitle: "\(item.recording.formattedDate) • \(item.recording.formattedDuration)",
+                                            onTap: {
+                                                selectedRecording = item.recording
+                                            }
+                                        )
+                                    }
+                                }
+                                .padding(.top, 8)
+                                .padding(.bottom, 132)
+                            }
+                            .padding(.top, 18)
                         }
-                        .padding(.top, 8)
-                        .padding(.bottom, 80)
                     }
+                    .padding(.horizontal, 18)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 }
-                
-                // Floating '+' 버튼
-                VStack {
-                    Spacer()
-                    HStack {
-                        Spacer()
-                        Button {
-                            isShowingSituationRecognition = true
-                        } label: {
-                            Image(.append)
-                        }
-                        .padding(.bottom, 24)
-                        .padding(.trailing, 24)
-                    }
-                }
+
+                BottomDockView(
+                    selectedTab: $selectedTab,
+                    onAddTap: { isShowingSituationRecognition = true }
+                )
             }
+            .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(isPresented: $isShowingSituationRecognition) {
                 SituationRecognitionView()
             }
+            .navigationDestination(item: $selectedRecording) { recording in
+                AnalysisSummaryView(recording: recording)
+            }
         }
     }
-    
-    /// 오늘 날짜 "2025년 7월 24일 목요일" 형식 반환
-    func todayDateString() -> String {
+
+    private func todayDateString() -> String {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "ko_KR")
-        formatter.dateFormat = "yyyy년 \nM월 d일 EEEE"
+        formatter.dateFormat = "yyyy년\nM월 d일 EEEE"
         return formatter.string(from: Date())
     }
+}
+
+#Preview {
+    HomeView(selectedTab: .constant(.home))
+        .environmentObject(AudioRecorder())
 }
