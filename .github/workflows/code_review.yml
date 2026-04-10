@@ -1,221 +1,101 @@
-name: Gemini PR Review
+name: Gemini Code Review
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened]
-
-permissions:
-  contents: read
-  issues: write
-  pull-requests: write
+    branches:
+      - dev
+    types: [opened]
 
 jobs:
-  review:
+  code-review:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
-      - name: Check secret
-        shell: bash
+      - name: Set up Node
+        uses: actions/setup-node@v3
+
+      - name: Install GoogleGenerativeAI
         run: |
-          if [ -z "${{ secrets.GEMINI_API_KEY }}" ]; then
-            echo "GEMINI_API_KEY secret is missing."
-            exit 1
-          fi
+          npm install @google/generative-ai
 
-      - name: Build PR diff
-        shell: bash
+      - name: Get git diff for PR
         run: |
-          BASE_SHA="${{ github.event.pull_request.base.sha }}"
-          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          git fetch origin "${{ github.event.pull_request.base.ref }}"
+          git fetch origin "${{ github.event.pull_request.head.ref }}"
+          git diff "origin/${{ github.event.pull_request.base.ref }}"..."origin/${{ github.event.pull_request.head.ref }}" > diff.txt
 
-          echo "BASE_SHA=$BASE_SHA"
-          echo "HEAD_SHA=$HEAD_SHA"
-
-          git diff --unified=0 "$BASE_SHA" "$HEAD_SHA" \
-            -- . \
-            ':(exclude)package-lock.json' \
-            ':(exclude)yarn.lock' \
-            ':(exclude)pnpm-lock.yaml' \
-            ':(exclude)dist/**' \
-            ':(exclude)build/**' \
-            > pr.diff
-
-          if [ ! -s pr.diff ]; then
-            echo "No meaningful diff found." > pr.diff
-          fi
-
-          python3 - <<'PY'
-          from pathlib import Path
-
-          p = Path("pr.diff")
-          text = p.read_text(encoding="utf-8", errors="ignore")
-
-          limit = 120000
-          if len(text) > limit:
-              text = text[:limit] + "\n\n[TRUNCATED]"
-          p.write_text(text, encoding="utf-8")
-          PY
-
-      - name: Ask Gemini for review
-        env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        shell: bash
-        run: |
-          python3 - <<'PY'
-          import json
-          from pathlib import Path
-
-          diff_text = Path("pr.diff").read_text(encoding="utf-8", errors="ignore")
-
-          prompt_lines = [
-              "You are a senior software engineer reviewing a GitHub pull request.",
-              "",
-              "Review the diff and return:",
-              "1. A short summary",
-              "2. Critical issues",
-              "3. Improvement suggestions",
-              "4. A final verdict",
-              "",
-              "Rules:",
-              "- Be concrete and reference actual changed code patterns from the diff.",
-              "- Focus on bugs, security, performance, readability, and maintainability.",
-              "- If there are no serious issues, say so clearly.",
-              "- Keep the review concise but useful.",
-              "- Format in Markdown.",
-              "- The entire response MUST be written in Korean.",
-              "",
-              "PR diff:",
-              "```diff",
-              diff_text,
-              "```",
-          ]
-          prompt = "\n".join(prompt_lines)
-
-          body = {
-              "contents": [
-                  {
-                      "parts": [
-                          {"text": prompt}
-                      ]
-                  }
-              ]
-          }
-
-          Path("gemini_request.json").write_text(
-              json.dumps(body, ensure_ascii=False),
-              encoding="utf-8"
-          )
-          PY
-
-          MAX_RETRIES=4
-          BASE_DELAY=10
-          HTTP_STATUS=0
-
-          for attempt in $(seq 1 $MAX_RETRIES); do
-            echo "Gemini request attempt $attempt/$MAX_RETRIES"
-
-            HTTP_STATUS=$(curl -sS -o gemini_response.json -w "%{http_code}" \
-              -X POST \
-              "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent" \
-              -H "Content-Type: application/json" \
-              -H "x-goog-api-key: ${GEMINI_API_KEY}" \
-              -d @gemini_request.json)
-
-            echo "HTTP_STATUS=$HTTP_STATUS"
-            cat gemini_response.json || true
-
-            if [ "$HTTP_STATUS" -eq 200 ]; then
-              echo "Gemini request succeeded"
-              break
-            fi
-
-            if [ "$HTTP_STATUS" -eq 429 ] || [ "$HTTP_STATUS" -eq 500 ] || [ "$HTTP_STATUS" -eq 503 ]; then
-              if [ $attempt -lt $MAX_RETRIES ]; then
-                DELAY=$((BASE_DELAY * attempt))
-                echo "Temporary API error ($HTTP_STATUS). Retrying in ${DELAY}s..."
-                sleep $DELAY
-              fi
-            else
-              echo "Non-retryable error: HTTP_STATUS=$HTTP_STATUS"
-              exit 1
-            fi
-          done
-
-          if [ "$HTTP_STATUS" -ne 200 ]; then
-            echo "Gemini API request failed after retries"
-
-            cat > review.md <<'EOF'
-          ## Gemini 코드 리뷰
-
-          <!-- gemini-review-bot -->
-
-          현재 Gemini API의 일시적인 장애 또는 과부하로 인해 자동 코드 리뷰를 생성하지 못했습니다.
-
-          - 원인: Gemini API 응답 실패
-          - 조치: GitHub Actions에서 job 재실행 필요
-          - 참고: 일시적인 503/429 오류는 재시도 시 복구되는 경우가 많습니다.
-          EOF
-
-            exit 0
-          fi
-
-          python3 - <<'PY'
-          import json
-          from pathlib import Path
-
-          raw = Path("gemini_response.json").read_text(encoding="utf-8")
-          data = json.loads(raw)
-
-          text = None
-          try:
-              parts = data["candidates"][0]["content"]["parts"]
-              text = "".join(part.get("text", "") for part in parts).strip()
-          except Exception:
-              pass
-
-          if not text:
-              text = "Gemini 응답을 파싱하지 못했습니다.\n\n```json\n" + json.dumps(data, ensure_ascii=False, indent=2)[:6000] + "\n```"
-
-          final = "## Gemini 코드 리뷰\n\n<!-- gemini-review-bot -->\n\n" + text
-          Path("review.md").write_text(final, encoding="utf-8")
-          PY
-
-      - name: Create or update PR comment
+      - name: Run Gemini Review
+        id: gemini_review
         uses: actions/github-script@v7
         with:
           script: |
-            const fs = require('fs');
-            const body = fs.readFileSync('review.md', 'utf8');
-            const marker = '<!-- gemini-review-bot -->';
+            const fs = require("fs");
+            const diff_output = fs.readFileSync("diff.txt", "utf8");
 
-            const { data: comments } = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              per_page: 100
+            const { GoogleGenerativeAI } = require("@google/generative-ai");
+            const genAI = new GoogleGenerativeAI("${{ secrets.GEMINI_API_KEY }}");
+            const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+            const prompt = `
+              You are a senior backend software engineer.
+              
+              Your task is to perform a **high-level code review** based on the provided git diff.
+              Although you should analyze the code **class-by-class or file-by-file**,
+              you must still point out important issues within the internal logic of each class.
+            
+              Please focus on the following aspects:
+              - Class and function responsibilities (e.g., SRP violations, overly large methods)
+              - Structure and separation of concerns
+              - Maintainability and performance (e.g., tight coupling, redundant logic)
+              - Security implications (e.g., missing input validation, exposure of sensitive data)
+              - Internal implementation issues (e.g., missing null checks, unclear variable names)
+              
+              **Ignore** the following:
+              - Unnecessary code comments
+              - Styling or formatting issues (e.g., spaces, indentation)
+            
+              **Requirements**:
+              - Write your review in **Korean**
+              - Use **Markdown** format
+              - Clearly mention class or method names where applicable
+              - Do **not** include any intro or outro — just the review content
+  
+            Below is the git diff:
+  
+              <git diff>
+              ${diff_output}
+              </git diff>
+              `;
+  
+            const result = await model.generateContent(prompt);
+            const response = await result.response;
+            const text = response.text();
+            
+            fs.writeFileSync("review_result.txt", text);
+            console.log("Review results saved!");
+
+      - name: Comment on Pull Request
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require("fs");
+            const body = fs.readFileSync("review_result.txt", "utf8");
+            
+            const pr_number = context.payload.pull_request.number;
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number: pr_number,
+              body
             });
-
-            const existing = comments.find(comment =>
-              comment.body && comment.body.includes(marker)
-            );
-
-            if (existing) {
-              await github.rest.issues.updateComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: existing.id,
-                body
-              });
-            } else {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                body
-              });
-            }
