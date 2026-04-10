@@ -94,7 +94,7 @@ jobs:
               diff_text,
               "```",
           ]
-          prompt = "\\n".join(prompt_lines)
+          prompt = "\n".join(prompt_lines)
 
           body = {
               "contents": [
@@ -112,19 +112,56 @@ jobs:
           )
           PY
 
-          HTTP_STATUS=$(curl -sS -o gemini_response.json -w "%{http_code}" \
-            -X POST \
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent" \
-            -H "Content-Type: application/json" \
-            -H "x-goog-api-key: ${GEMINI_API_KEY}" \
-            -d @gemini_request.json)
+          MAX_RETRIES=4
+          BASE_DELAY=10
+          HTTP_STATUS=0
 
-          echo "HTTP_STATUS=$HTTP_STATUS"
-          cat gemini_response.json
+          for attempt in $(seq 1 $MAX_RETRIES); do
+            echo "Gemini request attempt $attempt/$MAX_RETRIES"
+
+            HTTP_STATUS=$(curl -sS -o gemini_response.json -w "%{http_code}" \
+              -X POST \
+              "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent" \
+              -H "Content-Type: application/json" \
+              -H "x-goog-api-key: ${GEMINI_API_KEY}" \
+              -d @gemini_request.json)
+
+            echo "HTTP_STATUS=$HTTP_STATUS"
+            cat gemini_response.json || true
+
+            if [ "$HTTP_STATUS" -eq 200 ]; then
+              echo "Gemini request succeeded"
+              break
+            fi
+
+            if [ "$HTTP_STATUS" -eq 429 ] || [ "$HTTP_STATUS" -eq 500 ] || [ "$HTTP_STATUS" -eq 503 ]; then
+              if [ $attempt -lt $MAX_RETRIES ]; then
+                DELAY=$((BASE_DELAY * attempt))
+                echo "Temporary API error ($HTTP_STATUS). Retrying in ${DELAY}s..."
+                sleep $DELAY
+              fi
+            else
+              echo "Non-retryable error: HTTP_STATUS=$HTTP_STATUS"
+              exit 1
+            fi
+          done
 
           if [ "$HTTP_STATUS" -ne 200 ]; then
-            echo "Gemini API request failed"
-            exit 1
+            echo "Gemini API request failed after retries"
+
+            cat > review.md <<'EOF'
+          ## Gemini 코드 리뷰
+
+          <!-- gemini-review-bot -->
+
+          현재 Gemini API의 일시적인 장애 또는 과부하로 인해 자동 코드 리뷰를 생성하지 못했습니다.
+
+          - 원인: Gemini API 응답 실패
+          - 조치: GitHub Actions에서 job 재실행 필요
+          - 참고: 일시적인 503/429 오류는 재시도 시 복구되는 경우가 많습니다.
+          EOF
+
+            exit 0
           fi
 
           python3 - <<'PY'
