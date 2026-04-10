@@ -48,7 +48,7 @@ struct BottomDockView: View {
                         .foregroundStyle(Color.gray5)
                 }
                 .frame(width: 56, height: 56)
-                .padding(.bottom, 4)    //
+                .padding(.bottom, 4)
                 .overlay(
                     Circle()
                         .stroke(Color.white.opacity(0.14), lineWidth: 1)
