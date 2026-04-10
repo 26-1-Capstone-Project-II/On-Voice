@@ -72,7 +72,7 @@ jobs:
 
           diff_text = Path("pr.diff").read_text(encoding="utf-8", errors="ignore")
 
-          system_prompt = (
+          instructions = (
               "You are a senior software engineer reviewing a GitHub pull request. "
               "Focus on bugs, regressions, security, performance, maintainability, "
               "and missing tests. Be concrete. The entire response must be written in Korean."
@@ -99,20 +99,8 @@ jobs:
 
           body = {
               "model": "gpt-5.4-mini",
-              "input": [
-                  {
-                      "role": "system",
-                      "content": [
-                          {"type": "input_text", "text": system_prompt}
-                      ],
-                  },
-                  {
-                      "role": "user",
-                      "content": [
-                          {"type": "input_text", "text": user_prompt}
-                      ],
-                  },
-              ],
+              "instructions": instructions,
+              "input": user_prompt,
           }
 
           Path("openai_request.json").write_text(
@@ -121,18 +109,63 @@ jobs:
           )
           PY
 
-          HTTP_STATUS=$(curl -sS -o openai_response.json -w "%{http_code}" \
-            -X POST "https://api.openai.com/v1/responses" \
-            -H "Content-Type: application/json" \
-            -H "Authorization: Bearer ${OPENAI_API_KEY}" \
-            -d @openai_request.json)
+          MAX_RETRIES=4
+          BASE_DELAY=10
+          HTTP_STATUS=0
 
-          echo "HTTP_STATUS=$HTTP_STATUS"
-          cat openai_response.json
+          for attempt in $(seq 1 $MAX_RETRIES); do
+            echo "OpenAI request attempt $attempt/$MAX_RETRIES"
+
+            HTTP_STATUS=$(curl -sS -o openai_response.json -w "%{http_code}" \
+              -X POST "https://api.openai.com/v1/responses" \
+              -H "Content-Type: application/json" \
+              -H "Authorization: Bearer ${OPENAI_API_KEY}" \
+              -d @openai_request.json)
+
+            echo "HTTP_STATUS=$HTTP_STATUS"
+            cat openai_response.json || true
+
+            if [ "$HTTP_STATUS" -eq 200 ]; then
+              echo "OpenAI request succeeded"
+              break
+            fi
+
+            if [ "$HTTP_STATUS" -eq 429 ] || [ "$HTTP_STATUS" -eq 500 ] || [ "$HTTP_STATUS" -eq 502 ] || [ "$HTTP_STATUS" -eq 503 ] || [ "$HTTP_STATUS" -eq 504 ]; then
+              if [ $attempt -lt $MAX_RETRIES ]; then
+                DELAY=$((BASE_DELAY * attempt))
+                echo "Temporary API error ($HTTP_STATUS). Retrying in ${DELAY}s..."
+                sleep $DELAY
+              fi
+            else
+              echo "Non-retryable error: HTTP_STATUS=$HTTP_STATUS"
+              break
+            fi
+          done
 
           if [ "$HTTP_STATUS" -ne 200 ]; then
-            echo "OpenAI API request failed"
-            exit 1
+            python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          raw = Path("openai_response.json").read_text(encoding="utf-8", errors="ignore") if Path("openai_response.json").exists() else ""
+          detail = raw[:2000] if raw else "No response body"
+
+          text = (
+              "OpenAI API가 일시적으로 응답하지 않아 자동 코드 리뷰를 생성하지 못했습니다.\n\n"
+              "- 원인: OpenAI API 요청 실패\n"
+              "- 조치: GitHub Actions에서 job 재실행 필요\n"
+              "- 참고: 일시적인 429/5xx 오류는 재시도 시 복구되는 경우가 많습니다.\n\n"
+              "<details><summary>오류 상세</summary>\n\n"
+              "```text\n"
+              + detail
+              + "\n```\n"
+              "</details>"
+          )
+
+          final = "## OpenAI 코드 리뷰\n\n<!-- openai-review-bot -->\n\n" + text
+          Path("review.md").write_text(final, encoding="utf-8")
+          PY
+            exit 0
           fi
 
           python3 - <<'PY'
@@ -142,20 +175,20 @@ jobs:
           raw = Path("openai_response.json").read_text(encoding="utf-8")
           data = json.loads(raw)
 
-          text = data.get("output_text")
+          pieces = []
+          for item in data.get("output", []):
+              if item.get("type") != "message":
+                  continue
+              for content in item.get("content", []):
+                  if content.get("type") == "output_text":
+                      pieces.append(content.get("text", ""))
 
-          if not text:
-              pieces = []
-              for item in data.get("output", []):
-                  for content in item.get("content", []):
-                      if content.get("type") == "output_text":
-                          pieces.append(content.get("text", ""))
-              text = "\n".join(piece for piece in pieces if piece).strip()
+          text = "\n".join(piece for piece in pieces if piece).strip()
 
           if not text:
               text = (
                   "OpenAI 응답을 파싱하지 못했습니다.\n\n```json\n"
-                  + json.dumps(data, ensure_ascii=False, indent=2)[:6000]
+                  + json.dumps(data, ensure_ascii=False, indent=2)[:3000]
                   + "\n```"
               )
 
@@ -164,6 +197,7 @@ jobs:
           PY
 
       - name: Create or update PR comment
+        if: always()
         uses: actions/github-script@v7
         with:
           script: |
