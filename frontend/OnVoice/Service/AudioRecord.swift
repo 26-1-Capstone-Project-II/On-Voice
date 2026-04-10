@@ -9,7 +9,7 @@ import Foundation
 import AVFoundation
 import SwiftData
 
-struct Recording: Identifiable {
+struct Recording: Identifiable, Hashable {
     let id = UUID()
     let fileURL: URL
     let createdAt: Date
