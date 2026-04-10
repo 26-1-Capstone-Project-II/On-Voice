@@ -175,13 +175,32 @@ jobs:
           raw = Path("openai_response.json").read_text(encoding="utf-8")
           data = json.loads(raw)
 
+          def collect_output_text(node, pieces):
+              if isinstance(node, dict):
+                  node_type = node.get("type")
+
+                  if node_type == "output_text" and isinstance(node.get("text"), str):
+                      pieces.append(node["text"])
+
+                  if node_type == "message":
+                      collect_output_text(node.get("content", []), pieces)
+
+                  if isinstance(node.get("output_text"), str):
+                      pieces.append(node["output_text"])
+
+                  if isinstance(node.get("text"), str) and node_type in {"text", "input_text"}:
+                      pieces.append(node["text"])
+
+                  for value in node.values():
+                      if isinstance(value, (dict, list)):
+                          collect_output_text(value, pieces)
+
+              elif isinstance(node, list):
+                  for item in node:
+                      collect_output_text(item, pieces)
+
           pieces = []
-          for item in data.get("output", []):
-              if item.get("type") != "message":
-                  continue
-              for content in item.get("content", []):
-                  if content.get("type") == "output_text":
-                      pieces.append(content.get("text", ""))
+          collect_output_text(data.get("output", []), pieces)
 
           text = "\n".join(piece for piece in pieces if piece).strip()
 
