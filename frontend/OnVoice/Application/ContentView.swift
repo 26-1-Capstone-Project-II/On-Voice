@@ -4,28 +4,28 @@
 //
 import SwiftUI
 
+enum OnVoiceTab {
+    case home
+    case library
+}
+
 struct ContentView: View {
-    @EnvironmentObject var recorder: AudioRecorder
-    
+    @State private var selectedTab: OnVoiceTab = .home
+
     var body: some View {
-        ZStack {
-            TabView{
-                Tab("홈", systemImage: "house.fill") {HomeView()}
-                Tab("모아보기", systemImage: "square.grid.2x2") {}
-                Tab("설정", systemImage: "person") {}
+        Group {
+            switch selectedTab {
+            case .home:
+                HomeView(selectedTab: $selectedTab)
+            case .library:
+                LibraryView(selectedTab: $selectedTab)
             }
-            .background(Color.suBlack)
-            .tint(Color.point)
-            .onAppear {
-                UITabBar.appearance().unselectedItemTintColor = .suGray4
-                UITabBar.appearance().barTintColor = .suGray9
-                UITabBar.appearance().backgroundColor = .suGray9
-            }
-        }.background(Color.suBlack)
+        }
+        .background(Color.bg)
     }
 }
 
-
 #Preview {
     ContentView()
+        .environmentObject(AudioRecorder())
 }
