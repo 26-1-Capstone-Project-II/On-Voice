@@ -10,10 +10,13 @@ import AVFoundation
 import SwiftData
 
 struct Recording: Identifiable, Hashable {
-    let id = UUID()
     let fileURL: URL
     let createdAt: Date
     let duration: TimeInterval
+
+    var id: URL {
+        fileURL.standardizedFileURL
+    }
     
     var title: String {
         return fileURL.deletingPathExtension().lastPathComponent

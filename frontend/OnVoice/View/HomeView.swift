@@ -21,7 +21,7 @@ struct HomeView: View {
 
     var body: some View {
         NavigationStack {
-            ZStack(alignment: .bottom) {
+            ZStack {
                 Color.bg.ignoresSafeArea()
 
                 VStack(spacing: 0) {
@@ -34,40 +34,47 @@ struct HomeView: View {
                         Text("기록")
                             .onVoiceTextStyle(.body2, color: .sub)
                             .padding(.top, 18)
-                        if displayedRecordings.isEmpty {
-                            VStack(spacing: 0) {
-                                EmptyRecordView()
-                                    .padding(.top, 88)
-                                Spacer()
-                            }
-                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                        } else {
-                            ScrollView(showsIndicators: false) {
-                                VStack(spacing: 16) {
-                                    ForEach(displayedRecordings, id: \.recording.id) { item in
-                                        RecordingRowView(
-                                            title: "새로운 대화 기록 (\(item.index))",
-                                            subtitle: "\(item.recording.formattedDate) • \(item.recording.formattedDuration)",
-                                            onTap: {
-                                                selectedRecording = item.recording
-                                            }
-                                        )
-                                    }
+                        GeometryReader { proxy in
+                            if displayedRecordings.isEmpty {
+                                ScrollView(showsIndicators: false) {
+                                    EmptyRecordView()
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.top, 88)
+                                        .padding(.bottom, 132)
+                                        .frame(minHeight: proxy.size.height, alignment: .top)
                                 }
-                                .padding(.top, 8)
-                                .padding(.bottom, 132)
+                                .scrollBounceBehavior(.basedOnSize)
+                                .padding(.top, 18)
+                            } else {
+                                ScrollView(showsIndicators: false) {
+                                    VStack(spacing: 16) {
+                                        ForEach(displayedRecordings, id: \.recording.id) { item in
+                                            RecordingRowView(
+                                                title: "새로운 대화 기록 (\(item.index))",
+                                                subtitle: "\(item.recording.formattedDate) • \(item.recording.formattedDuration)",
+                                                onTap: {
+                                                    selectedRecording = item.recording
+                                                }
+                                            )
+                                        }
+                                    }
+                                    .padding(.top, 8)
+                                    .padding(.bottom, 132)
+                                }
+                                .padding(.top, 18)
                             }
-                            .padding(.top, 18)
                         }
                     }
                     .padding(.horizontal, 18)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 }
-
+            }
+            .safeAreaInset(edge: .bottom, spacing: 0) {
                 BottomDockView(
                     selectedTab: $selectedTab,
                     onAddTap: { isShowingSituationRecognition = true }
                 )
+                .padding(.top, 12)
             }
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(isPresented: $isShowingSituationRecognition) {

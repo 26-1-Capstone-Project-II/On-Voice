@@ -11,7 +11,7 @@ struct LibraryView: View {
 
     var body: some View {
         NavigationStack {
-            ZStack(alignment: .bottom) {
+            ZStack {
                 Color.bg.ignoresSafeArea()
 
                 VStack(alignment: .leading, spacing: 18) {
@@ -32,11 +32,13 @@ struct LibraryView: View {
 
                     Spacer()
                 }
-
+            }
+            .safeAreaInset(edge: .bottom, spacing: 0) {
                 BottomDockView(
                     selectedTab: $selectedTab,
                     onAddTap: { isShowingSituationRecognition = true }
                 )
+                .padding(.top, 12)
             }
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(isPresented: $isShowingSituationRecognition) {
