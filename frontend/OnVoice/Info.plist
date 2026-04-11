@@ -3,9 +3,9 @@
 <plist version="1.0">
 <dict>
 	<key>NSMicrophoneUsageDescription</key>
-	<string></string>
+	<string>음성 녹음을 위해 마이크 접근 권한이 필요합니다.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
-	<string></string>
+	<string>음성 내용을 분석하기 위해 음성 인식 권한이 필요합니다.</string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>Pretendard-Bold.otf</string>
@@ -13,7 +13,5 @@
 		<string>Pretendard-Medium.otf</string>
 		<string>Pretendard-Regular.otf</string>
 	</array>
-	<key>CFBundleIdentifier</key>
-	<string></string>
 </dict>
 </plist>

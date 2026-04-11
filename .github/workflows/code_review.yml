@@ -175,15 +175,44 @@ jobs:
           raw = Path("openai_response.json").read_text(encoding="utf-8")
           data = json.loads(raw)
 
-          pieces = []
-          for item in data.get("output", []):
-              if item.get("type") != "message":
-                  continue
-              for content in item.get("content", []):
-                  if content.get("type") == "output_text":
-                      pieces.append(content.get("text", ""))
+          def append_piece(piece, pieces, seen):
+              if isinstance(piece, str):
+                  normalized = piece.strip()
+                  if normalized and normalized not in seen:
+                      seen.add(normalized)
+                      pieces.append(normalized)
 
-          text = "\n".join(piece for piece in pieces if piece).strip()
+          def collect_output_text(node, pieces, seen):
+              if isinstance(node, dict):
+                  node_type = node.get("type")
+
+                  if node_type == "output_text":
+                      append_piece(node.get("text"), pieces, seen)
+
+                  if node_type in {"text", "input_text"}:
+                      append_piece(node.get("text"), pieces, seen)
+
+                  append_piece(node.get("output_text"), pieces, seen)
+
+                  message_content = node.get("content")
+                  if node_type == "message" and isinstance(message_content, list):
+                      collect_output_text(message_content, pieces, seen)
+
+                  for key, value in node.items():
+                      if key == "content" and node_type == "message":
+                          continue
+                      if isinstance(value, (dict, list)):
+                          collect_output_text(value, pieces, seen)
+
+              elif isinstance(node, list):
+                  for item in node:
+                      collect_output_text(item, pieces, seen)
+
+          pieces = []
+          seen = set()
+          collect_output_text(data.get("output", []), pieces, seen)
+
+          text = "\n".join(pieces).strip()
 
           if not text:
               text = (
