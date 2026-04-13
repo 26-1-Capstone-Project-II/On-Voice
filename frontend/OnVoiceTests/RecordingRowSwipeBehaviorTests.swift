@@ -56,9 +56,9 @@ final class RecordingRowSwipeBehaviorTests: XCTestCase {
         )
     }
 
-    func testTargetOpenedRowIDOpensOnlyPastHalfThreshold() {
+    func testResolvedOpenedRowIDOpensOnlyPastHalfThreshold() {
         XCTAssertEqual(
-            RecordingRowSwipeBehavior.targetOpenedRowID(
+            RecordingRowSwipeBehavior.resolvedOpenedRowID(
                 for: -90,
                 rowID: rowID,
                 revealWidth: revealWidth
@@ -67,8 +67,18 @@ final class RecordingRowSwipeBehaviorTests: XCTestCase {
         )
 
         XCTAssertNil(
-            RecordingRowSwipeBehavior.targetOpenedRowID(
+            RecordingRowSwipeBehavior.resolvedOpenedRowID(
                 for: -(revealWidth / 2),
+                rowID: rowID,
+                revealWidth: revealWidth
+            )
+        )
+    }
+
+    func testResolvedOpenedRowIDClosesWhenDragReturnsPastThreshold() {
+        XCTAssertNil(
+            RecordingRowSwipeBehavior.resolvedOpenedRowID(
+                for: -40,
                 rowID: rowID,
                 revealWidth: revealWidth
             )
@@ -89,7 +99,7 @@ final class RecordingRowSwipeBehaviorTests: XCTestCase {
 
         XCTAssertEqual(finalOffset, -100)
         XCTAssertEqual(
-            RecordingRowSwipeBehavior.targetOpenedRowID(
+            RecordingRowSwipeBehavior.resolvedOpenedRowID(
                 for: finalOffset,
                 rowID: rowID,
                 revealWidth: revealWidth

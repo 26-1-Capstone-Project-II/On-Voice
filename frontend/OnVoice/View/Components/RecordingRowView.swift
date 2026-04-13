@@ -22,12 +22,14 @@ enum RecordingRowSwipeBehavior {
         min(0, max(-revealWidth, baseOffset + translation))
     }
 
-    static func targetOpenedRowID(
-        for currentOffset: CGFloat,
+    static func resolvedOpenedRowID(
+        for finalOffset: CGFloat,
         rowID: Recording.ID,
         revealWidth: CGFloat
     ) -> Recording.ID? {
-        currentOffset < -revealWidth / 2 ? rowID : nil
+        // `finalOffset` already reflects the row's baseline state plus the completed drag.
+        // Past halfway, we snap open this row; otherwise we resolve to the fully closed state.
+        finalOffset < -revealWidth / 2 ? rowID : nil
     }
 }
 
@@ -159,7 +161,7 @@ struct RecordingRowView: View {
                     translation: value.translation.width,
                     revealWidth: revealWidth
                 )
-                let targetRowID = RecordingRowSwipeBehavior.targetOpenedRowID(
+                let targetRowID = RecordingRowSwipeBehavior.resolvedOpenedRowID(
                     for: finalOffset,
                     rowID: id,
                     revealWidth: revealWidth

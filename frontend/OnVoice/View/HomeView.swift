@@ -94,16 +94,18 @@ struct HomeView: View {
                     resetSwipeState()
                 }
             }
-            .onChange(of: selectedRecording) { recording in
-                if recording != nil {
-                    resetSwipeState()
-                }
+            .onChange(of: selectedRecording) { _ in
+                resetSwipeState()
             }
         }
     }
 
     private func resetSwipeState() {
-        openedRowID = nil
+        guard openedRowID != nil else { return }
+
+        withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
+            openedRowID = nil
+        }
     }
 
     private func todayDateString() -> String {
