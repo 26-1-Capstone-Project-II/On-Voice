@@ -6,6 +6,8 @@
 import SwiftUI
 
 enum RecordingRowSwipeBehavior {
+    static let snapAnimation = Animation.spring(response: 0.28, dampingFraction: 0.82)
+
     static func baseOffset(
         for openedRowID: Recording.ID?,
         rowID: Recording.ID,
@@ -42,7 +44,7 @@ struct RecordingRowView: View {
 
     @GestureState(
         resetTransaction: Transaction(
-            animation: .spring(response: 0.28, dampingFraction: 0.82)
+            animation: RecordingRowSwipeBehavior.snapAnimation
         )
     )
     private var dragTranslation: CGFloat = 0
@@ -58,7 +60,7 @@ struct RecordingRowView: View {
                 .gesture(dragGesture)
                 .onTapGesture {
                     if isOpened {
-                        withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
+                        withAnimation(RecordingRowSwipeBehavior.snapAnimation) {
                             openedRowID = nil
                         }
                     } else {
@@ -168,7 +170,7 @@ struct RecordingRowView: View {
                 )
 
                 if targetRowID != openedRowID {
-                    withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
+                    withAnimation(RecordingRowSwipeBehavior.snapAnimation) {
                         openedRowID = targetRowID
                     }
                 }

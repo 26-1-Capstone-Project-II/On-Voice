@@ -87,23 +87,23 @@ struct HomeView: View {
                 AnalysisSummaryView(recording: recording)
             }
             .onChange(of: selectedTab) { _ in
-                resetSwipeState()
+                closeOpenedRowIfNeeded()
             }
             .onChange(of: isShowingSituationRecognition) { isPresented in
                 if isPresented {
-                    resetSwipeState()
+                    closeOpenedRowIfNeeded()
                 }
             }
             .onChange(of: selectedRecording) { _ in
-                resetSwipeState()
+                closeOpenedRowIfNeeded()
             }
         }
     }
 
-    private func resetSwipeState() {
+    private func closeOpenedRowIfNeeded() {
         guard openedRowID != nil else { return }
 
-        withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
+        withAnimation(RecordingRowSwipeBehavior.snapAnimation) {
             openedRowID = nil
         }
     }
