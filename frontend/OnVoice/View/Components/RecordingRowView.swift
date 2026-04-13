@@ -5,6 +5,32 @@
 
 import SwiftUI
 
+enum RecordingRowSwipeBehavior {
+    static func baseOffset(
+        for openedRowID: Recording.ID?,
+        rowID: Recording.ID,
+        revealWidth: CGFloat
+    ) -> CGFloat {
+        openedRowID == rowID ? -revealWidth : 0
+    }
+
+    static func clampedOffset(
+        baseOffset: CGFloat,
+        translation: CGFloat,
+        revealWidth: CGFloat
+    ) -> CGFloat {
+        min(0, max(-revealWidth, baseOffset + translation))
+    }
+
+    static func targetOpenedRowID(
+        for currentOffset: CGFloat,
+        rowID: Recording.ID,
+        revealWidth: CGFloat
+    ) -> Recording.ID? {
+        currentOffset < -revealWidth / 2 ? rowID : nil
+    }
+}
+
 struct RecordingRowView: View {
     let id: Recording.ID
     let title: String
@@ -12,8 +38,12 @@ struct RecordingRowView: View {
     @Binding var openedRowID: Recording.ID?
     let onTap: () -> Void
 
-    @State private var restingOffset: CGFloat = 0
-    @GestureState private var dragTranslation: CGFloat = 0
+    @GestureState(
+        resetTransaction: Transaction(
+            animation: .spring(response: 0.28, dampingFraction: 0.82)
+        )
+    )
+    private var dragTranslation: CGFloat = 0
 
     private let revealWidth: CGFloat = 148
 
@@ -24,14 +54,6 @@ struct RecordingRowView: View {
             cardContent
                 .offset(x: currentOffset)
                 .gesture(dragGesture)
-                .onAppear {
-                    restingOffset = targetOffset(for: openedRowID)
-                }
-                .onChange(of: openedRowID) { newValue in
-                    withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
-                        restingOffset = targetOffset(for: newValue)
-                    }
-                }
                 .onTapGesture {
                     if isOpened {
                         withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
@@ -47,8 +69,19 @@ struct RecordingRowView: View {
     }
 
     private var currentOffset: CGFloat {
-        let proposedOffset = restingOffset + dragTranslation
-        return min(0, max(-revealWidth, proposedOffset))
+        RecordingRowSwipeBehavior.clampedOffset(
+            baseOffset: baseOffset,
+            translation: dragTranslation,
+            revealWidth: revealWidth
+        )
+    }
+
+    private var baseOffset: CGFloat {
+        RecordingRowSwipeBehavior.baseOffset(
+            for: openedRowID,
+            rowID: id,
+            revealWidth: revealWidth
+        )
     }
 
     private var isOpened: Bool {
@@ -118,37 +151,26 @@ struct RecordingRowView: View {
     private var dragGesture: some Gesture {
         DragGesture(minimumDistance: 10)
             .updating($dragTranslation) { value, state, _ in
-                if value.translation.width < 0, openedRowID != nil, openedRowID != id {
-                    var transaction = Transaction()
-                    transaction.disablesAnimations = true
-                    withTransaction(transaction) {
-                        openedRowID = nil
-                    }
-                }
                 state = value.translation.width
             }
             .onEnded { value in
-                let current = min(0, max(-revealWidth, restingOffset + value.translation.width))
-                let targetRowID: Recording.ID? = current < -revealWidth / 2 ? id : nil
+                let finalOffset = RecordingRowSwipeBehavior.clampedOffset(
+                    baseOffset: baseOffset,
+                    translation: value.translation.width,
+                    revealWidth: revealWidth
+                )
+                let targetRowID = RecordingRowSwipeBehavior.targetOpenedRowID(
+                    for: finalOffset,
+                    rowID: id,
+                    revealWidth: revealWidth
+                )
 
-                var transaction = Transaction()
-                transaction.disablesAnimations = true
-                withTransaction(transaction) {
-                    restingOffset = current
-                }
-
-                if targetRowID == openedRowID {
+                if targetRowID != openedRowID {
                     withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
-                        restingOffset = targetOffset(for: targetRowID)
+                        openedRowID = targetRowID
                     }
-                } else {
-                    openedRowID = targetRowID
                 }
             }
-    }
-
-    private func targetOffset(for rowID: Recording.ID?) -> CGFloat {
-        rowID == id ? -revealWidth : 0
     }
 }
 

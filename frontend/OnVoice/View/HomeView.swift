@@ -86,12 +86,6 @@ struct HomeView: View {
             .navigationDestination(item: $selectedRecording) { recording in
                 AnalysisSummaryView(recording: recording)
             }
-            .onAppear {
-                resetSwipeState()
-            }
-            .onDisappear {
-                resetSwipeState()
-            }
             .onChange(of: selectedTab) { _ in
                 resetSwipeState()
             }
