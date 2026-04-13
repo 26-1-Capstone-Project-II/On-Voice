@@ -6,12 +6,14 @@
 import SwiftUI
 
 struct RecordingRowView: View {
+    let id: Recording.ID
     let title: String
     let subtitle: String
+    @Binding var openedRowID: Recording.ID?
     let onTap: () -> Void
 
-    @State private var offset: CGFloat = 0
-    @State private var dragOffset: CGFloat = 0
+    @State private var restingOffset: CGFloat = 0
+    @GestureState private var dragTranslation: CGFloat = 0
 
     private let revealWidth: CGFloat = 148
 
@@ -22,10 +24,18 @@ struct RecordingRowView: View {
             cardContent
                 .offset(x: currentOffset)
                 .gesture(dragGesture)
+                .onAppear {
+                    restingOffset = targetOffset(for: openedRowID)
+                }
+                .onChange(of: openedRowID) { newValue in
+                    withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
+                        restingOffset = targetOffset(for: newValue)
+                    }
+                }
                 .onTapGesture {
-                    if offset < -12 {
+                    if isOpened {
                         withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
-                            offset = 0
+                            openedRowID = nil
                         }
                     } else {
                         onTap()
@@ -37,8 +47,12 @@ struct RecordingRowView: View {
     }
 
     private var currentOffset: CGFloat {
-        let proposedOffset = offset + dragOffset
+        let proposedOffset = restingOffset + dragTranslation
         return min(0, max(-revealWidth, proposedOffset))
+    }
+
+    private var isOpened: Bool {
+        openedRowID == id
     }
 
     private var cardContent: some View {
@@ -103,34 +117,47 @@ struct RecordingRowView: View {
 
     private var dragGesture: some Gesture {
         DragGesture(minimumDistance: 10)
-            .onChanged { value in
-                dragOffset = value.translation.width
+            .updating($dragTranslation) { value, state, _ in
+                if value.translation.width < 0, openedRowID != nil, openedRowID != id {
+                    var transaction = Transaction()
+                    transaction.disablesAnimations = true
+                    withTransaction(transaction) {
+                        openedRowID = nil
+                    }
+                }
+                state = value.translation.width
             }
             .onEnded { value in
-                let current = min(0, max(-revealWidth, offset + value.translation.width))
+                let current = min(0, max(-revealWidth, restingOffset + value.translation.width))
+                let targetRowID: Recording.ID? = current < -revealWidth / 2 ? id : nil
 
                 var transaction = Transaction()
                 transaction.disablesAnimations = true
                 withTransaction(transaction) {
-                    offset = current
-                    dragOffset = 0
+                    restingOffset = current
                 }
 
-                withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
-                    if current < -revealWidth / 2 {
-                        offset = -revealWidth
-                    } else {
-                        offset = 0
+                if targetRowID == openedRowID {
+                    withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
+                        restingOffset = targetOffset(for: targetRowID)
                     }
+                } else {
+                    openedRowID = targetRowID
                 }
             }
+    }
+
+    private func targetOffset(for rowID: Recording.ID?) -> CGFloat {
+        rowID == id ? -revealWidth : 0
     }
 }
 
 #Preview {
     RecordingRowView(
+        id: URL(fileURLWithPath: "/tmp/preview.m4a"),
         title: "새로운 대화 기록 (4)",
         subtitle: "2026년 9월 2일 오후 6시 42분 • 49초",
+        openedRowID: .constant(nil),
         onTap: {}
     )
     .padding()

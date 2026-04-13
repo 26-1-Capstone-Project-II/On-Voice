@@ -12,6 +12,7 @@ struct HomeView: View {
     @Binding var selectedTab: OnVoiceTab
     @State private var isShowingSituationRecognition = false
     @State private var selectedRecording: Recording?
+    @State private var openedRowID: Recording.ID?
 
     private var displayedRecordings: [(index: Int, recording: Recording)] {
         Array(recorder.recordings.reversed().enumerated()).map { offset, recording in
@@ -50,8 +51,10 @@ struct HomeView: View {
                                     VStack(spacing: 16) {
                                         ForEach(displayedRecordings, id: \.recording.id) { item in
                                             RecordingRowView(
+                                                id: item.recording.id,
                                                 title: "새로운 대화 기록 (\(item.index))",
                                                 subtitle: "\(item.recording.formattedDate) • \(item.recording.formattedDuration)",
+                                                openedRowID: $openedRowID,
                                                 onTap: {
                                                     selectedRecording = item.recording
                                                 }
@@ -83,7 +86,30 @@ struct HomeView: View {
             .navigationDestination(item: $selectedRecording) { recording in
                 AnalysisSummaryView(recording: recording)
             }
+            .onAppear {
+                resetSwipeState()
+            }
+            .onDisappear {
+                resetSwipeState()
+            }
+            .onChange(of: selectedTab) { _ in
+                resetSwipeState()
+            }
+            .onChange(of: isShowingSituationRecognition) { isPresented in
+                if isPresented {
+                    resetSwipeState()
+                }
+            }
+            .onChange(of: selectedRecording) { recording in
+                if recording != nil {
+                    resetSwipeState()
+                }
+            }
         }
+    }
+
+    private func resetSwipeState() {
+        openedRowID = nil
     }
 
     private func todayDateString() -> String {
