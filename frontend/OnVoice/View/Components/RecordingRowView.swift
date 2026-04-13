@@ -5,13 +5,49 @@
 
 import SwiftUI
 
+enum RecordingRowSwipeBehavior {
+    static let snapAnimation = Animation.spring(response: 0.28, dampingFraction: 0.82)
+
+    static func baseOffset(
+        for openedRowID: Recording.ID?,
+        rowID: Recording.ID,
+        revealWidth: CGFloat
+    ) -> CGFloat {
+        openedRowID == rowID ? -revealWidth : 0
+    }
+
+    static func clampedOffset(
+        baseOffset: CGFloat,
+        translation: CGFloat,
+        revealWidth: CGFloat
+    ) -> CGFloat {
+        min(0, max(-revealWidth, baseOffset + translation))
+    }
+
+    static func resolvedOpenedRowID(
+        for finalOffset: CGFloat,
+        rowID: Recording.ID,
+        revealWidth: CGFloat
+    ) -> Recording.ID? {
+        // `finalOffset` already reflects the row's baseline state plus the completed drag.
+        // Past halfway, we snap open this row; otherwise we resolve to the fully closed state.
+        finalOffset < -revealWidth / 2 ? rowID : nil
+    }
+}
+
 struct RecordingRowView: View {
+    let id: Recording.ID
     let title: String
     let subtitle: String
+    @Binding var openedRowID: Recording.ID?
     let onTap: () -> Void
 
-    @State private var offset: CGFloat = 0
-    @State private var dragOffset: CGFloat = 0
+    @GestureState(
+        resetTransaction: Transaction(
+            animation: RecordingRowSwipeBehavior.snapAnimation
+        )
+    )
+    private var dragTranslation: CGFloat = 0
 
     private let revealWidth: CGFloat = 148
 
@@ -23,9 +59,9 @@ struct RecordingRowView: View {
                 .offset(x: currentOffset)
                 .gesture(dragGesture)
                 .onTapGesture {
-                    if offset < -12 {
-                        withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
-                            offset = 0
+                    if isOpened {
+                        withAnimation(RecordingRowSwipeBehavior.snapAnimation) {
+                            openedRowID = nil
                         }
                     } else {
                         onTap()
@@ -37,8 +73,23 @@ struct RecordingRowView: View {
     }
 
     private var currentOffset: CGFloat {
-        let proposedOffset = offset + dragOffset
-        return min(0, max(-revealWidth, proposedOffset))
+        RecordingRowSwipeBehavior.clampedOffset(
+            baseOffset: baseOffset,
+            translation: dragTranslation,
+            revealWidth: revealWidth
+        )
+    }
+
+    private var baseOffset: CGFloat {
+        RecordingRowSwipeBehavior.baseOffset(
+            for: openedRowID,
+            rowID: id,
+            revealWidth: revealWidth
+        )
+    }
+
+    private var isOpened: Bool {
+        openedRowID == id
     }
 
     private var cardContent: some View {
@@ -103,24 +154,24 @@ struct RecordingRowView: View {
 
     private var dragGesture: some Gesture {
         DragGesture(minimumDistance: 10)
-            .onChanged { value in
-                dragOffset = value.translation.width
+            .updating($dragTranslation) { value, state, _ in
+                state = value.translation.width
             }
             .onEnded { value in
-                let current = min(0, max(-revealWidth, offset + value.translation.width))
+                let finalOffset = RecordingRowSwipeBehavior.clampedOffset(
+                    baseOffset: baseOffset,
+                    translation: value.translation.width,
+                    revealWidth: revealWidth
+                )
+                let targetRowID = RecordingRowSwipeBehavior.resolvedOpenedRowID(
+                    for: finalOffset,
+                    rowID: id,
+                    revealWidth: revealWidth
+                )
 
-                var transaction = Transaction()
-                transaction.disablesAnimations = true
-                withTransaction(transaction) {
-                    offset = current
-                    dragOffset = 0
-                }
-
-                withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
-                    if current < -revealWidth / 2 {
-                        offset = -revealWidth
-                    } else {
-                        offset = 0
+                if targetRowID != openedRowID {
+                    withAnimation(RecordingRowSwipeBehavior.snapAnimation) {
+                        openedRowID = targetRowID
                     }
                 }
             }
@@ -129,8 +180,10 @@ struct RecordingRowView: View {
 
 #Preview {
     RecordingRowView(
+        id: URL(fileURLWithPath: "/tmp/preview.m4a"),
         title: "새로운 대화 기록 (4)",
         subtitle: "2026년 9월 2일 오후 6시 42분 • 49초",
+        openedRowID: .constant(nil),
         onTap: {}
     )
     .padding()

@@ -4,7 +4,7 @@
 //
 import SwiftUI
 
-enum OnVoiceTab {
+enum OnVoiceTab: Equatable {
     case home
     case library
 }
