@@ -84,6 +84,11 @@ struct HomeView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 }
             }
+            .simultaneousGesture(
+                TapGesture().onEnded {
+                    closeOpenedRowIfNeeded()
+                }
+            )
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 BottomDockView(
                     selectedTab: $selectedTab,
