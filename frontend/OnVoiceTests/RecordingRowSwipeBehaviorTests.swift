@@ -259,6 +259,37 @@ final class RecordingRowSwipeBehaviorTests: XCTestCase {
         XCTAssertEqual(librarySections[0].items.map(\.recording.id), [previousLateNight.id])
     }
 
+    func testRecordingListOrganizerPlacesExactThirtyFirstDayIntoMonthlySection() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Asia/Seoul")!
+
+        let now = calendar.date(from: DateComponents(year: 2026, month: 4, day: 14, hour: 12))!
+        let sevenDaysAgo = makeRecording(
+            named: "Recording_20260407_090000",
+            createdAt: calendar.date(from: DateComponents(year: 2026, month: 4, day: 7, hour: 9))!
+        )
+        let thirtyDaysAgo = makeRecording(
+            named: "Recording_20260315_090000",
+            createdAt: calendar.date(from: DateComponents(year: 2026, month: 3, day: 15, hour: 9))!
+        )
+        let thirtyOneDaysAgo = makeRecording(
+            named: "Recording_20260314_090000",
+            createdAt: calendar.date(from: DateComponents(year: 2026, month: 3, day: 14, hour: 9))!
+        )
+
+        let librarySections = withFixedCurrentDate(now) {
+            RecordingListOrganizer.librarySections(
+                from: [thirtyOneDaysAgo, thirtyDaysAgo, sevenDaysAgo],
+                calendar: calendar
+            )
+        }
+
+        XCTAssertEqual(librarySections.map(\.title), ["이전 7일", "이전 30일", "3월"])
+        XCTAssertEqual(librarySections[0].items.map(\.recording.id), [sevenDaysAgo.id])
+        XCTAssertEqual(librarySections[1].items.map(\.recording.id), [thirtyDaysAgo.id])
+        XCTAssertEqual(librarySections[2].items.map(\.recording.id), [thirtyOneDaysAgo.id])
+    }
+
     private func makeRecording(named name: String, createdAt: Date) -> Recording {
         Recording(
             fileURL: URL(fileURLWithPath: "/tmp/\(name).m4a"),

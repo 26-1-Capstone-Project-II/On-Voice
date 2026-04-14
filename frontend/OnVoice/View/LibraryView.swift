@@ -250,8 +250,6 @@ struct LibraryView: View {
 
     private func commitRename() {
         guard let recordingToRename else { return }
-        let sanitizedPendingTitle = AudioRecorder.sanitizedRecordingTitle(from: pendingRecordingTitle)
-        let normalizedCurrentTitle = AudioRecorder.sanitizedRecordingTitle(from: recordingToRename.title)
 
         if recordingToRename.usesGeneratedDefaultTitle,
            pendingRecordingTitle == originalPendingRecordingTitle {
@@ -259,19 +257,8 @@ struct LibraryView: View {
             return
         }
 
-        if sanitizedPendingTitle.isEmpty {
-            clearRenameState()
-            presentMutationError(AudioRecorder.RecordingMutationError.invalidTitle)
-            return
-        }
-
-        if sanitizedPendingTitle == normalizedCurrentTitle {
-            clearRenameState()
-            return
-        }
-
         do {
-            let updatedRecording = try recorder.renameRecording(recordingToRename, to: sanitizedPendingTitle)
+            let updatedRecording = try recorder.renameRecording(recordingToRename, to: pendingRecordingTitle)
             if selectedRecording?.id == recordingToRename.id {
                 selectedRecording = updatedRecording
             }
