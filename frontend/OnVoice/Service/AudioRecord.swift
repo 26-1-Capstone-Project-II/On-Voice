@@ -128,6 +128,11 @@ class AudioRecorder: ObservableObject {
             throw RecordingMutationError.recordingNotFound
         }
 
+        let currentNormalizedTitle = Self.sanitizedRecordingTitle(from: recording.title)
+        if sanitizedTitle == currentNormalizedTitle {
+            return recording
+        }
+
         let destinationURL = uniqueRecordingURL(for: recording, sanitizedTitle: sanitizedTitle)
         guard destinationURL != recording.fileURL else { return recording }
 
