@@ -8,7 +8,10 @@ import SwiftUI
 struct HomeHeaderView: View {
     let title: String
     var showsProfileButton: Bool = true
+    var showsTitleTrailingButton: Bool = false
     private let headerHeight: CGFloat = 152
+    private let titleTopPadding: CGFloat = 70
+    private let titleTrailingButtonTopPadding: CGFloat = 105
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -51,7 +54,20 @@ struct HomeHeaderView: View {
                 Text(title)
                     .onVoiceTextStyle(.head2, color: .sub)
                     .padding(.leading, 18)
-                    .padding(.top, 70)
+                    .padding(.top, titleTopPadding)
+
+                if showsTitleTrailingButton {
+                    Button {} label: {
+                        Image(systemName: "ellipsis")
+                            .font(.system(size: 22, weight: .semibold))
+                            .foregroundColor(.gray6)
+                            .frame(width: 44, height: 28)
+                    }
+                    .buttonStyle(.plain)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                    .padding(.trailing, 18)
+                    .padding(.top, titleTrailingButtonTopPadding)
+                }
 
                 if showsProfileButton {
                     Button {} label: {

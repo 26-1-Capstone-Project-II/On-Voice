@@ -14,10 +14,11 @@ struct LibraryView: View {
             ZStack {
                 Color.bg.ignoresSafeArea()
 
-                VStack(alignment: .leading, spacing: 18) {
+                VStack(spacing: 0) {
                     HomeHeaderView(
-                        title: "라이브러리",
-                        showsProfileButton: false
+                        title: "\n라이브러리",
+                        showsProfileButton: true,
+                        showsTitleTrailingButton: true
                     )
 
                     VStack(alignment: .leading, spacing: 10) {
@@ -29,8 +30,8 @@ struct LibraryView: View {
                             .multilineTextAlignment(.leading)
                     }
                     .padding(.horizontal, 18)
-
-                    Spacer()
+                    .padding(.top, 18)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 }
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {
