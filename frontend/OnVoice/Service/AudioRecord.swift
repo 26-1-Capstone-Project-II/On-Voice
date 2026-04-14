@@ -21,6 +21,10 @@ struct Recording: Identifiable, Hashable {
     var title: String {
         return fileURL.deletingPathExtension().lastPathComponent
     }
+
+    var usesGeneratedDefaultTitle: Bool {
+        title.wholeMatch(of: /^Recording_\d{8}_\d{6}$/) != nil
+    }
     
     var formattedDate: String {
         let formatter = DateFormatter()
@@ -34,6 +38,7 @@ struct Recording: Identifiable, Hashable {
         let seconds = Int(duration) % 60
         return "\(minutes)분 \(seconds)초"
     }
+
 }
 
 class AudioRecorder: ObservableObject {
@@ -41,6 +46,23 @@ class AudioRecorder: ObservableObject {
     
     private var recorder: AVAudioRecorder?
     private var startTime: Date?
+
+    enum RecordingMutationError: LocalizedError {
+        case recordingNotFound
+        case invalidTitle
+        case fileOperationFailed(underlying: Error)
+
+        var errorDescription: String? {
+            switch self {
+            case .recordingNotFound:
+                return "대상 녹음을 찾을 수 없어요."
+            case .invalidTitle:
+                return "녹음 이름을 다시 확인해 주세요."
+            case let .fileOperationFailed(underlying):
+                return "파일 작업에 실패했어요. \(underlying.localizedDescription)"
+            }
+        }
+    }
     
     func start() {
         let audioSession = AVAudioSession.sharedInstance()
@@ -79,6 +101,62 @@ class AudioRecorder: ObservableObject {
             recordings.append(recording)
         }
     }
+
+    func deleteRecording(_ recording: Recording) throws {
+        guard let index = recordings.firstIndex(where: { $0.id == recording.id }) else {
+            throw RecordingMutationError.recordingNotFound
+        }
+
+        do {
+            if FileManager.default.fileExists(atPath: recording.fileURL.path) {
+                try FileManager.default.removeItem(at: recording.fileURL)
+            }
+            recordings.remove(at: index)
+        } catch {
+            throw RecordingMutationError.fileOperationFailed(underlying: error)
+        }
+    }
+
+    @discardableResult
+    func renameRecording(_ recording: Recording, to newTitle: String) throws -> Recording {
+        let sanitizedTitle = Self.sanitizedRecordingTitle(from: newTitle)
+        guard !sanitizedTitle.isEmpty else {
+            throw RecordingMutationError.invalidTitle
+        }
+
+        guard let index = recordings.firstIndex(where: { $0.id == recording.id }) else {
+            throw RecordingMutationError.recordingNotFound
+        }
+
+        let destinationURL = uniqueRecordingURL(for: recording, sanitizedTitle: sanitizedTitle)
+        guard destinationURL != recording.fileURL else { return recording }
+
+        do {
+            try FileManager.default.moveItem(at: recording.fileURL, to: destinationURL)
+
+            let updatedRecording = Recording(
+                fileURL: destinationURL,
+                createdAt: recording.createdAt,
+                duration: recording.duration
+            )
+            recordings[index] = updatedRecording
+            return updatedRecording
+        } catch {
+            throw RecordingMutationError.fileOperationFailed(underlying: error)
+        }
+    }
+
+    static func sanitizedRecordingTitle(from rawTitle: String) -> String {
+        let invalidCharacters = CharacterSet(charactersIn: "/\\:?%*|\"<>")
+        let components = rawTitle
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .components(separatedBy: invalidCharacters)
+
+        return components
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+    }
     
     /// m4a 파일에서 실제 재생 길이 측정
     private func getAccurateAudioDuration(from url: URL) -> TimeInterval {
@@ -97,6 +175,24 @@ class AudioRecorder: ObservableObject {
         let filename = "Recording_\(formatter.string(from: Date())).m4a"
         let path = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         return path.appendingPathComponent(filename)
+    }
+
+    private func uniqueRecordingURL(for recording: Recording, sanitizedTitle: String) -> URL {
+        let directoryURL = recording.fileURL.deletingLastPathComponent()
+        let fileExtension = recording.fileURL.pathExtension
+        var candidateURL = directoryURL.appendingPathComponent(sanitizedTitle).appendingPathExtension(fileExtension)
+        var suffix = 2
+
+        while candidateURL != recording.fileURL,
+              FileManager.default.fileExists(atPath: candidateURL.path) {
+            let disambiguatedTitle = "\(sanitizedTitle) (\(suffix))"
+            candidateURL = directoryURL
+                .appendingPathComponent(disambiguatedTitle)
+                .appendingPathExtension(fileExtension)
+            suffix += 1
+        }
+
+        return candidateURL
     }
 }
 
