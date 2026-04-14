@@ -8,16 +8,21 @@ import SwiftUI
 struct LibraryView: View {
     @Binding var selectedTab: OnVoiceTab
     @State private var isShowingSituationRecognition = false
+    @State private var isShowingLibraryOptionsAlert = false
 
     var body: some View {
         NavigationStack {
             ZStack {
                 Color.bg.ignoresSafeArea()
 
-                VStack(alignment: .leading, spacing: 18) {
+                VStack(spacing: 0) {
                     HomeHeaderView(
                         title: "라이브러리",
-                        showsProfileButton: false
+                        showsProfileButton: true,
+                        titleTopOffset: 32,
+                        onTitleTrailingButtonTap: {
+                            isShowingLibraryOptionsAlert = true
+                        }
                     )
 
                     VStack(alignment: .leading, spacing: 10) {
@@ -29,8 +34,8 @@ struct LibraryView: View {
                             .multilineTextAlignment(.leading)
                     }
                     .padding(.horizontal, 18)
-
-                    Spacer()
+                    .padding(.top, 18)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 }
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -43,6 +48,11 @@ struct LibraryView: View {
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(isPresented: $isShowingSituationRecognition) {
                 SituationRecognitionView()
+            }
+            .alert("준비 중", isPresented: $isShowingLibraryOptionsAlert) {
+                Button("확인", role: .cancel) {}
+            } message: {
+                Text("라이브러리 추가 옵션은 다음 단계에서 연결할 예정입니다.")
             }
         }
     }
