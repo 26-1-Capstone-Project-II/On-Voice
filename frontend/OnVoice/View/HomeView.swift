@@ -13,6 +13,12 @@ struct HomeView: View {
     @State private var isShowingSituationRecognition = false
     @State private var selectedRecording: Recording?
     @State private var openedRowID: Recording.ID?
+    @State private var recordingToRename: Recording?
+    @State private var originalPendingRecordingTitle = ""
+    @State private var pendingRecordingTitle = ""
+    @State private var recordingToDelete: Recording?
+    @State private var deletePromptTitle = ""
+    @State private var mutationErrorMessage = ""
 
     private var displayedRecordings: [(index: Int, recording: Recording)] {
         Array(recorder.recordings.reversed().enumerated()).map { offset, recording in
@@ -50,13 +56,22 @@ struct HomeView: View {
                                 ScrollView(showsIndicators: false) {
                                     VStack(spacing: 16) {
                                         ForEach(displayedRecordings, id: \.recording.id) { item in
+                                            let displayTitle = title(for: item.recording, index: item.index)
                                             RecordingRowView(
                                                 id: item.recording.id,
-                                                title: "새로운 대화 기록 (\(item.index))",
+                                                title: displayTitle,
                                                 subtitle: "\(item.recording.formattedDate) • \(item.recording.formattedDuration)",
                                                 openedRowID: $openedRowID,
                                                 onTap: {
                                                     selectedRecording = item.recording
+                                                },
+                                                onEdit: {
+                                                    beginRenaming(item.recording, suggestedTitle: displayTitle)
+                                                },
+                                                onDelete: {
+                                                    clearRenameState()
+                                                    recordingToDelete = item.recording
+                                                    deletePromptTitle = displayTitle
                                                 }
                                             )
                                         }
@@ -72,6 +87,11 @@ struct HomeView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 }
             }
+            .simultaneousGesture(
+                TapGesture().onEnded {
+                    closeOpenedRowIfNeeded()
+                }
+            )
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 BottomDockView(
                     selectedTab: $selectedTab,
@@ -97,6 +117,38 @@ struct HomeView: View {
             .onChange(of: selectedRecording) { _ in
                 closeOpenedRowIfNeeded()
             }
+            .alert("녹음 이름 수정", isPresented: renameAlertIsPresented) {
+                TextField("녹음 이름", text: $pendingRecordingTitle)
+
+                Button("취소", role: .cancel) {
+                    clearRenameState()
+                }
+
+                Button("저장") {
+                    commitRename()
+                }
+            } message: {
+                Text("녹음 파일 이름을 바꾸면 홈 화면 리스트 제목도 함께 변경됩니다.")
+            }
+            .alert("녹음 삭제", isPresented: deleteAlertIsPresented, presenting: recordingToDelete) { recording in
+                Button("취소", role: .cancel) {
+                    recordingToDelete = nil
+                    deletePromptTitle = ""
+                }
+
+                Button("삭제", role: .destructive) {
+                    commitDelete(recording)
+                }
+            } message: { recording in
+                Text("'\(deletePromptTitle)' 녹음을 삭제할까요?")
+            }
+            .alert("작업 실패", isPresented: mutationErrorIsPresented) {
+                Button("확인", role: .cancel) {
+                    mutationErrorMessage = ""
+                }
+            } message: {
+                Text(mutationErrorMessage)
+            }
         }
     }
 
@@ -106,6 +158,102 @@ struct HomeView: View {
         withAnimation(RecordingRowSwipeBehavior.snapAnimation) {
             openedRowID = nil
         }
+    }
+
+    private var renameAlertIsPresented: Binding<Bool> {
+        Binding(
+            get: { recordingToRename != nil },
+            set: { isPresented in
+                if !isPresented {
+                    clearRenameState()
+                }
+            }
+        )
+    }
+
+    private var deleteAlertIsPresented: Binding<Bool> {
+        Binding(
+            get: { recordingToDelete != nil },
+            set: { isPresented in
+                if !isPresented {
+                    recordingToDelete = nil
+                    deletePromptTitle = ""
+                }
+            }
+        )
+    }
+
+    private var mutationErrorIsPresented: Binding<Bool> {
+        Binding(
+            get: { !mutationErrorMessage.isEmpty },
+            set: { isPresented in
+                if !isPresented {
+                    mutationErrorMessage = ""
+                }
+            }
+        )
+    }
+
+    private func beginRenaming(_ recording: Recording, suggestedTitle: String) {
+        recordingToDelete = nil
+        deletePromptTitle = ""
+        recordingToRename = recording
+        originalPendingRecordingTitle = suggestedTitle
+        pendingRecordingTitle = suggestedTitle
+    }
+
+    private func clearRenameState() {
+        recordingToRename = nil
+        originalPendingRecordingTitle = ""
+        pendingRecordingTitle = ""
+    }
+
+    private func commitRename() {
+        guard let recordingToRename else { return }
+
+        if recordingToRename.usesGeneratedDefaultTitle,
+           pendingRecordingTitle == originalPendingRecordingTitle {
+            clearRenameState()
+            return
+        }
+
+        do {
+            let updatedRecording = try recorder.renameRecording(recordingToRename, to: pendingRecordingTitle)
+            if selectedRecording?.id == recordingToRename.id {
+                selectedRecording = updatedRecording
+            }
+            clearRenameState()
+        } catch {
+            clearRenameState()
+            presentMutationError(error)
+        }
+    }
+
+    private func commitDelete(_ recording: Recording) {
+        do {
+            try recorder.deleteRecording(recording)
+            if selectedRecording?.id == recording.id {
+                selectedRecording = nil
+            }
+            recordingToDelete = nil
+            deletePromptTitle = ""
+        } catch {
+            recordingToDelete = nil
+            deletePromptTitle = ""
+            presentMutationError(error)
+        }
+    }
+
+    private func presentMutationError(_ error: Error) {
+        mutationErrorMessage = error.localizedDescription
+    }
+
+    private func title(for recording: Recording, index: Int) -> String {
+        if recording.usesGeneratedDefaultTitle {
+            return "새로운 대화 기록 (\(index))"
+        }
+
+        return recording.title
     }
 
     private func todayDateString() -> String {
