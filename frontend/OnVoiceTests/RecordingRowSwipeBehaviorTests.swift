@@ -231,6 +231,34 @@ final class RecordingRowSwipeBehaviorTests: XCTestCase {
         XCTAssertEqual(librarySections.map(\.title), ["2월", "2025년 12월"])
     }
 
+    func testHomeAndLibraryUseSameDayBoundaryConsistently() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Asia/Seoul")!
+
+        let now = calendar.date(from: DateComponents(year: 2026, month: 4, day: 14, hour: 0, minute: 30))!
+        let justAfterMidnight = makeRecording(
+            named: "Recording_20260414_001000",
+            createdAt: calendar.date(from: DateComponents(year: 2026, month: 4, day: 14, hour: 0, minute: 10))!
+        )
+        let previousLateNight = makeRecording(
+            named: "Recording_20260413_235000",
+            createdAt: calendar.date(from: DateComponents(year: 2026, month: 4, day: 13, hour: 23, minute: 50))!
+        )
+
+        let recordings = [previousLateNight, justAfterMidnight]
+
+        let homeItems = withFixedCurrentDate(now) {
+            RecordingListOrganizer.homeItems(from: recordings, calendar: calendar)
+        }
+        let librarySections = withFixedCurrentDate(now) {
+            RecordingListOrganizer.librarySections(from: recordings, calendar: calendar)
+        }
+
+        XCTAssertEqual(homeItems.map(\.recording.id), [justAfterMidnight.id])
+        XCTAssertEqual(librarySections.map(\.title), ["이전 7일"])
+        XCTAssertEqual(librarySections[0].items.map(\.recording.id), [previousLateNight.id])
+    }
+
     private func makeRecording(named name: String, createdAt: Date) -> Recording {
         Recording(
             fileURL: URL(fileURLWithPath: "/tmp/\(name).m4a"),

@@ -209,6 +209,7 @@ struct HomeView: View {
     private func commitRename() {
         guard let recordingToRename else { return }
         let sanitizedPendingTitle = AudioRecorder.sanitizedRecordingTitle(from: pendingRecordingTitle)
+        let normalizedCurrentTitle = AudioRecorder.sanitizedRecordingTitle(from: recordingToRename.title)
 
         if recordingToRename.usesGeneratedDefaultTitle,
            pendingRecordingTitle == originalPendingRecordingTitle {
@@ -222,7 +223,7 @@ struct HomeView: View {
             return
         }
 
-        if sanitizedPendingTitle == recordingToRename.title {
+        if sanitizedPendingTitle == normalizedCurrentTitle {
             clearRenameState()
             return
         }

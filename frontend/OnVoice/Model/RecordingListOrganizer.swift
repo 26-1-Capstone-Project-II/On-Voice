@@ -23,13 +23,26 @@ struct RecordingLibrarySection: Identifiable, Hashable {
 enum RecordingListOrganizer {
     static var currentDate: () -> Date = Date.init
 
+    private enum RelativeSection {
+        case today
+        case previous7Days
+        case previous30Days
+        case monthly(Date)
+    }
+
     static func homeItems(
         from recordings: [Recording],
         calendar: Calendar = .current
     ) -> [RecordingDisplayItem] {
         let today = currentDate()
         return sortedDisplayItems(from: recordings)
-            .filter { calendar.isDate($0.recording.createdAt, inSameDayAs: today) }
+            .filter {
+                if case .today = relativeSection(for: $0.recording.createdAt, comparedTo: today, calendar: calendar) {
+                    return true
+                }
+
+                return false
+            }
     }
 
     static func librarySections(
@@ -42,23 +55,19 @@ enum RecordingListOrganizer {
 
         guard !libraryItems.isEmpty else { return [] }
 
-        let today = calendar.startOfDay(for: todayDate)
-        let previous7DaysStart = calendar.date(byAdding: .day, value: -7, to: today) ?? today
-        let previous30DaysStart = calendar.date(byAdding: .day, value: -30, to: today) ?? today
         var previous7Days: [RecordingDisplayItem] = []
         var previous30Days: [RecordingDisplayItem] = []
         var monthlyBuckets: [Date: [RecordingDisplayItem]] = [:]
 
         for item in libraryItems {
-            let recordingDay = calendar.startOfDay(for: item.recording.createdAt)
-
-            switch recordingDay {
-            case previous7DaysStart..<today:
+            switch relativeSection(for: item.recording.createdAt, comparedTo: todayDate, calendar: calendar) {
+            case .today:
+                continue
+            case .previous7Days:
                 previous7Days.append(item)
-            case previous30DaysStart..<previous7DaysStart:
+            case .previous30Days:
                 previous30Days.append(item)
-            default:
-                let monthStart = calendar.dateInterval(of: .month, for: item.recording.createdAt)?.start ?? recordingDay
+            case let .monthly(monthStart):
                 monthlyBuckets[monthStart, default: []].append(item)
             }
         }
@@ -126,6 +135,32 @@ enum RecordingListOrganizer {
         items.sorted { lhs, rhs in
             lhs.recording.createdAt > rhs.recording.createdAt
         }
+    }
+
+    private static func relativeSection(
+        for date: Date,
+        comparedTo referenceDate: Date,
+        calendar: Calendar
+    ) -> RelativeSection {
+        let referenceDay = calendar.startOfDay(for: referenceDate)
+        let targetDay = calendar.startOfDay(for: date)
+
+        if targetDay == referenceDay {
+            return .today
+        }
+
+        let previous7DaysStart = calendar.date(byAdding: .day, value: -7, to: referenceDay) ?? referenceDay
+        if previous7DaysStart <= targetDay && targetDay < referenceDay {
+            return .previous7Days
+        }
+
+        let previous30DaysStart = calendar.date(byAdding: .day, value: -30, to: referenceDay) ?? referenceDay
+        if previous30DaysStart <= targetDay && targetDay < previous7DaysStart {
+            return .previous30Days
+        }
+
+        let monthStart = calendar.dateInterval(of: .month, for: targetDay)?.start ?? targetDay
+        return .monthly(monthStart)
     }
 
     private static func monthSectionID(for date: Date, calendar: Calendar) -> String {
