@@ -20,10 +20,8 @@ struct HomeView: View {
     @State private var deletePromptTitle = ""
     @State private var mutationErrorMessage = ""
 
-    private var displayedRecordings: [(index: Int, recording: Recording)] {
-        Array(recorder.recordings.reversed().enumerated()).map { offset, recording in
-            (recorder.recordings.count - offset, recording)
-        }
+    private var displayedRecordings: [RecordingDisplayItem] {
+        RecordingListOrganizer.homeItems(from: recorder.recordings)
     }
 
     var body: some View {
@@ -55,8 +53,8 @@ struct HomeView: View {
                             } else {
                                 ScrollView(showsIndicators: false) {
                                     VStack(spacing: 16) {
-                                        ForEach(displayedRecordings, id: \.recording.id) { item in
-                                            let displayTitle = title(for: item.recording, index: item.index)
+                                        ForEach(displayedRecordings) { item in
+                                            let displayTitle = RecordingListOrganizer.displayTitle(for: item)
                                             RecordingRowView(
                                                 id: item.recording.id,
                                                 title: displayTitle,
@@ -246,14 +244,6 @@ struct HomeView: View {
 
     private func presentMutationError(_ error: Error) {
         mutationErrorMessage = error.localizedDescription
-    }
-
-    private func title(for recording: Recording, index: Int) -> String {
-        if recording.usesGeneratedDefaultTitle {
-            return "새로운 대화 기록 (\(index))"
-        }
-
-        return recording.title
     }
 
     private func todayDateString() -> String {
