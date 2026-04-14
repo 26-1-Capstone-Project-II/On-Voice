@@ -23,10 +23,7 @@ struct Recording: Identifiable, Hashable {
     }
 
     var usesGeneratedDefaultTitle: Bool {
-        Self.generatedTitlePattern.firstMatch(
-            in: title,
-            range: NSRange(title.startIndex..., in: title)
-        ) != nil
+        title.wholeMatch(of: /^Recording_\d{8}_\d{6}$/) != nil
     }
     
     var formattedDate: String {
@@ -42,9 +39,6 @@ struct Recording: Identifiable, Hashable {
         return "\(minutes)분 \(seconds)초"
     }
 
-    private static let generatedTitlePattern = try! NSRegularExpression(
-        pattern: #"^Recording_\d{8}_\d{6}$"#
-    )
 }
 
 class AudioRecorder: ObservableObject {
@@ -52,6 +46,23 @@ class AudioRecorder: ObservableObject {
     
     private var recorder: AVAudioRecorder?
     private var startTime: Date?
+
+    enum RecordingMutationError: LocalizedError {
+        case recordingNotFound
+        case invalidTitle
+        case fileOperationFailed(underlying: Error)
+
+        var errorDescription: String? {
+            switch self {
+            case .recordingNotFound:
+                return "대상 녹음을 찾을 수 없어요."
+            case .invalidTitle:
+                return "녹음 이름을 다시 확인해 주세요."
+            case let .fileOperationFailed(underlying):
+                return "파일 작업에 실패했어요. \(underlying.localizedDescription)"
+            }
+        }
+    }
     
     func start() {
         let audioSession = AVAudioSession.sharedInstance()
@@ -91,35 +102,37 @@ class AudioRecorder: ObservableObject {
         }
     }
 
-    func deleteRecording(_ recording: Recording) {
+    func deleteRecording(_ recording: Recording) throws {
+        guard let index = recordings.firstIndex(where: { $0.id == recording.id }) else {
+            throw RecordingMutationError.recordingNotFound
+        }
+
         do {
             if FileManager.default.fileExists(atPath: recording.fileURL.path) {
                 try FileManager.default.removeItem(at: recording.fileURL)
             }
-            recordings.removeAll { $0.id == recording.id }
+            recordings.remove(at: index)
         } catch {
-            print("녹음 파일 삭제 실패: \(error)")
+            throw RecordingMutationError.fileOperationFailed(underlying: error)
         }
     }
 
     @discardableResult
-    func renameRecording(_ recording: Recording, to newTitle: String) -> Recording? {
+    func renameRecording(_ recording: Recording, to newTitle: String) throws -> Recording {
         let sanitizedTitle = Self.sanitizedRecordingTitle(from: newTitle)
-        guard !sanitizedTitle.isEmpty else { return nil }
+        guard !sanitizedTitle.isEmpty else {
+            throw RecordingMutationError.invalidTitle
+        }
+
+        guard let index = recordings.firstIndex(where: { $0.id == recording.id }) else {
+            throw RecordingMutationError.recordingNotFound
+        }
 
         let destinationURL = uniqueRecordingURL(for: recording, sanitizedTitle: sanitizedTitle)
         guard destinationURL != recording.fileURL else { return recording }
 
         do {
             try FileManager.default.moveItem(at: recording.fileURL, to: destinationURL)
-
-            guard let index = recordings.firstIndex(where: { $0.id == recording.id }) else {
-                return Recording(
-                    fileURL: destinationURL,
-                    createdAt: recording.createdAt,
-                    duration: recording.duration
-                )
-            }
 
             let updatedRecording = Recording(
                 fileURL: destinationURL,
@@ -129,8 +142,7 @@ class AudioRecorder: ObservableObject {
             recordings[index] = updatedRecording
             return updatedRecording
         } catch {
-            print("녹음 파일 이름 변경 실패: \(error)")
-            return nil
+            throw RecordingMutationError.fileOperationFailed(underlying: error)
         }
     }
 

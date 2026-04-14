@@ -14,9 +14,11 @@ struct HomeView: View {
     @State private var selectedRecording: Recording?
     @State private var openedRowID: Recording.ID?
     @State private var recordingToRename: Recording?
+    @State private var originalPendingRecordingTitle = ""
     @State private var pendingRecordingTitle = ""
     @State private var recordingToDelete: Recording?
     @State private var deletePromptTitle = ""
+    @State private var mutationErrorMessage = ""
 
     private var displayedRecordings: [(index: Int, recording: Recording)] {
         Array(recorder.recordings.reversed().enumerated()).map { offset, recording in
@@ -67,6 +69,7 @@ struct HomeView: View {
                                                     beginRenaming(item.recording, suggestedTitle: displayTitle)
                                                 },
                                                 onDelete: {
+                                                    clearRenameState()
                                                     recordingToDelete = item.recording
                                                     deletePromptTitle = displayTitle
                                                 }
@@ -134,15 +137,17 @@ struct HomeView: View {
                 }
 
                 Button("삭제", role: .destructive) {
-                    if selectedRecording?.id == recording.id {
-                        selectedRecording = nil
-                    }
-                    recorder.deleteRecording(recording)
-                    recordingToDelete = nil
-                    deletePromptTitle = ""
+                    commitDelete(recording)
                 }
             } message: { recording in
                 Text("'\(deletePromptTitle)' 녹음을 삭제할까요?")
+            }
+            .alert("작업 실패", isPresented: mutationErrorIsPresented) {
+                Button("확인", role: .cancel) {
+                    mutationErrorMessage = ""
+                }
+            } message: {
+                Text(mutationErrorMessage)
             }
         }
     }
@@ -178,24 +183,69 @@ struct HomeView: View {
         )
     }
 
+    private var mutationErrorIsPresented: Binding<Bool> {
+        Binding(
+            get: { !mutationErrorMessage.isEmpty },
+            set: { isPresented in
+                if !isPresented {
+                    mutationErrorMessage = ""
+                }
+            }
+        )
+    }
+
     private func beginRenaming(_ recording: Recording, suggestedTitle: String) {
+        recordingToDelete = nil
+        deletePromptTitle = ""
         recordingToRename = recording
+        originalPendingRecordingTitle = suggestedTitle
         pendingRecordingTitle = suggestedTitle
     }
 
     private func clearRenameState() {
         recordingToRename = nil
+        originalPendingRecordingTitle = ""
         pendingRecordingTitle = ""
     }
 
     private func commitRename() {
         guard let recordingToRename else { return }
 
-        let updatedRecording = recorder.renameRecording(recordingToRename, to: pendingRecordingTitle)
-        if let updatedRecording, selectedRecording?.id == recordingToRename.id {
-            selectedRecording = updatedRecording
+        if recordingToRename.usesGeneratedDefaultTitle,
+           pendingRecordingTitle == originalPendingRecordingTitle {
+            clearRenameState()
+            return
         }
-        clearRenameState()
+
+        do {
+            let updatedRecording = try recorder.renameRecording(recordingToRename, to: pendingRecordingTitle)
+            if selectedRecording?.id == recordingToRename.id {
+                selectedRecording = updatedRecording
+            }
+            clearRenameState()
+        } catch {
+            clearRenameState()
+            presentMutationError(error)
+        }
+    }
+
+    private func commitDelete(_ recording: Recording) {
+        do {
+            try recorder.deleteRecording(recording)
+            if selectedRecording?.id == recording.id {
+                selectedRecording = nil
+            }
+            recordingToDelete = nil
+            deletePromptTitle = ""
+        } catch {
+            recordingToDelete = nil
+            deletePromptTitle = ""
+            presentMutationError(error)
+        }
+    }
+
+    private func presentMutationError(_ error: Error) {
+        mutationErrorMessage = error.localizedDescription
     }
 
     private func title(for recording: Recording, index: Int) -> String {
