@@ -11,14 +11,21 @@ enum OnVoiceTab: Equatable {
 
 struct ContentView: View {
     @State private var selectedTab: OnVoiceTab = .home
+    @State private var isLoggedIn = false
 
     var body: some View {
         Group {
-            switch selectedTab {
-            case .home:
-                HomeView(selectedTab: $selectedTab)
-            case .library:
-                LibraryView(selectedTab: $selectedTab)
+            if isLoggedIn {
+                switch selectedTab {
+                case .home:
+                    HomeView(selectedTab: $selectedTab)
+                case .library:
+                    LibraryView(selectedTab: $selectedTab)
+                }
+            } else {
+                LoginView {
+                    isLoggedIn = true
+                }
             }
         }
         .background(Color.bg)
