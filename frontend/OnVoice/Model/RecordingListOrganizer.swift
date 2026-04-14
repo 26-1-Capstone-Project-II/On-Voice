@@ -43,18 +43,19 @@ enum RecordingListOrganizer {
         guard !libraryItems.isEmpty else { return [] }
 
         let today = calendar.startOfDay(for: todayDate)
+        let previous7DaysStart = calendar.date(byAdding: .day, value: -7, to: today) ?? today
+        let previous30DaysStart = calendar.date(byAdding: .day, value: -30, to: today) ?? today
         var previous7Days: [RecordingDisplayItem] = []
         var previous30Days: [RecordingDisplayItem] = []
         var monthlyBuckets: [Date: [RecordingDisplayItem]] = [:]
 
         for item in libraryItems {
             let recordingDay = calendar.startOfDay(for: item.recording.createdAt)
-            let dayOffset = calendar.dateComponents([.day], from: recordingDay, to: today).day ?? 0
 
-            switch dayOffset {
-            case 1...7:
+            switch recordingDay {
+            case previous7DaysStart..<today:
                 previous7Days.append(item)
-            case 8...30:
+            case previous30DaysStart..<previous7DaysStart:
                 previous30Days.append(item)
             default:
                 let monthStart = calendar.dateInterval(of: .month, for: item.recording.createdAt)?.start ?? recordingDay
@@ -69,7 +70,7 @@ enum RecordingListOrganizer {
                 RecordingLibrarySection(
                     id: "previous-7-days",
                     title: "이전 7일",
-                    items: previous7Days
+                    items: sortedSectionItems(previous7Days)
                 )
             )
         }
@@ -79,7 +80,7 @@ enum RecordingListOrganizer {
                 RecordingLibrarySection(
                     id: "previous-30-days",
                     title: "이전 30일",
-                    items: previous30Days
+                    items: sortedSectionItems(previous30Days)
                 )
             )
         }
@@ -92,7 +93,7 @@ enum RecordingListOrganizer {
                 RecordingLibrarySection(
                     id: monthSectionID(for: monthStart, calendar: calendar),
                     title: monthSectionTitle(for: monthStart, calendar: calendar),
-                    items: items
+                    items: sortedSectionItems(items)
                 )
             )
         }
@@ -118,6 +119,12 @@ enum RecordingListOrganizer {
                 index: sortedRecordings.count - offset,
                 recording: recording
             )
+        }
+    }
+
+    private static func sortedSectionItems(_ items: [RecordingDisplayItem]) -> [RecordingDisplayItem] {
+        items.sorted { lhs, rhs in
+            lhs.recording.createdAt > rhs.recording.createdAt
         }
     }
 

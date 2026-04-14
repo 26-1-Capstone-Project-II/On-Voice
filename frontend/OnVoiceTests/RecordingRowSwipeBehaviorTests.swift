@@ -146,6 +146,91 @@ final class RecordingRowSwipeBehaviorTests: XCTestCase {
         XCTAssertEqual(librarySections[2].items.map(\.recording.id), [monthlyRecording.id])
     }
 
+    func testRecordingListOrganizerUsesCalendarBoundariesAndSortsEachSection() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Asia/Seoul")!
+
+        let now = calendar.date(from: DateComponents(year: 2026, month: 4, day: 14, hour: 12))!
+        let sevenDaysAgo = makeRecording(
+            named: "Recording_20260407_090000",
+            createdAt: calendar.date(from: DateComponents(year: 2026, month: 4, day: 7, hour: 9))!
+        )
+        let eightDaysAgo = makeRecording(
+            named: "Recording_20260406_090000",
+            createdAt: calendar.date(from: DateComponents(year: 2026, month: 4, day: 6, hour: 9))!
+        )
+        let thirtyDaysAgo = makeRecording(
+            named: "Recording_20260315_090000",
+            createdAt: calendar.date(from: DateComponents(year: 2026, month: 3, day: 15, hour: 9))!
+        )
+        let thirtyOneDaysAgo = makeRecording(
+            named: "Recording_20260314_090000",
+            createdAt: calendar.date(from: DateComponents(year: 2026, month: 3, day: 14, hour: 9))!
+        )
+        let olderInSameMonth = makeRecording(
+            named: "Recording_20260301_090000",
+            createdAt: calendar.date(from: DateComponents(year: 2026, month: 3, day: 1, hour: 9))!
+        )
+
+        let recordings = [olderInSameMonth, thirtyOneDaysAgo, thirtyDaysAgo, eightDaysAgo, sevenDaysAgo]
+
+        let librarySections = withFixedCurrentDate(now) {
+            RecordingListOrganizer.librarySections(from: recordings, calendar: calendar)
+        }
+
+        XCTAssertEqual(librarySections.map(\.title), ["이전 7일", "이전 30일", "3월"])
+        XCTAssertEqual(librarySections[0].items.map(\.recording.id), [sevenDaysAgo.id])
+        XCTAssertEqual(librarySections[1].items.map(\.recording.id), [eightDaysAgo.id, thirtyDaysAgo.id])
+        XCTAssertEqual(librarySections[2].items.map(\.recording.id), [thirtyOneDaysAgo.id, olderInSameMonth.id])
+    }
+
+    func testDisplayTitleUsesFallbackOnlyForGeneratedDefaultTitle() {
+        let defaultTitleRecording = makeRecording(
+            named: "Recording_20260414_090000",
+            createdAt: Date(timeIntervalSince1970: 0)
+        )
+        let customTitleRecording = makeRecording(
+            named: "회의 메모",
+            createdAt: Date(timeIntervalSince1970: 1)
+        )
+
+        let defaultTitleItem = RecordingDisplayItem(
+            index: 1,
+            recording: defaultTitleRecording
+        )
+        let customTitleItem = RecordingDisplayItem(
+            index: 2,
+            recording: customTitleRecording
+        )
+
+        XCTAssertEqual(RecordingListOrganizer.displayTitle(for: customTitleItem), "회의 메모")
+        XCTAssertEqual(RecordingListOrganizer.displayTitle(for: defaultTitleItem), "새로운 대화 기록 (1)")
+    }
+
+    func testMonthSectionTitleIncludesYearOnlyForPastYears() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Asia/Seoul")!
+
+        let now = calendar.date(from: DateComponents(year: 2026, month: 4, day: 14, hour: 12))!
+        let currentYearRecording = makeRecording(
+            named: "Recording_20260220_090000",
+            createdAt: calendar.date(from: DateComponents(year: 2026, month: 2, day: 20, hour: 9))!
+        )
+        let previousYearRecording = makeRecording(
+            named: "Recording_20251220_090000",
+            createdAt: calendar.date(from: DateComponents(year: 2025, month: 12, day: 20, hour: 9))!
+        )
+
+        let librarySections = withFixedCurrentDate(now) {
+            RecordingListOrganizer.librarySections(
+                from: [previousYearRecording, currentYearRecording],
+                calendar: calendar
+            )
+        }
+
+        XCTAssertEqual(librarySections.map(\.title), ["2월", "2025년 12월"])
+    }
+
     private func makeRecording(named name: String, createdAt: Date) -> Recording {
         Recording(
             fileURL: URL(fileURLWithPath: "/tmp/\(name).m4a"),
