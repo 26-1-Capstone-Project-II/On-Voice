@@ -132,12 +132,8 @@ final class RecordingRowSwipeBehaviorTests: XCTestCase {
 
         let recordings = [monthlyRecording, previous30Recording, previous7Recording, todayRecording]
 
-        let homeItems = withFixedCurrentDate(now) {
-            RecordingListOrganizer.homeItems(from: recordings, calendar: calendar)
-        }
-        let librarySections = withFixedCurrentDate(now) {
-            RecordingListOrganizer.librarySections(from: recordings, calendar: calendar)
-        }
+        let homeItems = RecordingListOrganizer.homeItems(from: recordings, calendar: calendar, now: now)
+        let librarySections = RecordingListOrganizer.librarySections(from: recordings, calendar: calendar, now: now)
 
         XCTAssertEqual(homeItems.map(\.recording.id), [todayRecording.id])
         XCTAssertEqual(librarySections.map(\.title), ["이전 7일", "이전 30일", "2월"])
@@ -174,9 +170,7 @@ final class RecordingRowSwipeBehaviorTests: XCTestCase {
 
         let recordings = [olderInSameMonth, thirtyOneDaysAgo, thirtyDaysAgo, eightDaysAgo, sevenDaysAgo]
 
-        let librarySections = withFixedCurrentDate(now) {
-            RecordingListOrganizer.librarySections(from: recordings, calendar: calendar)
-        }
+        let librarySections = RecordingListOrganizer.librarySections(from: recordings, calendar: calendar, now: now)
 
         XCTAssertEqual(librarySections.map(\.title), ["이전 7일", "이전 30일", "3월"])
         XCTAssertEqual(librarySections[0].items.map(\.recording.id), [sevenDaysAgo.id])
@@ -221,12 +215,11 @@ final class RecordingRowSwipeBehaviorTests: XCTestCase {
             createdAt: calendar.date(from: DateComponents(year: 2025, month: 12, day: 20, hour: 9))!
         )
 
-        let librarySections = withFixedCurrentDate(now) {
-            RecordingListOrganizer.librarySections(
-                from: [previousYearRecording, currentYearRecording],
-                calendar: calendar
-            )
-        }
+        let librarySections = RecordingListOrganizer.librarySections(
+            from: [previousYearRecording, currentYearRecording],
+            calendar: calendar,
+            now: now
+        )
 
         XCTAssertEqual(librarySections.map(\.title), ["2월", "2025년 12월"])
     }
@@ -247,12 +240,8 @@ final class RecordingRowSwipeBehaviorTests: XCTestCase {
 
         let recordings = [previousLateNight, justAfterMidnight]
 
-        let homeItems = withFixedCurrentDate(now) {
-            RecordingListOrganizer.homeItems(from: recordings, calendar: calendar)
-        }
-        let librarySections = withFixedCurrentDate(now) {
-            RecordingListOrganizer.librarySections(from: recordings, calendar: calendar)
-        }
+        let homeItems = RecordingListOrganizer.homeItems(from: recordings, calendar: calendar, now: now)
+        let librarySections = RecordingListOrganizer.librarySections(from: recordings, calendar: calendar, now: now)
 
         XCTAssertEqual(homeItems.map(\.recording.id), [justAfterMidnight.id])
         XCTAssertEqual(librarySections.map(\.title), ["이전 7일"])
@@ -277,12 +266,11 @@ final class RecordingRowSwipeBehaviorTests: XCTestCase {
             createdAt: calendar.date(from: DateComponents(year: 2026, month: 3, day: 14, hour: 9))!
         )
 
-        let librarySections = withFixedCurrentDate(now) {
-            RecordingListOrganizer.librarySections(
-                from: [thirtyOneDaysAgo, thirtyDaysAgo, sevenDaysAgo],
-                calendar: calendar
-            )
-        }
+        let librarySections = RecordingListOrganizer.librarySections(
+            from: [thirtyOneDaysAgo, thirtyDaysAgo, sevenDaysAgo],
+            calendar: calendar,
+            now: now
+        )
 
         XCTAssertEqual(librarySections.map(\.title), ["이전 7일", "이전 30일", "3월"])
         XCTAssertEqual(librarySections[0].items.map(\.recording.id), [sevenDaysAgo.id])
@@ -298,10 +286,30 @@ final class RecordingRowSwipeBehaviorTests: XCTestCase {
         )
     }
 
-    private func withFixedCurrentDate<T>(_ date: Date, perform work: () -> T) -> T {
-        let previousDateFactory = RecordingListOrganizer.currentDate
-        RecordingListOrganizer.currentDate = { date }
-        defer { RecordingListOrganizer.currentDate = previousDateFactory }
-        return work()
+    func testRecordingListOrganizerUsesStableSectionIDs() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Asia/Seoul")!
+
+        let now = calendar.date(from: DateComponents(year: 2026, month: 4, day: 14, hour: 12))!
+        let previous7Recording = makeRecording(
+            named: "Recording_20260410_090000",
+            createdAt: calendar.date(from: DateComponents(year: 2026, month: 4, day: 10, hour: 9))!
+        )
+        let previous30Recording = makeRecording(
+            named: "Recording_20260401_090000",
+            createdAt: calendar.date(from: DateComponents(year: 2026, month: 4, day: 1, hour: 9))!
+        )
+        let monthlyRecording = makeRecording(
+            named: "Recording_20260220_090000",
+            createdAt: calendar.date(from: DateComponents(year: 2026, month: 2, day: 20, hour: 9))!
+        )
+
+        let sections = RecordingListOrganizer.librarySections(
+            from: [monthlyRecording, previous30Recording, previous7Recording],
+            calendar: calendar,
+            now: now
+        )
+
+        XCTAssertEqual(sections.map(\.id), ["previous-7-days", "previous-30-days", "month-2026-2"])
     }
 }

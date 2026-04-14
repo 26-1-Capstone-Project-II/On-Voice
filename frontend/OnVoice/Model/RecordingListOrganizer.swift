@@ -21,7 +21,14 @@ struct RecordingLibrarySection: Identifiable, Hashable {
 }
 
 enum RecordingListOrganizer {
-    static var currentDate: () -> Date = Date.init
+    private enum SectionID: String {
+        case previous7Days = "previous-7-days"
+        case previous30Days = "previous-30-days"
+    }
+
+    // Relative-date sections use calendar-day boundaries, not rolling 24-hour windows.
+    private static let previous7DaysWindow = 7
+    private static let previous30DaysWindow = 30
 
     private enum RelativeSection {
         case today
@@ -32,12 +39,12 @@ enum RecordingListOrganizer {
 
     static func homeItems(
         from recordings: [Recording],
-        calendar: Calendar = .current
+        calendar: Calendar = .current,
+        now: Date = Date()
     ) -> [RecordingDisplayItem] {
-        let today = currentDate()
         return sortedDisplayItems(from: recordings)
             .filter {
-                if case .today = relativeSection(for: $0.recording.createdAt, comparedTo: today, calendar: calendar) {
+                if case .today = relativeSection(for: $0.recording.createdAt, comparedTo: now, calendar: calendar) {
                     return true
                 }
 
@@ -47,11 +54,11 @@ enum RecordingListOrganizer {
 
     static func librarySections(
         from recordings: [Recording],
-        calendar: Calendar = .current
+        calendar: Calendar = .current,
+        now: Date = Date()
     ) -> [RecordingLibrarySection] {
-        let todayDate = currentDate()
         let libraryItems = sortedDisplayItems(from: recordings)
-            .filter { !calendar.isDate($0.recording.createdAt, inSameDayAs: todayDate) }
+            .filter { !calendar.isDate($0.recording.createdAt, inSameDayAs: now) }
 
         guard !libraryItems.isEmpty else { return [] }
 
@@ -60,7 +67,7 @@ enum RecordingListOrganizer {
         var monthlyBuckets: [Date: [RecordingDisplayItem]] = [:]
 
         for item in libraryItems {
-            switch relativeSection(for: item.recording.createdAt, comparedTo: todayDate, calendar: calendar) {
+            switch relativeSection(for: item.recording.createdAt, comparedTo: now, calendar: calendar) {
             case .today:
                 continue
             case .previous7Days:
@@ -77,7 +84,7 @@ enum RecordingListOrganizer {
         if !previous7Days.isEmpty {
             sections.append(
                 RecordingLibrarySection(
-                    id: "previous-7-days",
+                    id: SectionID.previous7Days.rawValue,
                     title: "이전 7일",
                     items: sortedSectionItems(previous7Days)
                 )
@@ -87,7 +94,7 @@ enum RecordingListOrganizer {
         if !previous30Days.isEmpty {
             sections.append(
                 RecordingLibrarySection(
-                    id: "previous-30-days",
+                    id: SectionID.previous30Days.rawValue,
                     title: "이전 30일",
                     items: sortedSectionItems(previous30Days)
                 )
@@ -101,7 +108,7 @@ enum RecordingListOrganizer {
             sections.append(
                 RecordingLibrarySection(
                     id: monthSectionID(for: monthStart, calendar: calendar),
-                    title: monthSectionTitle(for: monthStart, calendar: calendar),
+                    title: monthSectionTitle(for: monthStart, comparedTo: now, calendar: calendar),
                     items: sortedSectionItems(items)
                 )
             )
@@ -149,12 +156,20 @@ enum RecordingListOrganizer {
             return .today
         }
 
-        let previous7DaysStart = calendar.date(byAdding: .day, value: -7, to: referenceDay) ?? referenceDay
+        let previous7DaysStart = calendar.date(
+            byAdding: .day,
+            value: -previous7DaysWindow,
+            to: referenceDay
+        ) ?? referenceDay
         if previous7DaysStart <= targetDay && targetDay < referenceDay {
             return .previous7Days
         }
 
-        let previous30DaysStart = calendar.date(byAdding: .day, value: -30, to: referenceDay) ?? referenceDay
+        let previous30DaysStart = calendar.date(
+            byAdding: .day,
+            value: -previous30DaysWindow,
+            to: referenceDay
+        ) ?? referenceDay
         if previous30DaysStart <= targetDay && targetDay < previous7DaysStart {
             return .previous30Days
         }
@@ -168,8 +183,8 @@ enum RecordingListOrganizer {
         return "month-\(components.year ?? 0)-\(components.month ?? 0)"
     }
 
-    private static func monthSectionTitle(for date: Date, calendar: Calendar) -> String {
-        let currentYear = calendar.component(.year, from: currentDate())
+    private static func monthSectionTitle(for date: Date, comparedTo referenceDate: Date, calendar: Calendar) -> String {
+        let currentYear = calendar.component(.year, from: referenceDate)
         let year = calendar.component(.year, from: date)
         let month = calendar.component(.month, from: date)
 
