@@ -21,6 +21,13 @@ struct Recording: Identifiable, Hashable {
     var title: String {
         return fileURL.deletingPathExtension().lastPathComponent
     }
+
+    var usesGeneratedDefaultTitle: Bool {
+        Self.generatedTitlePattern.firstMatch(
+            in: title,
+            range: NSRange(title.startIndex..., in: title)
+        ) != nil
+    }
     
     var formattedDate: String {
         let formatter = DateFormatter()
@@ -34,6 +41,10 @@ struct Recording: Identifiable, Hashable {
         let seconds = Int(duration) % 60
         return "\(minutes)분 \(seconds)초"
     }
+
+    private static let generatedTitlePattern = try! NSRegularExpression(
+        pattern: #"^Recording_\d{8}_\d{6}$"#
+    )
 }
 
 class AudioRecorder: ObservableObject {

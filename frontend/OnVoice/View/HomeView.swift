@@ -134,6 +134,9 @@ struct HomeView: View {
                 }
 
                 Button("삭제", role: .destructive) {
+                    if selectedRecording?.id == recording.id {
+                        selectedRecording = nil
+                    }
                     recorder.deleteRecording(recording)
                     recordingToDelete = nil
                     deletePromptTitle = ""
@@ -196,7 +199,7 @@ struct HomeView: View {
     }
 
     private func title(for recording: Recording, index: Int) -> String {
-        if recording.title.hasPrefix("Recording_") {
+        if recording.usesGeneratedDefaultTitle {
             return "새로운 대화 기록 (\(index))"
         }
 
