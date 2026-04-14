@@ -13,6 +13,10 @@ struct HomeView: View {
     @State private var isShowingSituationRecognition = false
     @State private var selectedRecording: Recording?
     @State private var openedRowID: Recording.ID?
+    @State private var recordingToRename: Recording?
+    @State private var pendingRecordingTitle = ""
+    @State private var recordingToDelete: Recording?
+    @State private var deletePromptTitle = ""
 
     private var displayedRecordings: [(index: Int, recording: Recording)] {
         Array(recorder.recordings.reversed().enumerated()).map { offset, recording in
@@ -50,13 +54,21 @@ struct HomeView: View {
                                 ScrollView(showsIndicators: false) {
                                     VStack(spacing: 16) {
                                         ForEach(displayedRecordings, id: \.recording.id) { item in
+                                            let displayTitle = title(for: item.recording, index: item.index)
                                             RecordingRowView(
                                                 id: item.recording.id,
-                                                title: "새로운 대화 기록 (\(item.index))",
+                                                title: displayTitle,
                                                 subtitle: "\(item.recording.formattedDate) • \(item.recording.formattedDuration)",
                                                 openedRowID: $openedRowID,
                                                 onTap: {
                                                     selectedRecording = item.recording
+                                                },
+                                                onEdit: {
+                                                    beginRenaming(item.recording, suggestedTitle: displayTitle)
+                                                },
+                                                onDelete: {
+                                                    recordingToDelete = item.recording
+                                                    deletePromptTitle = displayTitle
                                                 }
                                             )
                                         }
@@ -97,6 +109,33 @@ struct HomeView: View {
             .onChange(of: selectedRecording) { _ in
                 closeOpenedRowIfNeeded()
             }
+            .alert("녹음 이름 수정", isPresented: renameAlertIsPresented) {
+                TextField("녹음 이름", text: $pendingRecordingTitle)
+
+                Button("취소", role: .cancel) {
+                    clearRenameState()
+                }
+
+                Button("저장") {
+                    commitRename()
+                }
+            } message: {
+                Text("녹음 파일 이름을 바꾸면 홈 화면 리스트 제목도 함께 변경됩니다.")
+            }
+            .alert("녹음 삭제", isPresented: deleteAlertIsPresented, presenting: recordingToDelete) { recording in
+                Button("취소", role: .cancel) {
+                    recordingToDelete = nil
+                    deletePromptTitle = ""
+                }
+
+                Button("삭제", role: .destructive) {
+                    recorder.deleteRecording(recording)
+                    recordingToDelete = nil
+                    deletePromptTitle = ""
+                }
+            } message: { recording in
+                Text("'\(deletePromptTitle)' 녹음을 삭제할까요?")
+            }
         }
     }
 
@@ -106,6 +145,57 @@ struct HomeView: View {
         withAnimation(RecordingRowSwipeBehavior.snapAnimation) {
             openedRowID = nil
         }
+    }
+
+    private var renameAlertIsPresented: Binding<Bool> {
+        Binding(
+            get: { recordingToRename != nil },
+            set: { isPresented in
+                if !isPresented {
+                    clearRenameState()
+                }
+            }
+        )
+    }
+
+    private var deleteAlertIsPresented: Binding<Bool> {
+        Binding(
+            get: { recordingToDelete != nil },
+            set: { isPresented in
+                if !isPresented {
+                    recordingToDelete = nil
+                    deletePromptTitle = ""
+                }
+            }
+        )
+    }
+
+    private func beginRenaming(_ recording: Recording, suggestedTitle: String) {
+        recordingToRename = recording
+        pendingRecordingTitle = suggestedTitle
+    }
+
+    private func clearRenameState() {
+        recordingToRename = nil
+        pendingRecordingTitle = ""
+    }
+
+    private func commitRename() {
+        guard let recordingToRename else { return }
+
+        let updatedRecording = recorder.renameRecording(recordingToRename, to: pendingRecordingTitle)
+        if let updatedRecording, selectedRecording?.id == recordingToRename.id {
+            selectedRecording = updatedRecording
+        }
+        clearRenameState()
+    }
+
+    private func title(for recording: Recording, index: Int) -> String {
+        if recording.title.hasPrefix("Recording_") {
+            return "새로운 대화 기록 (\(index))"
+        }
+
+        return recording.title
     }
 
     private func todayDateString() -> String {

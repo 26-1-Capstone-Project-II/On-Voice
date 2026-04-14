@@ -41,6 +41,8 @@ struct RecordingRowView: View {
     let subtitle: String
     @Binding var openedRowID: Recording.ID?
     let onTap: () -> Void
+    let onEdit: () -> Void
+    let onDelete: () -> Void
 
     @GestureState(
         resetTransaction: Transaction(
@@ -123,33 +125,54 @@ struct RecordingRowView: View {
             actionButton(
                 systemImage: "pencil",
                 title: "수정",
-                fillColor: Color(uiColor: .systemIndigo)
+                fillColor: Color(uiColor: .systemIndigo),
+                action: {
+                    withAnimation(RecordingRowSwipeBehavior.snapAnimation) {
+                        openedRowID = nil
+                    }
+                    onEdit()
+                }
             )
 
             actionButton(
                 systemImage: "trash",
                 title: "삭제",
-                fillColor: Color(uiColor: .systemRed)
+                fillColor: Color(uiColor: .systemRed),
+                action: {
+                    withAnimation(RecordingRowSwipeBehavior.snapAnimation) {
+                        openedRowID = nil
+                    }
+                    onDelete()
+                }
             )
         }
         .padding(.trailing, 8)
     }
 
-    private func actionButton(systemImage: String, title: String, fillColor: Color) -> some View {
-        VStack(spacing: 4) {
-            Circle()
-                .fill(fillColor)
-                .frame(width: 42, height: 42)
-                .overlay {
-                    Image(systemName: systemImage)
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(.white)
-                }
+    private func actionButton(
+        systemImage: String,
+        title: String,
+        fillColor: Color,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            VStack(spacing: 4) {
+                Circle()
+                    .fill(fillColor)
+                    .frame(width: 42, height: 42)
+                    .overlay {
+                        Image(systemName: systemImage)
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundStyle(.white)
+                    }
 
-            Text(title)
-                .onVoiceTextStyle(.caption1, color: .gray5)
+                Text(title)
+                    .onVoiceTextStyle(.caption1, color: .gray5)
+            }
+            .frame(width: 48)
+            .contentShape(Rectangle())
         }
-        .frame(width: 48)
+        .buttonStyle(.plain)
     }
 
     private var dragGesture: some Gesture {
@@ -184,7 +207,9 @@ struct RecordingRowView: View {
         title: "새로운 대화 기록 (4)",
         subtitle: "2026년 9월 2일 오후 6시 42분 • 49초",
         openedRowID: .constant(nil),
-        onTap: {}
+        onTap: {},
+        onEdit: {},
+        onDelete: {}
     )
     .padding()
     .background(Color.bg)
