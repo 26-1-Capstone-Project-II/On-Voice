@@ -1,5 +1,5 @@
-# Created by https://www.toptal.com/developers/gitignore/api/python,swift,swiftpm,swiftpackagemanager,firebase
-# Edit at https://www.toptal.com/developers/gitignore?templates=python,swift,swiftpm,swiftpackagemanager,firebase
+# Created by https://www.toptal.com/developers/gitignore/api/python,xcode,firebase,swift
+# Edit at https://www.toptal.com/developers/gitignore?templates=python,xcode,firebase,swift
 
 ### Firebase ###
 .idea
@@ -265,17 +265,22 @@ fastlane/test_output
 
 iOSInjectionProject/
 
-### SwiftPackageManager ###
-Packages
-xcuserdata
-*.xcodeproj
+### Xcode ###
 
+## Xcode 8 and earlier
 
-### SwiftPM ###
+### Xcode Patch ###
+*.xcodeproj/*
+!*.xcodeproj/project.pbxproj
+!*.xcodeproj/xcshareddata/
+!*.xcodeproj/project.xcworkspace/
+!*.xcworkspace/contents.xcworkspacedata
+/*.gcno
+**/xcshareddata/WorkspaceSettings.xcsettings
 
 .DS_Store
 ._.DS_Store
 **/.DS_Store
 **/._.DS_Store
 
-# End of https://www.toptal.com/developers/gitignore/api/python,swift,swiftpm,swiftpackagemanager,firebase
+# End of https://www.toptal.com/developers/gitignore/api/python,xcode,firebase,swift
