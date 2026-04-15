@@ -1,36 +1,9 @@
-<!-- 
-    # 다음 체크리스트를 꼭 확인해주세요 
-    1. 제목은 다음과 같이 설정해주세요. 제목은 간결하게, 뒤에 마침표 금지.
-       => "작업유형지정: 제목"
-      1-1. 작업 유형은 다음과 같습니다.
-            feat:      새로운 기능 추가
-            design:    CSS 등 사용자 UI 디자인 변경
-            fix:        버그 수정
-            style:     코드 formatting, 세미콜론 누락 등 코드 자체의 변경이 없는 경우
-            docs:      문서 수정
-            refactor:  코드 리팩토링
-            test:      테스트 코드, 리팩토링 테스트 코드 추가
-            chore:     패키지 매니저 수정, 그 외 기타 수정
-            comment:   주석 추가 및 변경
-            rename:  	파일, 폴더의 이름 수정 또는 이동
-            remove:  	파일 삭제
-            !HOTFIX: 	급하게 치명적인 버그를 고쳐야 하는 경우
-            other:     기타
-    2. Reviewers에 리뷰어를 지정해주세요.
-    3. Assignees에 작성자 본인(리뷰이)을 지정해주세요.
-    4. labels 태그를 지정해주세요. (작업유형과 같은 역할)
-    5. 마크다운 문법을 활용해서 아래 문서를 작성해보세요. 
-       => 참고 블로그: https://inpa.tistory.com/entry/MarkDown-%F0%9F%93%9A-%EB%A7%88%ED%81%AC%EB%8B%A4%EC%9A%B4-%EB%AC%B8%EB%B2%95-%F0%9F%92%AF-%EC%A0%95%EB%A6%AC
--->
-
-
 ## Summary
 <!-- 이 PR의 목적과 주요 변경 사항을 간단히 설명하세요. -->
 
 
 ## Related Issue
 <!-- Projects에서 이 PR과 관련된 이슈를 링크하세요. -->
-<!-- - issue: #123 -->
 - issue: # 
 
 
@@ -58,5 +31,32 @@
 - [ ] 필요시 문서 업데이트
 
 
-## Additional Context (추가 사항)
+## Additional Context (Optional)
 <!-- 이 PR에 대해 추가로 설명할 사항이 있으면 적어주세요. -->
+
+
+
+<!-- 
+# 다음 체크리스트를 꼭 확인해주세요 (이 주석 블록은 지워도 됨)
+   1. 제목은 다음과 같이 설정해주세요. 제목은 간결하게, 뒤에 마침표 금지.
+      => "작업유형지정: 제목"
+      1-1. 작업 유형은 다음과 같습니다.
+            feat:      새로운 기능 추가
+            design:    CSS 등 사용자 UI 디자인 변경
+            fix:        버그 수정
+            style:     코드 formatting, 세미콜론 누락 등 코드 자체의 변경이 없는 경우
+            docs:      문서 수정
+            refactor:  코드 리팩토링
+            test:      테스트 코드, 리팩토링 테스트 코드 추가
+            chore:     패키지 매니저 수정, 그 외 기타 수정
+            comment:   주석 추가 및 변경
+            rename:  	파일, 폴더의 이름 수정 또는 이동
+            remove:  	파일 삭제
+            !HOTFIX: 	급하게 치명적인 버그를 고쳐야 하는 경우
+            other:     기타
+   2. Reviewers에 리뷰어를 지정해주세요.
+   3. Assignees에 작성자 본인(리뷰이)을 지정해주세요.
+   4. labels 태그를 지정해주세요. (작업유형과 같은 역할)
+   5. 마크다운 문법을 활용해서 아래 문서를 작성해보세요. 
+      => 참고 블로그: https://inpa.tistory.com/entry/MarkDown-%F0%9F%93%9A-%EB%A7%88%ED%81%AC%EB%8B%A4%EC%9A%B4-%EB%AC%B8%EB%B2%95-%F0%9F%92%AF-%EC%A0%95%EB%A6%AC
+-->
