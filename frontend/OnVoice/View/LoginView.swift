@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Combine
 
 struct LoginView: View {
     var onLogin: () -> Void = {}
@@ -14,6 +15,17 @@ struct LoginView: View {
     @State private var showsSplash = true
 
     private let pages = LoginOnboardingPage.all
+    private let autoScrollTimer = Timer.publish(every: 2.5, on: .main, in: .common).autoconnect()
+
+    private var loopingPages: [LoginOnboardingPage] {
+        guard let firstPage = pages.first else { return [] }
+        return pages + [firstPage]
+    }
+
+    private var indicatorPage: Int {
+        guard !pages.isEmpty else { return 0 }
+        return min(selectedPage, pages.count - 1)
+    }
 
     var body: some View {
         ZStack {
@@ -32,6 +44,21 @@ struct LoginView: View {
             try? await Task.sleep(nanoseconds: 900_000_000)
             showsSplash = false
         }
+        .onReceive(autoScrollTimer) { _ in
+            guard !showsSplash, pages.count > 1 else { return }
+
+            let lastLoopingIndex = loopingPages.count - 1
+
+            withAnimation(.easeInOut(duration: 0.3)) {
+                selectedPage += 1
+            }
+
+            guard selectedPage == lastLoopingIndex else { return }
+
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.32) {
+                selectedPage = 0
+            }
+        }
     }
 
     private var onboardingContent: some View {
@@ -44,9 +71,9 @@ struct LoginView: View {
                     .frame(height: max(40, proxy.safeAreaInsets.top + 34))
 
                 TabView(selection: $selectedPage) {
-                    ForEach(pages.indices, id: \.self) { index in
+                    ForEach(loopingPages.indices, id: \.self) { index in
                         LoginOnboardingCard(
-                            imageName: pages[index].imageName,
+                            imageName: loopingPages[index].imageName,
                             width: cardWidth,
                             height: cardHeight
                         )
@@ -86,13 +113,13 @@ struct LoginView: View {
     }
 
     private var pageIndicator: some View {
-        HStack(spacing: 10) {
-            ForEach(pages.indices, id: \.self) { index in
-                Circle()
-                    .fill(selectedPage == index ? Color.main : Color.gray8)
-                    .frame(width: 11, height: 11)
-            }
-        }
+                HStack(spacing: 10) {
+                    ForEach(pages.indices, id: \.self) { index in
+                        Circle()
+                            .fill(indicatorPage == index ? Color.main : Color.gray8)
+                            .frame(width: 11, height: 11)
+                    }
+                }
     }
 
     private func appleButton(
