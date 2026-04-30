@@ -9,11 +9,16 @@ import SwiftUI
 import ActivityKit
 
 struct FeedbackView: View {
+    private var guideSheetAnimation: Animation {
+        .easeInOut(duration: 0.32)
+    }
     
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var recorder: AudioRecorder
     @State private var isPaused = false
-    @State private var isInfoSheetPresented = false
+    @State private var isGuideSheetPresented = false
+    @State private var isGuideSheetVisible = false
+    @State private var hasPresentedGuideOnAppear = false
     
     @State private var noiseMeter = NoiseMeter.shared
     @State private var activity: Activity<DynamicIslandWidgetAttributes>?
@@ -34,7 +39,7 @@ struct FeedbackView: View {
                 .toolbar {
                     ToolbarItem(placement: .navigationBarLeading) {
                         Button {
-                            isInfoSheetPresented = true
+                            presentGuideSheet()
                         } label: {
                             Image(systemName: "exclamationmark.circle")
                                 .foregroundColor(.main)
@@ -64,9 +69,17 @@ struct FeedbackView: View {
                         }
                     }
                 }
-//                InfoSheetView(isShowing: $isInfoSheetPresented, nowSituation: $currentSituation)
+
+                if isGuideSheetPresented {
+                    guideSheetOverlay
+                        .zIndex(1)
+                }
             }
             .onAppear { // FeedBackView 시작 시 소리 측정 시작
+                if !hasPresentedGuideOnAppear {
+                    hasPresentedGuideOnAppear = true
+                    presentGuideSheet()
+                }
                 recorder.start()
                 Task {
                     noiseMeter.nowSituation = currentSituation // 사용자가 선택한 상황 LiveActivity에 전달
@@ -74,11 +87,59 @@ struct FeedbackView: View {
                     noiseMeter.startLiveActivity()
                 }
             }
+            .onChange(of: isGuideSheetPresented) { _, isPresented in
+                guard isPresented, !isGuideSheetVisible else { return }
+
+                withAnimation(guideSheetAnimation) {
+                    isGuideSheetVisible = true
+                }
+            }
             .onDisappear {
+                isGuideSheetPresented = false
+                isGuideSheetVisible = false
                 currentSituation = nil
             }
         }
         .toolbar(.hidden, for: .tabBar)
+    }
+
+    private var guideSheetOverlay: some View {
+        ZStack(alignment: .bottom) {
+            Color.black
+                .opacity(isGuideSheetVisible ? 0.28 : 0)
+                .ignoresSafeArea()
+
+            VoicePitchGuideBottomSheet {
+                dismissGuideSheet()
+            }
+            .offset(y: isGuideSheetVisible ? 0 : 420)
+        }
+        .allowsHitTesting(isGuideSheetPresented)
+    }
+
+    private func presentGuideSheet() {
+        guard !isGuideSheetPresented else {
+            if !isGuideSheetVisible {
+                withAnimation(guideSheetAnimation) {
+                    isGuideSheetVisible = true
+                }
+            }
+            return
+        }
+
+        isGuideSheetVisible = false
+        isGuideSheetPresented = true
+    }
+
+    private func dismissGuideSheet() {
+        withAnimation(
+            guideSheetAnimation,
+            completionCriteria: .logicallyComplete
+        ) {
+            isGuideSheetVisible = false
+        } completion: {
+            isGuideSheetPresented = false
+        }
     }
 }
 
