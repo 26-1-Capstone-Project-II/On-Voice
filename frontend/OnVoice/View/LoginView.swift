@@ -63,13 +63,28 @@ struct LoginView: View {
 
     private var onboardingContent: some View {
         GeometryReader { proxy in
-            let cardWidth = min(proxy.size.width - 32, 357)
+            let referenceWidth: CGFloat = 393
+            let contentReferenceHeight: CGFloat = 759
+            let contentHeight = proxy.size.height
+
+            let cardHorizontalPadding = proxy.size.width * (18 / referenceWidth)
+            let cardTopPadding = contentHeight * (48 / contentReferenceHeight)
+            let cardWidth = proxy.size.width - (cardHorizontalPadding * 2)
             let cardHeight = cardWidth * 500 / 357
 
-            VStack(spacing: 0) {
-                Spacer()
-                    .frame(height: max(40, proxy.safeAreaInsets.top + 34))
+            let signInHorizontalPadding = proxy.size.width * (24 / referenceWidth)
+            let signInTopPadding = contentHeight * (615 / contentReferenceHeight)
+            let signInWidth = proxy.size.width * (345 / referenceWidth)
+            let signInHeight = proxy.size.height * (58 / 852)
 
+            let signUpHorizontalPadding = proxy.size.width * (24 / referenceWidth)
+            let signUpTopPadding = contentHeight * (683 / contentReferenceHeight)
+            let signUpWidth = proxy.size.width * (345 / referenceWidth)
+            let signUpHeight = proxy.size.height * (58 / 852)
+
+            let indicatorTopPadding = contentHeight * (564 / contentReferenceHeight)
+
+            ZStack(alignment: .top) {
                 TabView(selection: $selectedPage) {
                     ForEach(loopingPages.indices, id: \.self) { index in
                         LoginOnboardingCard(
@@ -81,45 +96,47 @@ struct LoginView: View {
                     }
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
-                .frame(height: cardHeight)
+                .frame(width: cardWidth, height: cardHeight)
+                .padding(.top, cardTopPadding)
+                .padding(.horizontal, cardHorizontalPadding)
 
                 pageIndicator
-                    .padding(.top, 14)
+                    .padding(.top, indicatorTopPadding)
 
-                Spacer(minLength: 34)
+                appleButton(
+                    title: "Sign in with Apple",
+                    foregroundColor: .white,
+                    backgroundColor: .black,
+                    borderColor: .white.opacity(0.35),
+                    action: onLogin
+                )
+                .frame(width: signInWidth, height: signInHeight)
+                .padding(.top, signInTopPadding)
+                .padding(.horizontal, signInHorizontalPadding)
 
-                VStack(spacing: 14) {
-                    appleButton(
-                        title: "Sign in with apple",
-                        foregroundColor: .white,
-                        backgroundColor: .black,
-                        borderColor: .white.opacity(0.35),
-                        action: onLogin
-                    )
-
-                    appleButton(
-                        title: "Sign up with apple",
-                        foregroundColor: .black,
-                        backgroundColor: .white,
-                        borderColor: .clear,
-                        action: {}
-                    )
-                }
-                .padding(.horizontal, 22)
-                .padding(.bottom, max(28, proxy.safeAreaInsets.bottom + 20))
+                appleButton(
+                    title: "Sign up with Apple",
+                    foregroundColor: .black,
+                    backgroundColor: .white,
+                    borderColor: .clear,
+                    action: {}
+                )
+                .frame(width: signUpWidth, height: signUpHeight)
+                .padding(.top, signUpTopPadding)
+                .padding(.horizontal, signUpHorizontalPadding)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
     }
 
     private var pageIndicator: some View {
-                HStack(spacing: 10) {
-                    ForEach(pages.indices, id: \.self) { index in
-                        Circle()
-                            .fill(indicatorPage == index ? Color.main : Color.gray8)
-                            .frame(width: 11, height: 11)
-                    }
-                }
+        HStack(spacing: 12) {
+            ForEach(pages.indices, id: \.self) { index in
+                Circle()
+                    .fill(indicatorPage == index ? Color.main : Color.gray8)
+                    .frame(width: 12, height: 12)
+            }
+        }
     }
 
     private func appleButton(
@@ -135,17 +152,17 @@ struct LoginView: View {
                     .font(.system(size: 18, weight: .semibold))
 
                 Text(title)
-                    .font(.Pretendard.SemiBold.size18)
+                    .font(.Pretendard.SemiBold.size20)
             }
             .foregroundStyle(foregroundColor)
             .frame(maxWidth: .infinity)
-            .frame(height: 48)
+            .frame(height: 56)
             .background(backgroundColor)
             .overlay(
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .stroke(borderColor, lineWidth: 1)
+                RoundedRectangle(cornerRadius: 15, style: .continuous)
+                    .stroke(borderColor, lineWidth: 2)
             )
-            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
         }
         .buttonStyle(.plain)
     }
