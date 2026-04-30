@@ -19,12 +19,14 @@ struct FeedbackView: View {
     
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var recorder: AudioRecorder
+    @AppStorage("shouldSkipVoicePitchGuide") private var shouldSkipVoicePitchGuide = false
     @State private var isPaused = false
     @State private var isGuideSheetPresented = false
     @State private var isGuideSheetVisible = false
     @State private var isGuideSheetDismissing = false
     @State private var guideSheetDragOffset: CGFloat = 0
     @State private var hasPresentedGuideOnAppear = false
+    @State private var isGuideSheetOpenedManually = false
     
     @State private var noiseMeter = NoiseMeter.shared
     @State private var activity: Activity<DynamicIslandWidgetAttributes>?
@@ -45,7 +47,7 @@ struct FeedbackView: View {
                 .toolbar {
                     ToolbarItem(placement: .navigationBarLeading) {
                         Button {
-                            presentGuideSheet()
+                            presentGuideSheet(isManualOpen: true)
                         } label: {
                             Image(systemName: "exclamationmark.circle")
                                 .foregroundColor(.main)
@@ -88,7 +90,9 @@ struct FeedbackView: View {
             .onAppear { // FeedBackView 시작 시 소리 측정 시작
                 if !hasPresentedGuideOnAppear {
                     hasPresentedGuideOnAppear = true
-                    presentGuideSheet()
+                    if !shouldSkipVoicePitchGuide {
+                        presentGuideSheet(isManualOpen: false)
+                    }
                 }
                 recorder.start()
                 Task {
@@ -124,19 +128,46 @@ struct FeedbackView: View {
                     dismissGuideSheet()
                 }
 
-            VoicePitchGuideBottomSheet {
-                dismissGuideSheet()
+            ZStack(alignment: .topTrailing) {
+                VoicePitchGuideBottomSheet(
+                    onConfirm: {
+                        dismissGuideSheet()
+                    },
+                    onDragChanged: { value in
+                        handleGuideSheetDragChanged(value)
+                    },
+                    onDragEnded: { value in
+                        handleGuideSheetDragEnded(value)
+                    }
+                )
+
+                if !isGuideSheetOpenedManually {
+                    Button {
+                        handleDoNotShowAgain()
+                    } label: {
+                        Text("다시 보지 않기")
+                            .font(.Pretendard.Regular.size14)
+                            .kerning(-0.3)
+                            .foregroundStyle(Color.suGray4)
+                            .frame(width: 120, height: 38, alignment: .trailing)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.top, 58)
+                    .padding(.trailing, 24)
+                    .zIndex(10)
+                }
             }
             .offset(y: sheetOffset)
-            .gesture(guideSheetDragGesture)
         }
         .allowsHitTesting(isGuideSheetPresented)
     }
 
-    private func presentGuideSheet() {
+    private func presentGuideSheet(isManualOpen: Bool) {
         guard !isGuideSheetDismissing else { return }
 
         guard !isGuideSheetPresented else {
+            isGuideSheetOpenedManually = isManualOpen
             if !isGuideSheetVisible {
                 withAnimation(guideSheetAnimation) {
                     isGuideSheetVisible = true
@@ -147,6 +178,7 @@ struct FeedbackView: View {
 
         guideSheetDragOffset = 0
         isGuideSheetVisible = false
+        isGuideSheetOpenedManually = isManualOpen
         isGuideSheetPresented = true
     }
 
@@ -167,27 +199,30 @@ struct FeedbackView: View {
         }
     }
 
+    private func handleDoNotShowAgain() {
+        shouldSkipVoicePitchGuide = true
+        dismissGuideSheet()
+    }
+
     private var sheetOffset: CGFloat {
         (isGuideSheetVisible ? 0 : guideSheetHiddenOffset) + guideSheetDragOffset
     }
 
-    private var guideSheetDragGesture: some Gesture {
-        DragGesture()
-            .onChanged { value in
-                guard !isGuideSheetDismissing else { return }
-                guideSheetDragOffset = max(value.translation.height, 0)
-            }
-            .onEnded { value in
-                guard !isGuideSheetDismissing else { return }
+    private func handleGuideSheetDragChanged(_ value: DragGesture.Value) {
+        guard !isGuideSheetDismissing else { return }
+        guideSheetDragOffset = max(value.translation.height, 0)
+    }
 
-                if value.translation.height >= guideSheetDismissThreshold {
-                    dismissGuideSheet()
-                } else {
-                    withAnimation(guideSheetAnimation) {
-                        guideSheetDragOffset = 0
-                    }
-                }
+    private func handleGuideSheetDragEnded(_ value: DragGesture.Value) {
+        guard !isGuideSheetDismissing else { return }
+
+        if value.translation.height >= guideSheetDismissThreshold {
+            dismissGuideSheet()
+        } else {
+            withAnimation(guideSheetAnimation) {
+                guideSheetDragOffset = 0
             }
+        }
     }
 }
 
