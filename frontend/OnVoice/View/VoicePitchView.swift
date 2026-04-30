@@ -22,7 +22,7 @@ struct VoicePitchView: View {
     
     var body: some View {
         ZStack {
-            Color.suBlack
+            Color.bg
                 .ignoresSafeArea()
             VStack {
                 Spacer()
@@ -40,7 +40,7 @@ struct VoicePitchView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 30))
                 .overlay {
                     RoundedRectangle(cornerRadius: 30)
-                        .strokeBorder(.suWhite, lineWidth: 1)
+                        .strokeBorder(Color.gray3, lineWidth: 1)
                 }
                 Spacer()
                     .frame(height: 40)
@@ -52,13 +52,13 @@ struct VoicePitchView: View {
                 HStack(alignment: .bottom, spacing: 0) {
                     Text("\(String(format: "%.0f", noiseMeter.decibels))")
                         .font(.Pretendard.SemiBold.size24)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Color.sub)
                         .frame(width: 35)
                         .kerning(-0.4)
                     
                     Text("dB")
                         .font(.Pretendard.Regular.size16)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Color.sub)
                         .padding(.bottom, 2)
                         .kerning(-0.4)
                 }
