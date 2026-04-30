@@ -25,7 +25,7 @@ struct SituationRecognitionView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color.suBlack.ignoresSafeArea()
+                Color.bg.ignoresSafeArea()
                 
                 VStack {
                     Spacer()
@@ -42,12 +42,12 @@ struct SituationRecognitionView: View {
                     ZStack(alignment: .leading) {
                         // 배경 (회색)
                         RoundedRectangle(cornerRadius: 20)
-                            .fill(Color.suGray6)
+                            .fill(Color.bg)
                             .frame(width: 175, height: 8)
                         
                         // 진행도 (보라색)
                         RoundedRectangle(cornerRadius: 20)
-                            .fill(Color.point)
+                            .fill(Color.main)
                             .frame(width: 175 * progress, height: 8)
                             .animation(.linear(duration: 0.1), value: progress)
                     }

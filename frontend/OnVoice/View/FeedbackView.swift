@@ -37,7 +37,7 @@ struct FeedbackView: View {
                             isInfoSheetPresented = true
                         } label: {
                             Image(systemName: "exclamationmark.circle")
-                                .foregroundColor(.point)
+                                .foregroundColor(.main)
                         }
                     }
                     
@@ -60,7 +60,7 @@ struct FeedbackView: View {
                             Text("종료")
                                 .font(.Pretendard.Regular.size17)
                                 .kerning(-0.43)
-                                .foregroundColor(.point)
+                                .foregroundColor(.main)
                         }
                     }
                 }
