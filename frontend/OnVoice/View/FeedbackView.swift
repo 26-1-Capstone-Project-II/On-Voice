@@ -72,11 +72,6 @@ struct FeedbackView: View {
 
                 if isGuideSheetPresented {
                     guideSheetOverlay
-                        .onAppear {
-                            withAnimation(guideSheetAnimation) {
-                                isGuideSheetVisible = true
-                            }
-                        }
                         .zIndex(1)
                 }
             }
@@ -90,6 +85,13 @@ struct FeedbackView: View {
                     noiseMeter.nowSituation = currentSituation // 사용자가 선택한 상황 LiveActivity에 전달
                     await noiseMeter.measure()
                     noiseMeter.startLiveActivity()
+                }
+            }
+            .onChange(of: isGuideSheetPresented) { _, isPresented in
+                guard isPresented, !isGuideSheetVisible else { return }
+
+                withAnimation(guideSheetAnimation) {
+                    isGuideSheetVisible = true
                 }
             }
             .onDisappear {
@@ -112,7 +114,7 @@ struct FeedbackView: View {
             }
             .offset(y: isGuideSheetVisible ? 0 : 420)
         }
-        .allowsHitTesting(isGuideSheetVisible)
+        .allowsHitTesting(isGuideSheetPresented)
     }
 
     private func presentGuideSheet() {
