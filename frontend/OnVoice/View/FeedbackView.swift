@@ -13,7 +13,8 @@ struct FeedbackView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var recorder: AudioRecorder
     @State private var isPaused = false
-    @State private var isInfoSheetPresented = false
+    @State private var isGuideSheetPresented = false
+    @State private var hasPresentedGuideOnAppear = false
     
     @State private var noiseMeter = NoiseMeter.shared
     @State private var activity: Activity<DynamicIslandWidgetAttributes>?
@@ -29,12 +30,15 @@ struct FeedbackView: View {
                 
                 VoicePitchView(noiseMeter: $noiseMeter,
                                currentSituation: $currentSituation)
+                    .allowsHitTesting(!isGuideSheetPresented)
                 .navigationBarBackButtonHidden()
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .navigationBarLeading) {
                         Button {
-                            isInfoSheetPresented = true
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.92)) {
+                                isGuideSheetPresented = true
+                            }
                         } label: {
                             Image(systemName: "exclamationmark.circle")
                                 .foregroundColor(.main)
@@ -64,9 +68,20 @@ struct FeedbackView: View {
                         }
                     }
                 }
-//                InfoSheetView(isShowing: $isInfoSheetPresented, nowSituation: $currentSituation)
+
+                if isGuideSheetPresented {
+                    guideSheetOverlay
+                        .transition(.opacity)
+                        .zIndex(1)
+                }
             }
             .onAppear { // FeedBackView 시작 시 소리 측정 시작
+                if !hasPresentedGuideOnAppear {
+                    hasPresentedGuideOnAppear = true
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.92)) {
+                        isGuideSheetPresented = true
+                    }
+                }
                 recorder.start()
                 Task {
                     noiseMeter.nowSituation = currentSituation // 사용자가 선택한 상황 LiveActivity에 전달
@@ -79,6 +94,22 @@ struct FeedbackView: View {
             }
         }
         .toolbar(.hidden, for: .tabBar)
+    }
+
+    private var guideSheetOverlay: some View {
+        ZStack(alignment: .bottom) {
+            Color.black
+                .opacity(0.28)
+                .ignoresSafeArea()
+
+            VoicePitchGuideBottomSheet {
+                withAnimation(.easeInOut(duration: 0.28)) {
+                    isGuideSheetPresented = false
+                }
+            }
+            .padding(.bottom, 0)
+            .transition(.move(edge: .bottom))
+        }
     }
 }
 
