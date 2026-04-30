@@ -9,6 +9,10 @@ import SwiftUI
 import ActivityKit
 
 struct FeedbackView: View {
+    private let guideSheetHiddenOffset: CGFloat = 420
+    private let guideSheetDismissThreshold: CGFloat = 120
+    private let guideSheetDimOpacity: Double = 0.50
+
     private var guideSheetAnimation: Animation {
         .easeInOut(duration: 0.32)
     }
@@ -18,6 +22,8 @@ struct FeedbackView: View {
     @State private var isPaused = false
     @State private var isGuideSheetPresented = false
     @State private var isGuideSheetVisible = false
+    @State private var isGuideSheetDismissing = false
+    @State private var guideSheetDragOffset: CGFloat = 0
     @State private var hasPresentedGuideOnAppear = false
     
     @State private var noiseMeter = NoiseMeter.shared
@@ -44,6 +50,8 @@ struct FeedbackView: View {
                             Image(systemName: "exclamationmark.circle")
                                 .foregroundColor(.main)
                         }
+                        .disabled(isGuideSheetPresented)
+                        .opacity(isGuideSheetPresented ? 0.35 : 1)
                     }
                     
                     ToolbarItem(placement: .principal) {
@@ -67,6 +75,8 @@ struct FeedbackView: View {
                                 .kerning(-0.43)
                                 .foregroundColor(.main)
                         }
+                        .disabled(isGuideSheetPresented)
+                        .opacity(isGuideSheetPresented ? 0.35 : 1)
                     }
                 }
 
@@ -91,6 +101,7 @@ struct FeedbackView: View {
                 guard isPresented, !isGuideSheetVisible else { return }
 
                 withAnimation(guideSheetAnimation) {
+                    guideSheetDragOffset = 0
                     isGuideSheetVisible = true
                 }
             }
@@ -106,18 +117,25 @@ struct FeedbackView: View {
     private var guideSheetOverlay: some View {
         ZStack(alignment: .bottom) {
             Color.black
-                .opacity(isGuideSheetVisible ? 0.28 : 0)
+                .opacity(isGuideSheetVisible ? guideSheetDimOpacity : 0)
                 .ignoresSafeArea()
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    dismissGuideSheet()
+                }
 
             VoicePitchGuideBottomSheet {
                 dismissGuideSheet()
             }
-            .offset(y: isGuideSheetVisible ? 0 : 420)
+            .offset(y: sheetOffset)
+            .gesture(guideSheetDragGesture)
         }
         .allowsHitTesting(isGuideSheetPresented)
     }
 
     private func presentGuideSheet() {
+        guard !isGuideSheetDismissing else { return }
+
         guard !isGuideSheetPresented else {
             if !isGuideSheetVisible {
                 withAnimation(guideSheetAnimation) {
@@ -127,19 +145,49 @@ struct FeedbackView: View {
             return
         }
 
+        guideSheetDragOffset = 0
         isGuideSheetVisible = false
         isGuideSheetPresented = true
     }
 
     private func dismissGuideSheet() {
+        guard isGuideSheetPresented, !isGuideSheetDismissing else { return }
+
+        isGuideSheetDismissing = true
+
         withAnimation(
             guideSheetAnimation,
             completionCriteria: .logicallyComplete
         ) {
+            guideSheetDragOffset = 0
             isGuideSheetVisible = false
         } completion: {
             isGuideSheetPresented = false
+            isGuideSheetDismissing = false
         }
+    }
+
+    private var sheetOffset: CGFloat {
+        (isGuideSheetVisible ? 0 : guideSheetHiddenOffset) + guideSheetDragOffset
+    }
+
+    private var guideSheetDragGesture: some Gesture {
+        DragGesture()
+            .onChanged { value in
+                guard !isGuideSheetDismissing else { return }
+                guideSheetDragOffset = max(value.translation.height, 0)
+            }
+            .onEnded { value in
+                guard !isGuideSheetDismissing else { return }
+
+                if value.translation.height >= guideSheetDismissThreshold {
+                    dismissGuideSheet()
+                } else {
+                    withAnimation(guideSheetAnimation) {
+                        guideSheetDragOffset = 0
+                    }
+                }
+            }
     }
 }
 

@@ -37,28 +37,7 @@ struct VoicePitchGuideBottomSheet: View {
                     .padding(.top, 18)
                     .padding(.horizontal, 32)
 
-                // Lottie animation will replace this placeholder in a follow-up task.
-                RoundedRectangle(cornerRadius: 28)
-                    .fill(
-                        LinearGradient(
-                            colors: [Color.gray10.opacity(0.9), Color.gray9.opacity(0.75)],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
-                    .overlay {
-                        VStack(spacing: 10) {
-                            Image(systemName: "iphone.gen3")
-                                .font(.system(size: 36, weight: .medium))
-                                .foregroundStyle(Color.gray4)
-
-                            Text("로티 애니메이션 영역")
-                                .font(.Pretendard.Medium.size14)
-                                .kerning(-0.3)
-                                .foregroundStyle(Color.gray4)
-                        }
-                    }
-                    .frame(width: 223, height: 223)
+                GuidePositionLottieView()
                     .padding(.top, 20)
 
                 Button(action: onConfirm) {
