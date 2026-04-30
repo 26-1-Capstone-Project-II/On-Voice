@@ -14,6 +14,7 @@ struct FeedbackView: View {
     @EnvironmentObject var recorder: AudioRecorder
     @State private var isPaused = false
     @State private var isGuideSheetPresented = false
+    @State private var isGuideSheetVisible = false
     @State private var hasPresentedGuideOnAppear = false
     
     @State private var noiseMeter = NoiseMeter.shared
@@ -36,9 +37,7 @@ struct FeedbackView: View {
                 .toolbar {
                     ToolbarItem(placement: .navigationBarLeading) {
                         Button {
-                            withAnimation(.spring(response: 0.35, dampingFraction: 0.92)) {
-                                isGuideSheetPresented = true
-                            }
+                            presentGuideSheet()
                         } label: {
                             Image(systemName: "exclamationmark.circle")
                                 .foregroundColor(.main)
@@ -78,9 +77,7 @@ struct FeedbackView: View {
             .onAppear { // FeedBackView 시작 시 소리 측정 시작
                 if !hasPresentedGuideOnAppear {
                     hasPresentedGuideOnAppear = true
-                    withAnimation(.spring(response: 0.35, dampingFraction: 0.92)) {
-                        isGuideSheetPresented = true
-                    }
+                    presentGuideSheet()
                 }
                 recorder.start()
                 Task {
@@ -99,16 +96,33 @@ struct FeedbackView: View {
     private var guideSheetOverlay: some View {
         ZStack(alignment: .bottom) {
             Color.black
-                .opacity(0.28)
+                .opacity(isGuideSheetVisible ? 0.28 : 0)
                 .ignoresSafeArea()
+                .animation(.easeInOut(duration: 0.22), value: isGuideSheetVisible)
 
             VoicePitchGuideBottomSheet {
-                withAnimation(.easeInOut(duration: 0.28)) {
-                    isGuideSheetPresented = false
-                }
+                dismissGuideSheet()
             }
-            .padding(.bottom, 0)
-            .transition(.move(edge: .bottom))
+            .offset(y: isGuideSheetVisible ? 0 : 420)
+            .animation(.spring(response: 0.38, dampingFraction: 0.9), value: isGuideSheetVisible)
+        }
+    }
+
+    private func presentGuideSheet() {
+        guard !isGuideSheetPresented else { return }
+        isGuideSheetPresented = true
+
+        DispatchQueue.main.async {
+            isGuideSheetVisible = true
+        }
+    }
+
+    private func dismissGuideSheet() {
+        isGuideSheetVisible = false
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.32) {
+            guard !isGuideSheetVisible else { return }
+            isGuideSheetPresented = false
         }
     }
 }
