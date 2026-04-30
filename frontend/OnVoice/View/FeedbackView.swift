@@ -9,6 +9,10 @@ import SwiftUI
 import ActivityKit
 
 struct FeedbackView: View {
+    private let guideSheetAnimationDuration: Double = 0.32
+    private var guideSheetAnimation: Animation {
+        .easeInOut(duration: guideSheetAnimationDuration)
+    }
     
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var recorder: AudioRecorder
@@ -16,6 +20,7 @@ struct FeedbackView: View {
     @State private var isGuideSheetPresented = false
     @State private var isGuideSheetVisible = false
     @State private var hasPresentedGuideOnAppear = false
+    @State private var guideSheetTransitionTask: Task<Void, Never>?
     
     @State private var noiseMeter = NoiseMeter.shared
     @State private var activity: Activity<DynamicIslandWidgetAttributes>?
@@ -31,7 +36,6 @@ struct FeedbackView: View {
                 
                 VoicePitchView(noiseMeter: $noiseMeter,
                                currentSituation: $currentSituation)
-                    .allowsHitTesting(!isGuideSheetPresented)
                 .navigationBarBackButtonHidden()
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
@@ -70,7 +74,6 @@ struct FeedbackView: View {
 
                 if isGuideSheetPresented {
                     guideSheetOverlay
-                        .transition(.opacity)
                         .zIndex(1)
                 }
             }
@@ -87,6 +90,7 @@ struct FeedbackView: View {
                 }
             }
             .onDisappear {
+                guideSheetTransitionTask?.cancel()
                 currentSituation = nil
             }
         }
@@ -98,30 +102,51 @@ struct FeedbackView: View {
             Color.black
                 .opacity(isGuideSheetVisible ? 0.28 : 0)
                 .ignoresSafeArea()
-                .animation(.easeInOut(duration: 0.22), value: isGuideSheetVisible)
 
             VoicePitchGuideBottomSheet {
                 dismissGuideSheet()
             }
             .offset(y: isGuideSheetVisible ? 0 : 420)
-            .animation(.spring(response: 0.38, dampingFraction: 0.9), value: isGuideSheetVisible)
         }
     }
 
     private func presentGuideSheet() {
-        guard !isGuideSheetPresented else { return }
+        guideSheetTransitionTask?.cancel()
+
+        guard !isGuideSheetPresented else {
+            if !isGuideSheetVisible {
+                withAnimation(guideSheetAnimation) {
+                    isGuideSheetVisible = true
+                }
+            }
+            return
+        }
+
         isGuideSheetPresented = true
 
-        DispatchQueue.main.async {
-            isGuideSheetVisible = true
+        guideSheetTransitionTask = Task { @MainActor in
+            await Task.yield()
+            guard !Task.isCancelled, isGuideSheetPresented else { return }
+
+            withAnimation(guideSheetAnimation) {
+                isGuideSheetVisible = true
+            }
         }
     }
 
     private func dismissGuideSheet() {
-        isGuideSheetVisible = false
+        guideSheetTransitionTask?.cancel()
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.32) {
-            guard !isGuideSheetVisible else { return }
+        withAnimation(guideSheetAnimation) {
+            isGuideSheetVisible = false
+        }
+
+        guideSheetTransitionTask = Task { @MainActor in
+            let duration = UInt64(guideSheetAnimationDuration * 1_000_000_000)
+
+            try? await Task.sleep(nanoseconds: duration)
+            guard !Task.isCancelled, !isGuideSheetVisible else { return }
+
             isGuideSheetPresented = false
         }
     }
