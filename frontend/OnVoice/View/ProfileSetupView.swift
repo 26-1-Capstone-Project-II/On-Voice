@@ -13,6 +13,7 @@ struct ProfileSetupView: View {
     @FocusState private var isNicknameFocused: Bool
     @State private var nickname = ""
     @State private var showsImageSheet = false
+    @State private var showsPhotoPicker = false
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var selectedProfileImage: Image?
 
@@ -104,6 +105,7 @@ struct ProfileSetupView: View {
             }
         }
         .animation(.easeInOut(duration: 0.2), value: showsImageSheet)
+        .photosPicker(isPresented: $showsPhotoPicker, selection: $selectedPhotoItem, matching: .images)
         .onChange(of: selectedPhotoItem) { newValue in
             guard let newValue else { return }
 
@@ -256,13 +258,15 @@ struct ProfileSetupView: View {
                 }
                 .buttonStyle(.plain)
 
-                PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
+                Button {
+                    showsImageSheet = false
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                        showsPhotoPicker = true
+                    }
+                } label: {
                     sheetRow(systemImage: "photo.on.rectangle.angled", title: "갤러리에서 선택하기")
                 }
                 .buttonStyle(.plain)
-                .simultaneousGesture(TapGesture().onEnded {
-                    showsImageSheet = false
-                })
 
                 Capsule()
                     .fill(Color.sub)
