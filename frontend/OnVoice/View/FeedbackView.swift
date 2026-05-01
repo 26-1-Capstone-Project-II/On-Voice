@@ -21,12 +21,8 @@ struct FeedbackView: View {
     @EnvironmentObject var recorder: AudioRecorder
     @AppStorage("shouldSkipVoicePitchGuide") private var shouldSkipVoicePitchGuide = false
     @State private var isPaused = false
-    @State private var isGuideSheetPresented = false
-    @State private var isGuideSheetVisible = false
-    @State private var isGuideSheetDismissing = false
-    @State private var guideSheetDragOffset: CGFloat = 0
+    @State private var guideSheetState = VoicePitchGuideSheetState()
     @State private var hasPresentedGuideOnAppear = false
-    @State private var isGuideSheetOpenedManually = false
     
     @State private var noiseMeter = NoiseMeter.shared
     @State private var activity: Activity<DynamicIslandWidgetAttributes>?
@@ -47,13 +43,13 @@ struct FeedbackView: View {
                 .toolbar {
                     ToolbarItem(placement: .navigationBarLeading) {
                         Button {
-                            presentGuideSheet(isManualOpen: true)
+                            presentGuideSheet(source: .manual)
                         } label: {
                             Image(systemName: "exclamationmark.circle")
                                 .foregroundColor(.main)
                         }
-                        .disabled(isGuideSheetPresented)
-                        .opacity(isGuideSheetPresented ? 0.35 : 1)
+                        .disabled(guideSheetState.isPresented)
+                        .opacity(guideSheetState.isPresented ? 0.35 : 1)
                     }
                     
                     ToolbarItem(placement: .principal) {
@@ -77,12 +73,12 @@ struct FeedbackView: View {
                                 .kerning(-0.43)
                                 .foregroundColor(.main)
                         }
-                        .disabled(isGuideSheetPresented)
-                        .opacity(isGuideSheetPresented ? 0.35 : 1)
+                        .disabled(guideSheetState.isPresented)
+                        .opacity(guideSheetState.isPresented ? 0.35 : 1)
                     }
                 }
 
-                if isGuideSheetPresented {
+                if guideSheetState.isPresented {
                     guideSheetOverlay
                         .zIndex(1)
                 }
@@ -90,8 +86,10 @@ struct FeedbackView: View {
             .onAppear { // FeedBackView 시작 시 소리 측정 시작
                 if !hasPresentedGuideOnAppear {
                     hasPresentedGuideOnAppear = true
-                    if !shouldSkipVoicePitchGuide {
-                        presentGuideSheet(isManualOpen: false)
+                    if VoicePitchGuideSheetState.shouldAutoPresent(
+                        skipPreference: shouldSkipVoicePitchGuide
+                    ) {
+                        presentGuideSheet(source: .automatic)
                     }
                 }
                 recorder.start()
@@ -101,17 +99,16 @@ struct FeedbackView: View {
                     noiseMeter.startLiveActivity()
                 }
             }
-            .onChange(of: isGuideSheetPresented) { _, isPresented in
-                guard isPresented, !isGuideSheetVisible else { return }
+            .onChange(of: guideSheetState.isPresented) { _, isPresented in
+                guard isPresented, !guideSheetState.isVisible else { return }
 
                 withAnimation(guideSheetAnimation) {
-                    guideSheetDragOffset = 0
-                    isGuideSheetVisible = true
+                    guideSheetState.resetDragOffset()
+                    guideSheetState.reveal()
                 }
             }
             .onDisappear {
-                isGuideSheetPresented = false
-                isGuideSheetVisible = false
+                guideSheetState = VoicePitchGuideSheetState()
                 currentSituation = nil
             }
         }
@@ -121,7 +118,7 @@ struct FeedbackView: View {
     private var guideSheetOverlay: some View {
         ZStack(alignment: .bottom) {
             Color.black
-                .opacity(isGuideSheetVisible ? guideSheetDimOpacity : 0)
+                .opacity(guideSheetState.isVisible ? guideSheetDimOpacity : 0)
                 .ignoresSafeArea()
                 .contentShape(Rectangle())
                 .onTapGesture {
@@ -141,7 +138,7 @@ struct FeedbackView: View {
                     }
                 )
 
-                if !isGuideSheetOpenedManually {
+                if guideSheetState.source.showsDoNotShowAgainButton {
                     Button {
                         handleDoNotShowAgain()
                     } label: {
@@ -160,42 +157,32 @@ struct FeedbackView: View {
             }
             .offset(y: sheetOffset)
         }
-        .allowsHitTesting(isGuideSheetPresented)
+        .allowsHitTesting(guideSheetState.isPresented)
     }
 
-    private func presentGuideSheet(isManualOpen: Bool) {
-        guard !isGuideSheetDismissing else { return }
-
-        guard !isGuideSheetPresented else {
-            isGuideSheetOpenedManually = isManualOpen
-            if !isGuideSheetVisible {
-                withAnimation(guideSheetAnimation) {
-                    isGuideSheetVisible = true
-                }
-            }
+    private func presentGuideSheet(source: VoicePitchGuideSheetPresentationSource) {
+        switch guideSheetState.prepareForPresentation(source: source) {
+        case .blocked, .alreadyVisible:
             return
+        case .insertedHidden:
+            return
+        case .revealExistingSheet:
+            withAnimation(guideSheetAnimation) {
+                guideSheetState.reveal()
+            }
         }
-
-        guideSheetDragOffset = 0
-        isGuideSheetVisible = false
-        isGuideSheetOpenedManually = isManualOpen
-        isGuideSheetPresented = true
     }
 
     private func dismissGuideSheet() {
-        guard isGuideSheetPresented, !isGuideSheetDismissing else { return }
-
-        isGuideSheetDismissing = true
+        guard guideSheetState.beginDismissal() else { return }
 
         withAnimation(
             guideSheetAnimation,
             completionCriteria: .logicallyComplete
         ) {
-            guideSheetDragOffset = 0
-            isGuideSheetVisible = false
+            guideSheetState.prepareForDismissalAnimation()
         } completion: {
-            isGuideSheetPresented = false
-            isGuideSheetDismissing = false
+            guideSheetState.completeDismissal()
         }
     }
 
@@ -205,22 +192,24 @@ struct FeedbackView: View {
     }
 
     private var sheetOffset: CGFloat {
-        (isGuideSheetVisible ? 0 : guideSheetHiddenOffset) + guideSheetDragOffset
+        (guideSheetState.isVisible ? 0 : guideSheetHiddenOffset) + guideSheetState.dragOffset
     }
 
     private func handleGuideSheetDragChanged(_ value: DragGesture.Value) {
-        guard !isGuideSheetDismissing else { return }
-        guideSheetDragOffset = max(value.translation.height, 0)
+        guideSheetState.updateDragOffset(with: value.translation.height)
     }
 
     private func handleGuideSheetDragEnded(_ value: DragGesture.Value) {
-        guard !isGuideSheetDismissing else { return }
+        guard !guideSheetState.isDismissing else { return }
 
-        if value.translation.height >= guideSheetDismissThreshold {
+        if VoicePitchGuideSheetState.shouldDismiss(
+            for: value.translation.height,
+            threshold: guideSheetDismissThreshold
+        ) {
             dismissGuideSheet()
         } else {
             withAnimation(guideSheetAnimation) {
-                guideSheetDragOffset = 0
+                guideSheetState.resetDragOffset()
             }
         }
     }
