@@ -12,6 +12,12 @@ struct VoicePitchGuideBottomSheet: View {
     let onDragChanged: (DragGesture.Value) -> Void
     let onDragEnded: (DragGesture.Value) -> Void
 
+    private var dragGesture: some Gesture {
+        DragGesture(minimumDistance: 4, coordinateSpace: .global)
+            .onChanged(onDragChanged)
+            .onEnded(onDragEnded)
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             Color.clear
@@ -22,12 +28,6 @@ struct VoicePitchGuideBottomSheet: View {
                         .frame(width: 64, height: 6)
                         .padding(.top, 16)
                 }
-                .contentShape(Rectangle())
-                .gesture(
-                    DragGesture()
-                        .onChanged(onDragChanged)
-                        .onEnded(onDragEnded)
-                )
 
             VStack(spacing: 0) {
                 Text("스마트폰 위치 설정")
@@ -82,6 +82,8 @@ struct VoicePitchGuideBottomSheet: View {
             RoundedCorner(radius: 24, corners: [.topLeft, .topRight])
         )
         .shadow(color: .black.opacity(0.25), radius: 20, y: -6)
+        .contentShape(Rectangle())
+        .highPriorityGesture(dragGesture)
     }
 }
 
