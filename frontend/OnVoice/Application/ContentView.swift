@@ -9,22 +9,33 @@ enum OnVoiceTab: Equatable {
     case library
 }
 
+enum OnVoiceFlow: Equatable {
+    case login
+    case profileSetup
+    case app
+}
+
 struct ContentView: View {
     @State private var selectedTab: OnVoiceTab = .home
-    @State private var isLoggedIn = false
+    @State private var flow: OnVoiceFlow = .login
 
     var body: some View {
         Group {
-            if isLoggedIn {
+            switch flow {
+            case .login:
+                LoginView {
+                    flow = .profileSetup
+                }
+            case .profileSetup:
+                ProfileSetupView {
+                    flow = .app
+                }
+            case .app:
                 switch selectedTab {
                 case .home:
                     HomeView(selectedTab: $selectedTab)
                 case .library:
                     LibraryView(selectedTab: $selectedTab)
-                }
-            } else {
-                LoginView {
-                    isLoggedIn = true
                 }
             }
         }

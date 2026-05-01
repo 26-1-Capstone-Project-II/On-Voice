@@ -1,0 +1,12 @@
+{
+  "images" : [
+    {
+      "filename" : "profileDefaultYellow.png",
+      "idiom" : "universal"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}
