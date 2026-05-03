@@ -37,7 +37,7 @@ struct ProfileSetupView: View {
     }
 
     private var containsOnlyAllowedCharacters: Bool {
-        let pattern = "^[가-힣A-Za-z0-9]+$"
+        let pattern = "^[ㄱ-ㅎ가-힣A-Za-z0-9 ]+$"
         return nickname.range(of: pattern, options: .regularExpression) != nil
     }
 
@@ -215,7 +215,7 @@ struct ProfileSetupView: View {
 
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 10) {
-                    TextField("", text: $nickname, prompt: Text("한글,영문,숫자만 가능").foregroundStyle(Color.gray6))
+                    TextField("", text: $nickname, prompt: Text("초성 포함 한글, 영문, 숫자 가능").foregroundStyle(Color.gray6))
                         .focused($isNicknameFocused)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
@@ -307,7 +307,7 @@ struct ProfileSetupView: View {
                     .padding(.bottom, 26)
 
                 Button {
-                    defaultProfileImageName = ProfileDefaultImage.randomName()
+                    defaultProfileImageName = ProfileDefaultImage.randomName(excluding: defaultProfileImageName)
                     selectedProfileImage = nil
                     showsImageSheet = false
                 } label: {
@@ -546,8 +546,9 @@ private enum ProfileDefaultImage {
         "profileDefaultPink"
     ]
 
-    static func randomName() -> String {
-        names.randomElement() ?? names[0]
+    static func randomName(excluding currentName: String? = nil) -> String {
+        let availableNames = names.filter { $0 != currentName }
+        return availableNames.randomElement() ?? currentName ?? names[0]
     }
 }
 
