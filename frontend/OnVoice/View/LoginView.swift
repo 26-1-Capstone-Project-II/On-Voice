@@ -13,9 +13,11 @@ struct LoginView: View {
 
     @State private var selectedPage = 0
     @State private var showsSplash = true
+    @State private var lastManualSwipeAt: Date?
 
     private let pages = LoginOnboardingPage.all
     private let autoScrollTimer = Timer.publish(every: 2.5, on: .main, in: .common).autoconnect()
+    private let autoScrollPauseAfterSwipe: TimeInterval = 3.0
 
     private var loopingPages: [LoginOnboardingPage] {
         guard let firstPage = pages.first else { return [] }
@@ -24,7 +26,7 @@ struct LoginView: View {
 
     private var indicatorPage: Int {
         guard !pages.isEmpty else { return 0 }
-        return min(selectedPage, pages.count - 1)
+        return selectedPage == pages.count ? 0 : min(selectedPage, pages.count - 1)
     }
 
     var body: some View {
@@ -46,17 +48,40 @@ struct LoginView: View {
         }
         .onReceive(autoScrollTimer) { _ in
             guard !showsSplash, pages.count > 1 else { return }
-
+            if let lastManualSwipeAt,
+               Date().timeIntervalSince(lastManualSwipeAt) < autoScrollPauseAfterSwipe {
+                return
+            }
             let lastLoopingIndex = loopingPages.count - 1
 
-            withAnimation(.easeInOut(duration: 0.3)) {
+            withAnimation(.easeInOut(duration: 0.28)) {
                 selectedPage += 1
             }
 
             guard selectedPage == lastLoopingIndex else { return }
 
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.32) {
-                selectedPage = 0
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                var transaction = Transaction()
+                transaction.disablesAnimations = true
+
+                withTransaction(transaction) {
+                    selectedPage = 0
+                }
+            }
+        }
+        .onChange(of: selectedPage) { newValue in
+            guard pages.count > 1 else { return }
+            guard newValue == pages.count else { return }
+
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                guard selectedPage == pages.count else { return }
+
+                var transaction = Transaction()
+                transaction.disablesAnimations = true
+
+                withTransaction(transaction) {
+                    selectedPage = 0
+                }
             }
         }
     }
@@ -87,18 +112,26 @@ struct LoginView: View {
             ZStack(alignment: .top) {
                 TabView(selection: $selectedPage) {
                     ForEach(loopingPages.indices, id: \.self) { index in
-                        LoginOnboardingCard(
-                            imageName: loopingPages[index].imageName,
-                            width: cardWidth,
-                            height: cardHeight
-                        )
+                        ZStack {
+                            LoginOnboardingCard(
+                                imageName: loopingPages[index].imageName,
+                                width: cardWidth,
+                                height: cardHeight
+                            )
+                        }
+                        .frame(width: proxy.size.width, height: cardHeight)
                         .tag(index)
                     }
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
-                .frame(width: cardWidth, height: cardHeight)
+                .frame(width: proxy.size.width, height: cardHeight)
                 .padding(.top, cardTopPadding)
-                .padding(.horizontal, cardHorizontalPadding)
+                .simultaneousGesture(
+                    DragGesture()
+                        .onChanged { _ in
+                            lastManualSwipeAt = Date()
+                        }
+                )
 
                 pageIndicator
                     .padding(.top, indicatorTopPadding)

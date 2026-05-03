@@ -90,25 +90,29 @@ struct ProfileSetupView: View {
         ZStack(alignment: .bottom) {
             Color.bg.ignoresSafeArea()
 
-            VStack(spacing: 0) {
-                Text("프로필 작성")
-                    .font(.Pretendard.SemiBold.size18)
-                    .foregroundStyle(Color.sub)
-                    .padding(.top, 65)
+            GeometryReader { proxy in
+                let widthScale = proxy.size.width / 393
+                let contentHeight = max(proxy.size.height - proxy.safeAreaInsets.top - proxy.safeAreaInsets.bottom, 1)
+                let heightScale = contentHeight / 793
 
-                profileImageButton
-                    .padding(.top, 47)
+                ZStack(alignment: .top) {
+                    titleView
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 52 * heightScale)
 
-                nicknameSection
-                    .padding(.top, 41)
+                    profileImageButton
+                        .padding(.top, 88 * heightScale)
 
-                Spacer()
+                    nicknameSection
+                        .padding(.top, 228 * heightScale)
+                        .padding(.horizontal, 24 * widthScale)
 
-                nextButton
-                    .padding(.horizontal, 22)
-                    .padding(.bottom, 40)
+                    nextButton
+                        .frame(width: 345 * widthScale, height: 54 * heightScale)
+                        .padding(.top, 683 * heightScale)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .contentShape(Rectangle())
             .onTapGesture {
                 isNicknameFocused = false
@@ -141,6 +145,15 @@ struct ProfileSetupView: View {
         }
     }
 
+    private var titleView: some View {
+        Text("프로필 작성")
+            .font(.Pretendard.SemiBold.size18)
+            .foregroundStyle(Color.sub)
+            .frame(width: 83, height: 18)
+            .padding(.vertical, 17)
+            .padding(.horizontal, 155)
+    }
+
     private var profileImageButton: some View {
         Button {
             isNicknameFocused = false
@@ -158,7 +171,7 @@ struct ProfileSetupView: View {
                             .scaledToFill()
                     }
                 }
-                .frame(width: 118, height: 118)
+                .frame(width: 104, height: 104)
                 .clipShape(Circle())
                 .overlay(
                     Circle()
@@ -170,23 +183,26 @@ struct ProfileSetupView: View {
                         .fill(Color.gray6)
 
                     Image(systemName: "camera.fill")
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(Color.sub)
                 }
-                .frame(width: 36, height: 36)
-                .offset(x: -2, y: -2)
+                .frame(width: 32, height: 32)
+                .offset(x: -1, y: -1)
             }
         }
         .buttonStyle(.plain)
+        .frame(maxWidth: .infinity)
+        .frame(height: 104)
     }
 
     private var nicknameSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 16) {
             Text("닉네임 입력")
                 .font(.Pretendard.SemiBold.size16)
                 .foregroundStyle(Color.sub)
+                .frame(height: 16, alignment: .leading)
 
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 10) {
                     TextField("", text: $nickname, prompt: Text("한글,영문,숫자만 가능").foregroundStyle(Color.gray6))
                         .focused($isNicknameFocused)
@@ -214,7 +230,7 @@ struct ProfileSetupView: View {
                     }
                 }
                 .padding(.horizontal, 16)
-                .frame(height: 50)
+                .frame(height: 54)
                 .background(Color.gray10)
                 .overlay(
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
@@ -236,9 +252,10 @@ struct ProfileSetupView: View {
                         .foregroundStyle(hasText && !isValidNickname ? Color(hex: "#FF5A64") : .gray6)
                 }
                 .frame(height: 18)
+                .padding(.trailing, 7)
             }
         }
-        .padding(.horizontal, 22)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var nextButton: some View {
@@ -255,7 +272,7 @@ struct ProfileSetupView: View {
                 .font(.Pretendard.SemiBold.size20)
                 .foregroundStyle(isValidNickname ? Color.sub : Color.gray6)
                 .frame(maxWidth: .infinity)
-                .frame(height: 58)
+                .frame(height: 54)
                 .background(isValidNickname ? Color.main : Color.main.opacity(0.45))
                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         }
