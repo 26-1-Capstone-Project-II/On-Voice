@@ -5,6 +5,7 @@
 
 import SwiftUI
 import PhotosUI
+import Photos
 import AVFoundation
 import Speech
 import UserNotifications
@@ -23,6 +24,7 @@ struct ProfileSetupView: View {
     @State private var microphonePermission = PermissionState.unknown
     @State private var speechPermission = PermissionState.unknown
     @State private var notificationPermission = PermissionState.unknown
+    @State private var showsPhotoPermissionAlert = false
 
     private let maxNicknameCount = 10
 
@@ -131,6 +133,15 @@ struct ProfileSetupView: View {
         .animation(.easeInOut(duration: 0.2), value: showsImageSheet)
         .animation(.easeInOut(duration: 0.2), value: showsPermissionSheet)
         .photosPicker(isPresented: $showsPhotoPicker, selection: $selectedPhotoItem, matching: .images)
+        .alert("사진 권한이 필요해요", isPresented: $showsPhotoPermissionAlert) {
+            Button("취소", role: .cancel) {}
+            Button("설정 열기") {
+                guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+                UIApplication.shared.open(url)
+            }
+        } message: {
+            Text("갤러리에서 프로필 이미지를 선택하려면 사진 접근 권한을 허용해주세요.")
+        }
         .onChange(of: selectedPhotoItem) { newValue in
             guard let newValue else { return }
 
@@ -305,9 +316,8 @@ struct ProfileSetupView: View {
                 .buttonStyle(.plain)
 
                 Button {
-                    showsImageSheet = false
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                        showsPhotoPicker = true
+                    Task {
+                        await handleGallerySelection()
                     }
                 } label: {
                     sheetRow(systemImage: "photo.on.rectangle.angled", title: "갤러리에서 선택하기")
@@ -511,6 +521,22 @@ struct ProfileSetupView: View {
     private func requestNotificationPermission() async {
         notificationPermission = await PermissionRequester.requestNotificationPermission()
     }
+
+    @MainActor
+    private func handleGallerySelection() async {
+        showsImageSheet = false
+
+        let permissionState = await PhotoLibraryPermissionRequester.requestIfNeeded()
+
+        switch permissionState {
+        case .granted:
+            showsPhotoPicker = true
+        case .denied:
+            showsPhotoPermissionAlert = true
+        case .unknown:
+            break
+        }
+    }
 }
 
 private enum ProfileDefaultImage {
@@ -598,6 +624,36 @@ private enum PermissionRequester {
             let isGranted = try await center.requestAuthorization(options: [.alert, .sound, .badge])
             return isGranted ? .granted : .denied
         } catch {
+            return .denied
+        }
+    }
+}
+
+private enum PhotoLibraryPermissionRequester {
+    static func requestIfNeeded() async -> PermissionState {
+        let currentStatus = PHPhotoLibrary.authorizationStatus(for: .readWrite)
+
+        switch currentStatus {
+        case .authorized, .limited:
+            return .granted
+        case .denied, .restricted:
+            return .denied
+        case .notDetermined:
+            return await withCheckedContinuation { continuation in
+                PHPhotoLibrary.requestAuthorization(for: .readWrite) { status in
+                    switch status {
+                    case .authorized, .limited:
+                        continuation.resume(returning: .granted)
+                    case .denied, .restricted:
+                        continuation.resume(returning: .denied)
+                    case .notDetermined:
+                        continuation.resume(returning: .unknown)
+                    @unknown default:
+                        continuation.resume(returning: .denied)
+                    }
+                }
+            }
+        @unknown default:
             return .denied
         }
     }
