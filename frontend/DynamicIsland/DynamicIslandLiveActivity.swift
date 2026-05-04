@@ -5,6 +5,17 @@ import SwiftUI
 struct DynamicIslandWidgetLiveActivity: Widget {
     private let metricBadgeWidth: CGFloat = 95
     private let barHeight: CGFloat = 48
+    private let expandedProgressBarWidth: CGFloat = 329
+    private let expandedProgressBarHeight: CGFloat = 29
+    private let expandedTopInset: CGFloat = 11
+    private let expandedHorizontalInset: CGFloat = 11
+    private let expandedMetricLeadingInset: CGFloat = 18
+    private let expandedTrailingInset: CGFloat = 18
+    private let expandedProgressHorizontalInset: CGFloat = 21
+    private let expandedBottomInset: CGFloat = 18
+    private let closeButtonSize: CGFloat = 42
+    private let subTextColor = Color(red: 221 / 255, green: 232 / 255, blue: 253 / 255)
+    private let gray9Color = Color(red: 46 / 255, green: 48 / 255, blue: 58 / 255)
 
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: OnVoiceLiveActivityAttributes.self) { context in
@@ -41,32 +52,47 @@ struct DynamicIslandWidgetLiveActivity: Widget {
         } dynamicIsland: { context in
             DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
-                    HStack(alignment: .bottom) {
+                    HStack {
                         metricBadge(for: context.state, valueWidth: 35)
-                        .padding(.leading, 8)
+                        Spacer(minLength: 0)
                     }
+                    .padding(.leading, expandedMetricLeadingInset)
+                    .padding(.top, expandedTopInset)
                 }
-                
+
                 DynamicIslandExpandedRegion(.trailing) {
-                    Image(systemName: symbolName(for: context.state.level))
-                        .font(.title2)
-                        .foregroundStyle(fillColor(for: context.state))
-                        .frame(width: 40, height: 40)
-                        .padding(.trailing, 11)
+                    ZStack {
+                        Circle()
+                            .fill(Color.white.opacity(0.12))
+
+                        Image(systemName: "xmark")
+                            .font(.system(size: 18, weight: .regular))
+                            .foregroundStyle(Color.white.opacity(0.7))
+                    }
+                    .frame(width: closeButtonSize, height: closeButtonSize)
+                    .padding(.trailing, expandedTrailingInset)
+                    .padding(.top, expandedTopInset)
                 }
-                
+
                 DynamicIslandExpandedRegion(.center) {
-                    Text(context.state.title)
-                        .font(.footnote)
-                        .foregroundStyle(.white.opacity(0.8))
+                    Color.clear
                 }
 
                 DynamicIslandExpandedRegion(.bottom) {
-                    GeometryReader { geometry in
-                        progressBar(for: context.state, width: geometry.size.width, height: 29)
+                    VStack(spacing: 0) {
+                        Spacer(minLength: 0)
+                        HStack {
+                            progressBar(
+                                for: context.state,
+                                width: expandedProgressBarWidth,
+                                height: expandedProgressBarHeight
+                            )
+                            .frame(width: expandedProgressBarWidth, height: expandedProgressBarHeight)
+                        }
+                        .padding(.horizontal, expandedProgressHorizontalInset)
+                        .padding(.bottom, expandedBottomInset)
                     }
-                    .padding(.bottom, 18)
-                    .padding(.horizontal, 11)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
                 }
             } compactLeading: {
                 compactDecibelView(for: context.state)
@@ -75,6 +101,10 @@ struct DynamicIslandWidgetLiveActivity: Widget {
             } minimal: {
                 minimalLevelIndicator(for: context.state)
             }
+            .contentMargins(.top, expandedTopInset, for: .expanded)
+            .contentMargins(.leading, expandedHorizontalInset, for: .expanded)
+            .contentMargins(.trailing, expandedHorizontalInset, for: .expanded)
+            .contentMargins(.bottom, 0, for: .expanded)
             .keylineTint(borderColor(for: context.state))
         }
     }
@@ -98,12 +128,12 @@ struct DynamicIslandWidgetLiveActivity: Widget {
 
                 Text("\(state.decibels)")
                     .font(.title3.weight(.semibold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(subTextColor)
                     .frame(width: valueWidth)
 
                 Text("dB")
                     .font(.subheadline)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(subTextColor)
                     .padding(.top, 3)
             }
         }
@@ -119,7 +149,7 @@ struct DynamicIslandWidgetLiveActivity: Widget {
 
         ZStack(alignment: .leading) {
             RoundedRectangle(cornerRadius: 24)
-                .fill(Color.gray.opacity(0.3))
+                .fill(gray9Color)
                 .frame(width: width, height: height)
 
             RoundedRectangle(cornerRadius: 24)
@@ -246,19 +276,6 @@ struct DynamicIslandWidgetLiveActivity: Widget {
             return "😮"
         case .idle:
             return "🔇"
-        }
-    }
-
-    private func symbolName(for level: OnVoiceLiveActivityAttributes.Level) -> String {
-        switch level {
-        case .low:
-            return "speaker.wave.1.fill"
-        case .medium:
-            return "speaker.wave.2.fill"
-        case .high:
-            return "speaker.wave.3.fill"
-        case .idle:
-            return "speaker.slash.fill"
         }
     }
 
