@@ -2,6 +2,15 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+<<<<<<< HEAD
+=======
+	<key>NSSupportsLiveActivities</key>
+	<true/>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>음성 녹음을 위해 마이크 접근 권한이 필요합니다.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>음성 내용을 분석하기 위해 음성 인식 권한이 필요합니다.</string>
+>>>>>>> e680b062158768dac31aa0a1bc45c64082202a08
 	<key>UIAppFonts</key>
 	<array>
 		<string>Pretendard-Bold.otf</string>
