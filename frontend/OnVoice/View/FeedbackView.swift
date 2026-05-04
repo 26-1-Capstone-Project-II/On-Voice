@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import ActivityKit
 
 struct FeedbackView: View {
     private let guideSheetHiddenOffset: CGFloat = 420
@@ -25,7 +24,6 @@ struct FeedbackView: View {
     @State private var hasPresentedGuideOnAppear = false
     
     @State private var noiseMeter = NoiseMeter.shared
-    @State private var activity: Activity<DynamicIslandWidgetAttributes>?
     
     // 선택한 상황에 따라서 currentIndex(0~3)에 맞춰서 데시벨 다르게
     @Binding var currentSituation: Situation? // 현재 선택한 상황

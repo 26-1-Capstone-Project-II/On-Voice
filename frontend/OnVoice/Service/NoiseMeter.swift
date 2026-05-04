@@ -33,7 +33,7 @@ class NoiseMeter{
     }
     
     /// NoiseMeter - Live Activity의 Activity 객체
-    var activity: Activity<DynamicIslandWidgetAttributes>?
+    var activity: Activity<OnVoiceLiveActivityAttributes>?
     
     /// NoiseMeter - LiveActivity의 LockScreen에서 사용자가 선택한 상황 title
     var nowSituation: Situation?
@@ -116,22 +116,20 @@ class NoiseMeter{
     func startLiveActivity() {
         print(#function)
         if self.activity == nil {
-            let noiseLevel = NoiseLevel.level(for: self.decibels, 
-                                              isMeasuring: self.isMeasuring,
-                                              standard: self.nowSituation?.decibels ?? (0, 0))
+            let level = self.liveActivityLevel()
             
-            let attributes = DynamicIslandWidgetAttributes(name: "OnVoice")
+            let attributes = OnVoiceLiveActivityAttributes(name: "OnVoice")
             print(self.calculateProgress(for: decibels))
-            let contentState = DynamicIslandWidgetAttributes.ContentState(
+            let contentState = OnVoiceLiveActivityAttributes.ContentState(
                 decibels: Int(self.decibels),
-                noiseLevel: noiseLevel,
+                level: level,
                 progress: self.calculateProgress(for: decibels),
                 title: self.nowSituation?.title ?? ""
             )
             let content = ActivityContent(state: contentState, staleDate: nil, relevanceScore: 1)
             
             do {
-                self.activity = try Activity<DynamicIslandWidgetAttributes>.request(
+                self.activity = try Activity<OnVoiceLiveActivityAttributes>.request(
                     attributes: attributes,
                     content: content,
                     pushType: nil
@@ -174,17 +172,15 @@ class NoiseMeter{
     /// Live Activity를 업데이트하는 함수
     func updateLiveActivity() async {
         print(#function)
-        let noiseLevel = NoiseLevel.level(for: self.decibels, 
-                                          isMeasuring: self.isMeasuring,
-                                          standard: self.nowSituation?.decibels ?? (0, 0))
+        let level = self.liveActivityLevel()
         print(self.calculateProgress(for: decibels))
-        let contentState = DynamicIslandWidgetAttributes.ContentState(
+        let contentState = OnVoiceLiveActivityAttributes.ContentState(
             decibels: Int(self.decibels),
-            noiseLevel: noiseLevel,
+            level: level,
             progress: calculateProgress(for: decibels),
             title: self.nowSituation?.title ?? ""
         )
-        await self.activity?.update(ActivityContent<DynamicIslandWidgetAttributes.ContentState>(
+        await self.activity?.update(ActivityContent<OnVoiceLiveActivityAttributes.ContentState>(
             state: contentState,
             staleDate: nil
         ))
@@ -196,5 +192,24 @@ class NoiseMeter{
         let referenceLevel: Float = 94.0
         let dbSPL = dbFS + referenceLevel
         return max(min(max(dbSPL, 0.0), 120.0) - 10, 0)
+    }
+
+    private func liveActivityLevel() -> OnVoiceLiveActivityAttributes.Level {
+        let noiseLevel = NoiseLevel.level(
+            for: self.decibels,
+            isMeasuring: self.isMeasuring,
+            standard: self.nowSituation?.decibels ?? (0, 0)
+        )
+
+        switch noiseLevel {
+        case .low:
+            return .low
+        case .medium:
+            return .medium
+        case .high:
+            return .high
+        case .notMeasuring:
+            return .idle
+        }
     }
 }
