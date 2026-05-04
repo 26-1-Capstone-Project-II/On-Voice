@@ -16,6 +16,7 @@
 		F0A100042F90000100ABCD01 /* LiveActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0A100072F90000100ABCD01 /* LiveActivityAttributes.swift */; };
 		F0A100152F90000100ABCD01 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CE2FE5E12E30D69500C90F26 /* Assets.xcassets */; };
 		F0A100132F90000100ABCD01 /* LiveActivityState.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0A100142F90000100ABCD01 /* LiveActivityState.swift */; };
+		F0A100162F90000100ABCD01 /* AppIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2FE5E02E30D69500C90F26 /* AppIntent.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -406,6 +407,7 @@
 			files = (
 				F0A100022F90000100ABCD01 /* DynamicIslandBundle.swift in Sources */,
 				F0A100032F90000100ABCD01 /* DynamicIslandLiveActivity.swift in Sources */,
+				F0A100162F90000100ABCD01 /* AppIntent.swift in Sources */,
 				F0A100042F90000100ABCD01 /* LiveActivityAttributes.swift in Sources */,
 				F0A100132F90000100ABCD01 /* LiveActivityState.swift in Sources */,
 			);

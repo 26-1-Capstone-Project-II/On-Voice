@@ -1,4 +1,5 @@
 import ActivityKit
+import AppIntents
 import SwiftUI
 import WidgetKit
 
@@ -9,6 +10,16 @@ struct DynamicIslandWidgetLiveActivity: Widget {
     private let progressBarHeight: CGFloat = 48
     private let rowSpacing: CGFloat = 8
     private let horizontalInset: CGFloat = 24
+    private let expandedCloseButtonSize: CGFloat = 40
+    private let expandedProgressBarHeight: CGFloat = 29
+    private let expandedHorizontalInset: CGFloat = 12
+    private let expandedTopInset: CGFloat = 0
+    private let expandedBottomInset: CGFloat = 4
+    private let expandedRowBottomSpacing: CGFloat = 6
+    private let expandedLeadingInset: CGFloat = 0
+    private let expandedTrailingInset: CGFloat = 0
+    private let expandedBarLeadingAdjustment: CGFloat = 0
+    private let expandedBarTrailingAdjustment: CGFloat = 0
 
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: OnVoiceLiveActivityAttributes.self) { context in
@@ -20,38 +31,19 @@ struct DynamicIslandWidgetLiveActivity: Widget {
         } dynamicIsland: { context in
             DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
-                    HStack(alignment: .bottom) {
-                        metricBadge(for: context.state, valueWidth: 35)
-                            .padding(.leading, 8)
-                    }
+                    expandedLeadingContent(for: context.state)
                 }
 
                 DynamicIslandExpandedRegion(.trailing) {
-                    Image(systemName: symbolName(for: context.state.level))
-                        .font(.title2)
-                        .foregroundStyle(fillColor(for: context.state))
-                        .frame(width: 40, height: 40)
-                        .padding(.trailing, 11)
+                    expandedTrailingContent
                 }
 
                 DynamicIslandExpandedRegion(.center) {
-                    Text(context.state.title)
-                        .font(.footnote)
-                        .foregroundStyle(subColor.opacity(0.78))
-                        .lineLimit(1)
+                    EmptyView()
                 }
 
                 DynamicIslandExpandedRegion(.bottom) {
-                    GeometryReader { geometry in
-                        progressBar(
-                            for: context.state,
-                            width: geometry.size.width,
-                            height: 29,
-                            cornerRadius: 14.5
-                        )
-                    }
-                    .padding(.bottom, 18)
-                    .padding(.horizontal, 11)
+                    expandedBottomContent(for: context.state)
                 }
             } compactLeading: {
                 compactDecibelView(for: context.state)
@@ -137,12 +129,60 @@ struct DynamicIslandWidgetLiveActivity: Widget {
                 Text("dB")
                     .font(.system(size: 16, weight: .regular))
                     .foregroundStyle(subColor)
-                    .padding(.bottom, 2)
+                    .padding(.top, 4)
             }
             //.padding(.horizontal, 6)
-            .padding(.vertical, 4)
+            //.padding(.vertical, 4)
         }
         .frame(width: metricBadgeWidth, height: metricBadgeHeight)
+    }
+
+    @ViewBuilder
+    private func expandedLeadingContent(
+        for state: OnVoiceLiveActivityAttributes.ContentState
+    ) -> some View {
+        metricBadge(for: state, valueWidth: 28)
+        .padding(.top, expandedTopInset)
+        .padding(.bottom, expandedBottomInset)
+        .padding(.leading, expandedLeadingInset)
+        .padding(.trailing, expandedTrailingInset)
+    }
+
+    private var expandedTrailingContent: some View {
+        closeButton
+            .padding(.top, expandedTopInset)
+            .padding(.bottom, expandedBottomInset)
+            .padding(.leading, expandedLeadingInset)
+            .padding(.trailing, expandedTrailingInset)
+    }
+
+    @ViewBuilder
+    private func expandedBottomContent(
+        for state: OnVoiceLiveActivityAttributes.ContentState
+    ) -> some View {
+        GeometryReader { geometry in
+            progressBar(
+                for: state,
+                width: max(
+                    0,
+                    geometry.size.width
+                    - expandedBarLeadingAdjustment
+                    - expandedBarTrailingAdjustment
+                ),
+                height: expandedProgressBarHeight,
+                cornerRadius: expandedProgressBarHeight / 2
+            )
+            .frame(
+                width: geometry.size.width,
+                height: geometry.size.height,
+                alignment: .leading
+            )
+            .padding(.leading, expandedBarLeadingAdjustment)
+            .padding(.trailing, expandedBarTrailingAdjustment)
+        }
+        .frame(height: expandedProgressBarHeight)
+        .padding(.top, expandedRowBottomSpacing)
+        .padding(.bottom, expandedBottomInset)
     }
 
     @ViewBuilder
@@ -153,20 +193,21 @@ struct DynamicIslandWidgetLiveActivity: Widget {
         cornerRadius: CGFloat
     ) -> some View {
         let clampedProgress = min(max(CGFloat(state.progress) / 100, 0), 1)
-        let fillWidth = width * clampedProgress
         let isIdle = state.level == .idle || state.progress == 0
+        let rawFillWidth = width * clampedProgress
+        let fillWidth = isIdle ? 0 : max(rawFillWidth, height)
 
         ZStack(alignment: .leading) {
-            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+            Capsule(style: .continuous)
                 .fill(gray9Color)
                 .frame(width: width, height: height)
 
-            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+            Capsule(style: .continuous)
                 .fill(levelGradient(for: state))
                 .frame(width: isIdle ? 0 : fillWidth, height: height)
                 .overlay(alignment: .trailing) {
                     if !isIdle {
-                        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                        Capsule(style: .continuous)
                             .fill(.white.opacity(0.16))
                             .frame(width: min(height * 0.42, fillWidth), height: height * 0.74)
                             .blur(radius: 8)
@@ -223,6 +264,20 @@ struct DynamicIslandWidgetLiveActivity: Widget {
             .frame(width: 20, height: 20)
     }
 
+    private var closeButton: some View {
+        Button(intent: EndLiveActivityIntent()) {
+            Image(systemName: "xmark")
+                .font(.system(size: 19, weight: .light))
+                .foregroundStyle(subColor.opacity(0.82))
+                .frame(width: expandedCloseButtonSize, height: expandedCloseButtonSize)
+                .background(
+                    Circle()
+                        .fill(Color.white.opacity(0.14))
+                )
+        }
+        .buttonStyle(.plain)
+    }
+
     private var lockScreenBackgroundColor: Color {
         Color(red: 34 / 255, green: 34 / 255, blue: 34 / 255)
     }
@@ -259,16 +314,16 @@ struct DynamicIslandWidgetLiveActivity: Widget {
                     gray8Color.opacity(0.95),
                     gray9Color
                 ],
-                startPoint: .leading,
-                endPoint: .trailing
+                startPoint: .trailing,
+                endPoint: .leading
             )
         }
 
         let gradientColors = gradientColors(for: state)
         return LinearGradient(
             colors: gradientColors,
-            startPoint: .leading,
-            endPoint: .trailing
+            startPoint: .trailing,
+            endPoint: .leading
         )
     }
 

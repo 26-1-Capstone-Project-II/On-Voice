@@ -140,15 +140,22 @@ class NoiseMeter{
     }
     
     /// Live Activity를 종료하는 함수
-    func endLiveActivity() {
+    @MainActor
+    func endLiveActivity() async {
         print(#function)
-        Task {
-            if let currentActivity = activity {
-                await currentActivity.end(nil, dismissalPolicy: .immediate)
-                print("Ending the Live Activity: \(currentActivity.id)")
-                self.activity = nil
-            }
+        let activeActivities: [Activity<OnVoiceLiveActivityAttributes>]
+        if let currentActivity = activity {
+            activeActivities = [currentActivity]
+        } else {
+            activeActivities = Activity<OnVoiceLiveActivityAttributes>.activities
         }
+
+        for currentActivity in activeActivities {
+            await currentActivity.end(nil, dismissalPolicy: .immediate)
+            print("Ending the Live Activity: \(currentActivity.id)")
+        }
+
+        self.activity = nil
         cancellation?.cancel()
         updateTimer?.invalidate()
         updateTimer = nil
