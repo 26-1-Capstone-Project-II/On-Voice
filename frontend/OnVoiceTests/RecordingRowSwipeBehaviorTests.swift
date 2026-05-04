@@ -313,3 +313,77 @@ final class RecordingRowSwipeBehaviorTests: XCTestCase {
         XCTAssertEqual(sections.map(\.id), ["previous-7-days", "previous-30-days", "month-2026-2"])
     }
 }
+
+final class LiveActivityStateTests: XCTestCase {
+    func testStateWithoutSituationRendersIdleFallback() {
+        let state = OnVoiceLiveActivityState.makeContentState(
+            decibels: 67,
+            isMeasuring: true,
+            title: nil,
+            thresholds: nil
+        )
+
+        XCTAssertEqual(state.level, .idle)
+        XCTAssertEqual(state.lowThreshold, 0)
+        XCTAssertEqual(state.highThreshold, 0)
+        XCTAssertEqual(OnVoiceLiveActivityState.interpolationPhase(for: state), 0)
+    }
+
+    func testInvalidThresholdRangeFallsBackToLevelPhase() {
+        let malformedState = OnVoiceLiveActivityAttributes.ContentState(
+            decibels: 72,
+            level: .medium,
+            progress: 60,
+            title: "조용한 공간",
+            lowThreshold: 75,
+            highThreshold: 75
+        )
+
+        XCTAssertEqual(
+            OnVoiceLiveActivityState.interpolationPhase(for: malformedState),
+            0.5
+        )
+    }
+
+    func testInterpolationPhaseTracksThresholdBoundaries() {
+        let thresholds = OnVoiceLiveActivityState.Thresholds(low: 53, high: 75)
+
+        let lowState = OnVoiceLiveActivityState.makeContentState(
+            decibels: 40,
+            isMeasuring: true,
+            title: "조용한 공간",
+            thresholds: thresholds
+        )
+        let mediumState = OnVoiceLiveActivityState.makeContentState(
+            decibels: 64,
+            isMeasuring: true,
+            title: "조용한 공간",
+            thresholds: thresholds
+        )
+        let highState = OnVoiceLiveActivityState.makeContentState(
+            decibels: 88,
+            isMeasuring: true,
+            title: "조용한 공간",
+            thresholds: thresholds
+        )
+
+        XCTAssertEqual(lowState.level, .low)
+        XCTAssertEqual(mediumState.level, .medium)
+        XCTAssertEqual(highState.level, .high)
+        XCTAssertEqual(OnVoiceLiveActivityState.interpolationPhase(for: lowState), 0)
+        XCTAssertEqual(OnVoiceLiveActivityState.interpolationPhase(for: mediumState), 0.5)
+        XCTAssertEqual(OnVoiceLiveActivityState.interpolationPhase(for: highState), 1)
+    }
+
+    func testStateStopsRenderingActiveLevelWhenMeasurementEnds() {
+        let state = OnVoiceLiveActivityState.makeContentState(
+            decibels: 80,
+            isMeasuring: false,
+            title: "조용한 공간",
+            thresholds: .init(low: 53, high: 75)
+        )
+
+        XCTAssertEqual(state.level, .idle)
+        XCTAssertEqual(OnVoiceLiveActivityState.interpolationPhase(for: state), 0)
+    }
+}

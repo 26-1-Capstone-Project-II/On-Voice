@@ -106,28 +106,12 @@ class NoiseMeter{
         }
     }
     
-    /// 현재 dB의 100분율 계산 함수
-    private func calculateProgress(for decibels: Float) -> Int {
-        let normalizedDecibels = min(max(decibels / 120.0, 0.0), 1.0)
-        return Int(normalizedDecibels * 100)
-    }
-    
     /// Live Activity를 실행하는 함수
     func startLiveActivity() {
         print(#function)
         if self.activity == nil {
-            let level = self.liveActivityLevel()
-            
             let attributes = OnVoiceLiveActivityAttributes(name: "OnVoice")
-            print(self.calculateProgress(for: decibels))
-            let contentState = OnVoiceLiveActivityAttributes.ContentState(
-                decibels: Int(self.decibels),
-                level: level,
-                progress: self.calculateProgress(for: decibels),
-                title: self.nowSituation?.title ?? "",
-                lowThreshold: self.nowSituation?.decibels.0 ?? 0,
-                highThreshold: self.nowSituation?.decibels.1 ?? 0
-            )
+            let contentState = self.liveActivityContentState()
             let content = ActivityContent(state: contentState, staleDate: nil, relevanceScore: 1)
             
             do {
@@ -174,16 +158,7 @@ class NoiseMeter{
     /// Live Activity를 업데이트하는 함수
     func updateLiveActivity() async {
         print(#function)
-        let level = self.liveActivityLevel()
-        print(self.calculateProgress(for: decibels))
-        let contentState = OnVoiceLiveActivityAttributes.ContentState(
-            decibels: Int(self.decibels),
-            level: level,
-            progress: calculateProgress(for: decibels),
-            title: self.nowSituation?.title ?? "",
-            lowThreshold: self.nowSituation?.decibels.0 ?? 0,
-            highThreshold: self.nowSituation?.decibels.1 ?? 0
-        )
+        let contentState = self.liveActivityContentState()
         await self.activity?.update(ActivityContent<OnVoiceLiveActivityAttributes.ContentState>(
             state: contentState,
             staleDate: nil
@@ -198,22 +173,25 @@ class NoiseMeter{
         return max(min(max(dbSPL, 0.0), 120.0) - 10, 0)
     }
 
-    private func liveActivityLevel() -> OnVoiceLiveActivityAttributes.Level {
-        let noiseLevel = NoiseLevel.level(
-            for: self.decibels,
+    private func liveActivityContentState() -> OnVoiceLiveActivityAttributes.ContentState {
+        let contentState = OnVoiceLiveActivityState.makeContentState(
+            decibels: self.decibels,
             isMeasuring: self.isMeasuring,
-            standard: self.nowSituation?.decibels ?? (0, 0)
+            title: self.nowSituation?.title,
+            thresholds: self.liveActivityThresholds()
         )
+        print(contentState.progress)
+        return contentState
+    }
 
-        switch noiseLevel {
-        case .low:
-            return .low
-        case .medium:
-            return .medium
-        case .high:
-            return .high
-        case .notMeasuring:
-            return .idle
+    private func liveActivityThresholds() -> OnVoiceLiveActivityState.Thresholds? {
+        guard let decibels = self.nowSituation?.decibels else {
+            return nil
         }
+
+        return OnVoiceLiveActivityState.Thresholds(
+            low: decibels.0,
+            high: decibels.1
+        )
     }
 }

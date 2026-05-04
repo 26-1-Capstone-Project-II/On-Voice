@@ -9,14 +9,12 @@
 /* Begin PBXBuildFile section */
 		0ACF9C672F7D03AF00D8C2D7 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = 0ACF9C662F7D03AF00D8C2D7 /* FirebaseAnalytics */; };
 		0BDAD4A83084000100A1B2C3 /* DotLottie in Frameworks */ = {isa = PBXBuildFile; productRef = 0BDAD4A73084000100A1B2C3 /* DotLottie */; };
-		CE2FE5E42E30D69500C90F26 /* DynamicIslandBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2FE5DE2E30D69500C90F26 /* DynamicIslandBundle.swift */; };
-		CE2FE5E52E30D69500C90F26 /* AppIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2FE5E02E30D69500C90F26 /* AppIntent.swift */; };
-		CE2FE5E62E30D69500C90F26 /* DynamicIslandLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2FE5DF2E30D69500C90F26 /* DynamicIslandLiveActivity.swift */; };
 		D1A0B1C32F8E000100ABCDEF /* RecordingRowSwipeBehaviorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A0B1C22F8E000100ABCDEF /* RecordingRowSwipeBehaviorTests.swift */; };
 		F0A100012F90000100ABCD01 /* DynamicIsland.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = F0A100062F90000100ABCD01 /* DynamicIsland.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		F0A100022F90000100ABCD01 /* DynamicIslandBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2FE5DE2E30D69500C90F26 /* DynamicIslandBundle.swift */; };
 		F0A100032F90000100ABCD01 /* DynamicIslandLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2FE5DF2E30D69500C90F26 /* DynamicIslandLiveActivity.swift */; };
 		F0A100042F90000100ABCD01 /* LiveActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0A100072F90000100ABCD01 /* LiveActivityAttributes.swift */; };
+		F0A100132F90000100ABCD01 /* LiveActivityState.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0A100142F90000100ABCD01 /* LiveActivityState.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -71,6 +69,7 @@
 		D1A0B1C22F8E000100ABCDEF /* RecordingRowSwipeBehaviorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingRowSwipeBehaviorTests.swift; sourceTree = "<group>"; };
 		F0A100062F90000100ABCD01 /* DynamicIsland.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = DynamicIsland.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		F0A100072F90000100ABCD01 /* LiveActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = LiveActivityAttributes.swift; path = ../OnVoice/Model/LiveActivityAttributes.swift; sourceTree = "<group>"; };
+		F0A100142F90000100ABCD01 /* LiveActivityState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = LiveActivityState.swift; path = ../OnVoice/Model/LiveActivityState.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -190,6 +189,7 @@
 				CE2FE5DF2E30D69500C90F26 /* DynamicIslandLiveActivity.swift */,
 				CE2FE5E02E30D69500C90F26 /* AppIntent.swift */,
 				F0A100072F90000100ABCD01 /* LiveActivityAttributes.swift */,
+				F0A100142F90000100ABCD01 /* LiveActivityState.swift */,
 				CE2FE5E12E30D69500C90F26 /* Assets.xcassets */,
 				CE2FE5E22E30D69500C90F26 /* Info.plist */,
 			);
@@ -405,6 +405,7 @@
 				F0A100022F90000100ABCD01 /* DynamicIslandBundle.swift in Sources */,
 				F0A100032F90000100ABCD01 /* DynamicIslandLiveActivity.swift in Sources */,
 				F0A100042F90000100ABCD01 /* LiveActivityAttributes.swift in Sources */,
+				F0A100132F90000100ABCD01 /* LiveActivityState.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
