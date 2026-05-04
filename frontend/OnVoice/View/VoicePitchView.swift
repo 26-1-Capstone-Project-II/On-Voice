@@ -15,9 +15,25 @@ struct VoicePitchView: View {
     @Binding var currentSituation: Situation?
     
     var noiseLevel: NoiseLevel {
-        NoiseLevel.level(for: noiseMeter.decibels,
-                         isMeasuring: noiseMeter.isMeasuring,
-                         standard: noiseMeter.nowSituation?.decibels ?? (0, 0))
+        switch OnVoiceLiveActivityState.level(
+            for: noiseMeter.decibels,
+            isMeasuring: noiseMeter.isMeasuring,
+            thresholds: currentSituation.map {
+                OnVoiceLiveActivityState.Thresholds(
+                    low: $0.decibels.0,
+                    high: $0.decibels.1
+                )
+            }
+        ) {
+        case .low:
+            return .low
+        case .medium:
+            return .medium
+        case .high:
+            return .high
+        case .idle:
+            return .notMeasuring
+        }
     }
     
     var body: some View {
