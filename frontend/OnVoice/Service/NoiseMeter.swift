@@ -110,7 +110,7 @@ class NoiseMeter{
     func startLiveActivity() {
         print(#function)
         if self.activity == nil {
-            let attributes = OnVoiceLiveActivityAttributes(name: "OnVoice")
+            let attributes = OnVoiceLiveActivityAttributes(name: "Mingly")
             let contentState = self.liveActivityContentState()
             let content = ActivityContent(state: contentState, staleDate: nil, relevanceScore: 1)
             

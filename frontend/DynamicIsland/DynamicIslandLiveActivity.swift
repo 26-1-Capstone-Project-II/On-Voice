@@ -1,52 +1,31 @@
 import ActivityKit
-import WidgetKit
 import SwiftUI
+import WidgetKit
 
 struct DynamicIslandWidgetLiveActivity: Widget {
     private let metricBadgeWidth: CGFloat = 95
-    private let barHeight: CGFloat = 48
+    private let metricBadgeHeight: CGFloat = 48
+    private let progressBarWidth: CGFloat = 222
+    private let progressBarHeight: CGFloat = 48
+    private let rowSpacing: CGFloat = 8
+    private let horizontalInset: CGFloat = 24
 
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: OnVoiceLiveActivityAttributes.self) { context in
-            VStack {
-                HStack {
-                    Text("OnVoice")
-                        .font(.headline)
-                        .foregroundStyle(.white)
-                        .padding(.leading)
-                    
-                    Spacer()
-                    
-                    Text("\(context.state.title)")
-                        .font(.subheadline)
-                        .foregroundStyle(.white.opacity(0.8))
-                        .padding(.trailing)
+            lockScreenView(for: context)
+                .containerBackground(for: .widget) {
+                    lockScreenBackgroundColor
                 }
-                .padding([.top, .horizontal])
-                
-                HStack(spacing: 10) {
-                    metricBadge(for: context.state)
-                    GeometryReader { geometry in
-                        progressBar(
-                            for: context.state,
-                            width: geometry.size.width,
-                            height: barHeight
-                        )
-                    }
-                    .frame(height: barHeight)
-                }
-                .padding([.bottom, .horizontal])
-            }
-            .activityBackgroundTint(Color(red: 0.15, green: 0.17, blue: 0.23))
+                .activityBackgroundTint(lockScreenBackgroundColor)
         } dynamicIsland: { context in
             DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
                     HStack(alignment: .bottom) {
                         metricBadge(for: context.state, valueWidth: 35)
-                        .padding(.leading, 8)
+                            .padding(.leading, 8)
                     }
                 }
-                
+
                 DynamicIslandExpandedRegion(.trailing) {
                     Image(systemName: symbolName(for: context.state.level))
                         .font(.title2)
@@ -54,16 +33,22 @@ struct DynamicIslandWidgetLiveActivity: Widget {
                         .frame(width: 40, height: 40)
                         .padding(.trailing, 11)
                 }
-                
+
                 DynamicIslandExpandedRegion(.center) {
                     Text(context.state.title)
                         .font(.footnote)
-                        .foregroundStyle(.white.opacity(0.8))
+                        .foregroundStyle(subColor.opacity(0.78))
+                        .lineLimit(1)
                 }
 
                 DynamicIslandExpandedRegion(.bottom) {
                     GeometryReader { geometry in
-                        progressBar(for: context.state, width: geometry.size.width, height: 29)
+                        progressBar(
+                            for: context.state,
+                            width: geometry.size.width,
+                            height: 29,
+                            cornerRadius: 14.5
+                        )
                     }
                     .padding(.bottom, 18)
                     .padding(.horizontal, 11)
@@ -80,52 +65,125 @@ struct DynamicIslandWidgetLiveActivity: Widget {
     }
 
     @ViewBuilder
+    private func lockScreenView(
+        for context: ActivityViewContext<OnVoiceLiveActivityAttributes>
+    ) -> some View {
+        ZStack {
+            lockScreenBackgroundColor
+
+            VStack(alignment: .leading, spacing: 24) {
+                HStack(alignment: .center, spacing: 12) {
+                    Image("minglyWatermark")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 30, height: 28)
+
+                    Text(context.attributes.name)
+                        .font(.system(size: 24, weight: .semibold))
+                        .foregroundStyle(subColor)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+
+                    Spacer(minLength: 12)
+
+                    Text(context.state.title)
+                        .font(.system(size: 16, weight: .regular))
+                        .foregroundStyle(subColor.opacity(0.72))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
+
+                HStack(spacing: rowSpacing) {
+                    metricBadge(for: context.state)
+
+                    progressBar(
+                        for: context.state,
+                        width: progressBarWidth,
+                        height: progressBarHeight,
+                        cornerRadius: 24
+                    )
+                }
+            }
+            .padding(.horizontal, horizontalInset)
+            .padding(.vertical, 24)
+        }
+    }
+
+    @ViewBuilder
     private func metricBadge(
         for state: OnVoiceLiveActivityAttributes.ContentState,
         valueWidth: CGFloat = 30
     ) -> some View {
+        let badgeGradient = levelGradient(for: state)
+
         ZStack {
-            RoundedRectangle(cornerRadius: 24)
-                .fill(Color.clear)
-                .frame(width: metricBadgeWidth, height: barHeight)
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(lockScreenBackgroundColor)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 24)
-                        .stroke(borderColor(for: state), lineWidth: 1)
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .stroke(badgeGradient, lineWidth: 1)
                 )
-            HStack(alignment: .bottom, spacing: 1) {
+
+            HStack(alignment: .center, spacing: 1) {
                 Text(emoji(for: state.level))
-                    .font(.title3)
+                    .font(.system(size: 22))
 
                 Text("\(state.decibels)")
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .frame(width: valueWidth)
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundStyle(subColor)
+                    .frame(width: valueWidth, alignment: .trailing)
+                    .monospacedDigit()
 
                 Text("dB")
-                    .font(.subheadline)
-                    .foregroundStyle(.white)
-                    .padding(.top, 3)
+                    .font(.system(size: 16, weight: .regular))
+                    .foregroundStyle(subColor)
+                    .padding(.bottom, 2)
             }
+            //.padding(.horizontal, 6)
+            .padding(.vertical, 4)
         }
+        .frame(width: metricBadgeWidth, height: metricBadgeHeight)
     }
 
     @ViewBuilder
     private func progressBar(
         for state: OnVoiceLiveActivityAttributes.ContentState,
         width: CGFloat,
-        height: CGFloat
+        height: CGFloat,
+        cornerRadius: CGFloat
     ) -> some View {
-        let clampedProgress = min(max(CGFloat(state.progress), 0), 100)
+        let clampedProgress = min(max(CGFloat(state.progress) / 100, 0), 1)
+        let fillWidth = width * clampedProgress
+        let isIdle = state.level == .idle || state.progress == 0
 
         ZStack(alignment: .leading) {
-            RoundedRectangle(cornerRadius: 24)
-                .fill(Color.gray.opacity(0.3))
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .fill(gray9Color)
                 .frame(width: width, height: height)
 
-            RoundedRectangle(cornerRadius: 24)
-                .fill(fillColor(for: state))
-                .frame(width: width * clampedProgress / 100, height: height)
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .fill(levelGradient(for: state))
+                .frame(width: isIdle ? 0 : fillWidth, height: height)
+                .overlay(alignment: .trailing) {
+                    if !isIdle {
+                        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                            .fill(.white.opacity(0.16))
+                            .frame(width: min(height * 0.42, fillWidth), height: height * 0.74)
+                            .blur(radius: 8)
+                            .padding(.trailing, height * 0.08)
+                    }
+                }
+                .animation(
+                    .interactiveSpring(response: 0.42, dampingFraction: 0.86),
+                    value: state.progress
+                )
+                .animation(
+                    .easeInOut(duration: 0.32),
+                    value: state.level
+                )
         }
+        .frame(width: width, height: height)
+        .drawingGroup()
     }
 
     @ViewBuilder
@@ -165,16 +223,32 @@ struct DynamicIslandWidgetLiveActivity: Widget {
             .frame(width: 20, height: 20)
     }
 
+    private var lockScreenBackgroundColor: Color {
+        Color(red: 34 / 255, green: 34 / 255, blue: 34 / 255)
+    }
+
+    private var subColor: Color {
+        Color(red: 221 / 255, green: 232 / 255, blue: 253 / 255)
+    }
+
+    private var gray8Color: Color {
+        Color(red: 64 / 255, green: 67 / 255, blue: 80 / 255)
+    }
+
+    private var gray9Color: Color {
+        Color(red: 46 / 255, green: 48 / 255, blue: 58 / 255)
+    }
+
     private var compactUnitColor: Color {
-        Color(red: 0.83, green: 0.88, blue: 0.98)
+        subColor
     }
 
     private func compactNumberColor(for level: OnVoiceLiveActivityAttributes.Level) -> Color {
         switch level {
         case .idle:
-            return Color.white.opacity(0.75)
+            return subColor.opacity(0.72)
         default:
-            return Color(red: 0.86, green: 0.91, blue: 1.0)
+            return subColor
         }
     }
 
@@ -182,8 +256,8 @@ struct DynamicIslandWidgetLiveActivity: Widget {
         guard state.level != .idle else {
             return LinearGradient(
                 colors: [
-                    Color(red: 0.72, green: 0.72, blue: 0.76),
-                    Color(red: 0.52, green: 0.52, blue: 0.56)
+                    gray8Color.opacity(0.95),
+                    gray9Color
                 ],
                 startPoint: .leading,
                 endPoint: .trailing
@@ -191,47 +265,51 @@ struct DynamicIslandWidgetLiveActivity: Widget {
         }
 
         let gradientColors = gradientColors(for: state)
-        return LinearGradient(colors: gradientColors, startPoint: .leading, endPoint: .trailing)
+        return LinearGradient(
+            colors: gradientColors,
+            startPoint: .leading,
+            endPoint: .trailing
+        )
     }
 
     private func fillColor(for state: OnVoiceLiveActivityAttributes.ContentState) -> Color {
         guard state.level != .idle else {
-            return Color.gray
+            return gray8Color
         }
 
         let phase = OnVoiceLiveActivityState.interpolationPhase(for: state)
         if phase <= 0.5 {
             return mixColor(
-                from: .init(red: 0.96, green: 0.74, blue: 0.23),
-                to: .init(red: 0.31, green: 0.67, blue: 0.95),
+                from: .init(red: 1.0, green: 0.95, blue: 0.44),
+                to: .init(red: 0.47, green: 0.77, blue: 0.98),
                 fraction: phase / 0.5
             )
         }
 
         return mixColor(
-            from: .init(red: 0.31, green: 0.67, blue: 0.95),
-            to: .init(red: 0.91, green: 0.35, blue: 0.33),
+            from: .init(red: 0.47, green: 0.77, blue: 0.98),
+            to: .init(red: 1.0, green: 0.49, blue: 0.56),
             fraction: (phase - 0.5) / 0.5
         )
     }
 
     private func borderColor(for state: OnVoiceLiveActivityAttributes.ContentState) -> Color {
         guard state.level != .idle else {
-            return Color.gray.opacity(0.6)
+            return gray8Color.opacity(0.8)
         }
 
         let phase = OnVoiceLiveActivityState.interpolationPhase(for: state)
         if phase <= 0.5 {
             return mixColor(
-                from: .init(red: 0.98, green: 0.85, blue: 0.40),
-                to: .init(red: 0.46, green: 0.76, blue: 0.98),
+                from: .init(red: 1.0, green: 0.96, blue: 0.58),
+                to: .init(red: 0.58, green: 0.84, blue: 1.0),
                 fraction: phase / 0.5
             )
         }
 
         return mixColor(
-            from: .init(red: 0.46, green: 0.76, blue: 0.98),
-            to: .init(red: 0.98, green: 0.52, blue: 0.49),
+            from: .init(red: 0.58, green: 0.84, blue: 1.0),
+            to: .init(red: 1.0, green: 0.61, blue: 0.65),
             fraction: (phase - 0.5) / 0.5
         )
     }
@@ -266,16 +344,16 @@ struct DynamicIslandWidgetLiveActivity: Widget {
         let phase = OnVoiceLiveActivityState.interpolationPhase(for: state)
 
         let lowGradient = (
-            RGBAColor(red: 0.99, green: 0.99, blue: 0.78),
-            RGBAColor(red: 1.0, green: 0.97, blue: 0.36)
+            RGBAColor(red: 1.0, green: 0.99, blue: 0.79),
+            RGBAColor(red: 1.0, green: 0.95, blue: 0.40)
         )
         let mediumGradient = (
-            RGBAColor(red: 0.56, green: 0.77, blue: 1.0),
-            RGBAColor(red: 0.24, green: 0.44, blue: 0.96)
+            RGBAColor(red: 0.67, green: 0.87, blue: 1.0),
+            RGBAColor(red: 0.32, green: 0.58, blue: 1.0)
         )
         let highGradient = (
-            RGBAColor(red: 1.0, green: 0.58, blue: 0.68),
-            RGBAColor(red: 1.0, green: 0.30, blue: 0.39)
+            RGBAColor(red: 1.0, green: 0.70, blue: 0.76),
+            RGBAColor(red: 1.0, green: 0.37, blue: 0.48)
         )
 
         if phase <= 0.5 {

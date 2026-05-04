@@ -14,6 +14,7 @@
 		F0A100022F90000100ABCD01 /* DynamicIslandBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2FE5DE2E30D69500C90F26 /* DynamicIslandBundle.swift */; };
 		F0A100032F90000100ABCD01 /* DynamicIslandLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2FE5DF2E30D69500C90F26 /* DynamicIslandLiveActivity.swift */; };
 		F0A100042F90000100ABCD01 /* LiveActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0A100072F90000100ABCD01 /* LiveActivityAttributes.swift */; };
+		F0A100152F90000100ABCD01 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CE2FE5E12E30D69500C90F26 /* Assets.xcassets */; };
 		F0A100132F90000100ABCD01 /* LiveActivityState.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0A100142F90000100ABCD01 /* LiveActivityState.swift */; };
 /* End PBXBuildFile section */
 
@@ -370,6 +371,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F0A100152F90000100ABCD01 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
