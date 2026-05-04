@@ -104,7 +104,7 @@ struct DynamicIslandWidgetLiveActivity: Widget {
     @ViewBuilder
     private func metricBadge(
         for state: OnVoiceLiveActivityAttributes.ContentState,
-        valueWidth: CGFloat = 0
+        valueWidth: CGFloat = 30
     ) -> some View {
         let badgeGradient = levelGradient(for: state)
 
@@ -129,7 +129,7 @@ struct DynamicIslandWidgetLiveActivity: Widget {
                 Text("dB")
                     .font(.system(size: 16, weight: .regular))
                     .foregroundStyle(subColor)
-                    //.padding(.bottom, 2)
+                    .padding(.top, 4)
             }
             //.padding(.horizontal, 6)
             //.padding(.vertical, 4)
