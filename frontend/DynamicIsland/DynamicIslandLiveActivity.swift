@@ -457,14 +457,3 @@ struct DynamicIslandWidgetLiveActivity: Widget {
         }
     }
 }
-
-private struct EndExpandedLiveActivityIntent: LiveActivityIntent {
-    static var title: LocalizedStringResource = "End Live Activity"
-
-    func perform() async throws -> some IntentResult {
-        for activity in Activity<OnVoiceLiveActivityAttributes>.activities {
-            await activity.end(nil, dismissalPolicy: .immediate)
-        }
-        return .result()
-    }
-}
