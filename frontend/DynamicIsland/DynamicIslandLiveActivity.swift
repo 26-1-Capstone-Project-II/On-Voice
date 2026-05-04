@@ -104,7 +104,7 @@ struct DynamicIslandWidgetLiveActivity: Widget {
     @ViewBuilder
     private func metricBadge(
         for state: OnVoiceLiveActivityAttributes.ContentState,
-        valueWidth: CGFloat = 30
+        valueWidth: CGFloat = 0
     ) -> some View {
         let badgeGradient = levelGradient(for: state)
 
@@ -455,5 +455,16 @@ struct DynamicIslandWidgetLiveActivity: Widget {
             self.blue = blue
             self.alpha = alpha
         }
+    }
+}
+
+private struct EndExpandedLiveActivityIntent: LiveActivityIntent {
+    static var title: LocalizedStringResource = "End Live Activity"
+
+    func perform() async throws -> some IntentResult {
+        for activity in Activity<OnVoiceLiveActivityAttributes>.activities {
+            await activity.end(nil, dismissalPolicy: .immediate)
+        }
+        return .result()
     }
 }
