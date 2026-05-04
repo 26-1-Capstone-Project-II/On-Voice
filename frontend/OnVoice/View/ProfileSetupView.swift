@@ -100,18 +100,18 @@ struct ProfileSetupView: View {
                 ZStack(alignment: .top) {
                     titleView
                         .frame(maxWidth: .infinity)
-                        .frame(height: 52 * heightScale)
+                        .frame(height: 60 * heightScale)
 
                     profileImageButton
-                        .padding(.top, 88 * heightScale)
+                        .padding(.top, 105 * heightScale)
 
                     nicknameSection
-                        .padding(.top, 228 * heightScale)
+                        .padding(.top, 274 * heightScale)
                         .padding(.horizontal, 24 * widthScale)
 
                     nextButton
                         .frame(width: 345 * widthScale, height: 54 * heightScale)
-                        .padding(.top, 683 * heightScale)
+                        .padding(.top, 816 * heightScale)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             }
@@ -182,7 +182,7 @@ struct ProfileSetupView: View {
                             .scaledToFill()
                     }
                 }
-                .frame(width: 104, height: 104)
+                .frame(width: 110, height: 110)
                 .clipShape(Circle())
                 .overlay(
                     Circle()
@@ -203,7 +203,7 @@ struct ProfileSetupView: View {
         }
         .buttonStyle(.plain)
         .frame(maxWidth: .infinity)
-        .frame(height: 104)
+        .frame(height: 110)
     }
 
     private var nicknameSection: some View {
@@ -215,11 +215,11 @@ struct ProfileSetupView: View {
 
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 10) {
-                    TextField("", text: $nickname, prompt: Text("초성 포함 한글, 영문, 숫자 가능").foregroundStyle(Color.gray6))
+                    TextField("", text: $nickname, prompt: Text("한글,영문,숫자만 가능").foregroundStyle(Color.gray7))
                         .focused($isNicknameFocused)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
-                        .font(.Pretendard.SemiBold.size20)
+                        .font(.Pretendard.SemiBold.size18)
                         .foregroundStyle(Color.sub)
                         .tint(.main)
 
@@ -241,8 +241,8 @@ struct ProfileSetupView: View {
                     }
                 }
                 .padding(.horizontal, 16)
-                .frame(height: 54)
-                .background(Color.gray10)
+                .frame(height: 56)
+                .background(Color(hex: "2E303A").opacity(0.5))
                 .overlay(
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
                         .stroke(fieldBorderColor, lineWidth: fieldBorderColor == .clear ? 0 : 2)
@@ -357,14 +357,14 @@ struct ProfileSetupView: View {
 
     private var permissionSheet: some View {
         ZStack(alignment: .bottom) {
-            Color.black.opacity(0.44)
+            Color.black.opacity(0.58)
                 .ignoresSafeArea()
 
             VStack(alignment: .leading, spacing: 0) {
                 Text("밍글리가 처음이시군요!")
-                    .font(.Pretendard.Bold.size28)
+                    .font(.Pretendard.SemiBold.size20)
                     .foregroundStyle(Color.sub)
-                    .padding(.top, 28)
+                    .padding(.top, 35)
 
                 Text("아래의 권한을 허용해야 서비스 이용이 가능해요.")
                     .font(.Pretendard.Medium.size16)
@@ -382,7 +382,7 @@ struct ProfileSetupView: View {
                     )
                 }
                 .buttonStyle(.plain)
-                .padding(.top, 28)
+                .padding(.top, 30)
 
                 VStack(spacing: 0) {
                     Button {
@@ -416,12 +416,13 @@ struct ProfileSetupView: View {
                     } label: {
                         permissionRow(
                             title: "휴대폰 알림 권한 허용 (선택)",
-                            isGranted: notificationPermission == .granted
+                            isGranted: notificationPermission == .granted,
+                            dimsWhenNotGranted: true
                         )
                     }
                     .buttonStyle(.plain)
                 }
-                .padding(.top, 18)
+                .padding(.top, 12)
 
                 Button {
                     showsPermissionSheet = false
@@ -437,8 +438,8 @@ struct ProfileSetupView: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(!hasRequiredPermissions)
-                .padding(.top, 34)
-                .padding(.bottom, 40)
+                .padding(.top, 24)
+                .padding(.bottom, 24)
             }
             .padding(.horizontal, 22)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -455,40 +456,46 @@ struct ProfileSetupView: View {
     private func permissionHighlightRow(title: String, isGranted: Bool) -> some View {
         HStack(spacing: 12) {
             Text(title)
-                .font(.Pretendard.SemiBold.size18)
+                .font(.Pretendard.Medium.size16)
                 .foregroundStyle(Color.sub)
 
             Spacer()
 
-            permissionCheckIcon(isGranted: isGranted)
+            permissionCheckIcon(isGranted: isGranted, unselectedOpacity: 0.5)
         }
         .padding(.horizontal, 16)
-        .frame(height: 44)
+        .frame(height: 50)
         .background(Color.gray9)
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
-    private func permissionRow(title: String, isGranted: Bool) -> some View {
+    private func permissionRow(title: String, isGranted: Bool, dimsWhenNotGranted: Bool = false) -> some View {
         HStack(spacing: 12) {
             Text(title)
-                .font(.Pretendard.Medium.size18)
+                .font(.Pretendard.Medium.size14)
                 .foregroundStyle(Color.sub)
+                .opacity(!isGranted && dimsWhenNotGranted ? 0.5 : 1)
 
             Spacer()
 
-            permissionCheckIcon(isGranted: isGranted)
+            permissionCheckIcon(
+                isGranted: isGranted,
+                unselectedOpacity: dimsWhenNotGranted ? 0.5 : 0.52
+            )
         }
-        .frame(height: 58)
+        .padding(.horizontal, 16)
+        .frame(height: 50)
     }
 
-    private func permissionCheckIcon(isGranted: Bool) -> some View {
+    private func permissionCheckIcon(isGranted: Bool, unselectedOpacity: Double = 0.52) -> some View {
         ZStack {
             Circle()
-                .fill(isGranted ? Color.main : Color.main.opacity(0.52))
+                .fill(isGranted ? Color.main : Color.main.opacity(unselectedOpacity))
 
             Image(systemName: "checkmark")
                 .font(.system(size: 12, weight: .bold))
                 .foregroundStyle(Color.sub)
+                .opacity(isGranted ? 1 : unselectedOpacity)
         }
         .frame(width: 24, height: 24)
     }
