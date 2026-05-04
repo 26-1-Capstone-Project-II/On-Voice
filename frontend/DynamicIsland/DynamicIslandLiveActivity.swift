@@ -69,15 +69,14 @@ struct DynamicIslandWidgetLiveActivity: Widget {
         for context: ActivityViewContext<OnVoiceLiveActivityAttributes>
     ) -> some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 30, style: .continuous)
-                .fill(lockScreenBackgroundColor.opacity(1))
+            lockScreenBackgroundColor
 
             VStack(alignment: .leading, spacing: 24) {
                 HStack(alignment: .center, spacing: 12) {
                     Image("minglyWatermark")
                         .resizable()
                         .scaledToFit()
-                        .frame(width: 26, height: 24)
+                        .frame(width: 30, height: 28)
 
                     Text(context.attributes.name)
                         .font(.system(size: 24, weight: .semibold))
