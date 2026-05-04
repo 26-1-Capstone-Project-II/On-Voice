@@ -18,6 +18,7 @@ struct FeedbackView: View {
     
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var recorder: AudioRecorder
+    @ObservedObject private var sessionController = RecordingSessionController.shared
     @AppStorage("shouldSkipVoicePitchGuide") private var shouldSkipVoicePitchGuide = false
     @State private var isPaused = false
     @State private var guideSheetState = VoicePitchGuideSheetState()
@@ -61,10 +62,8 @@ struct FeedbackView: View {
                         // 종료 버튼
                         Button {
                             Task {
-                                recorder.stop()
-                                await noiseMeter.endLiveActivity()
+                                await terminateSessionAndDismiss()
                             }
-                            dismiss()
                         } label: {
                             Text("종료")
                                 .font(.Pretendard.Regular.size17)
@@ -109,8 +108,17 @@ struct FeedbackView: View {
                 guideSheetState = VoicePitchGuideSheetState()
                 currentSituation = nil
             }
+            .onChange(of: sessionController.terminationCount) { _, _ in
+                dismiss()
+            }
         }
         .toolbar(.hidden, for: .tabBar)
+    }
+
+    @MainActor
+    private func terminateSessionAndDismiss() async {
+        await sessionController.terminateActiveSession()
+        dismiss()
     }
 
     private var guideSheetOverlay: some View {

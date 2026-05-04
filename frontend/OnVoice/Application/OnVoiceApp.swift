@@ -11,7 +11,7 @@ import SwiftData
 @main
 struct OnVoiceApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    @StateObject var recorder = AudioRecorder()
+    @StateObject private var recorder = AudioRecorder.shared
 
     var body: some Scene {
         WindowGroup {

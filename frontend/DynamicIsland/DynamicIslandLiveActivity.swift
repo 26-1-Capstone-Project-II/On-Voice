@@ -265,7 +265,7 @@ struct DynamicIslandWidgetLiveActivity: Widget {
     }
 
     private var closeButton: some View {
-        Button(intent: EndExpandedLiveActivityIntent()) {
+        Button(intent: EndLiveActivityIntent()) {
             Image(systemName: "xmark")
                 .font(.system(size: 19, weight: .light))
                 .foregroundStyle(subColor.opacity(0.82))
@@ -455,16 +455,5 @@ struct DynamicIslandWidgetLiveActivity: Widget {
             self.blue = blue
             self.alpha = alpha
         }
-    }
-}
-
-private struct EndExpandedLiveActivityIntent: LiveActivityIntent {
-    static var title: LocalizedStringResource = "End Live Activity"
-
-    func perform() async throws -> some IntentResult {
-        for activity in Activity<OnVoiceLiveActivityAttributes>.activities {
-            await activity.end(nil, dismissalPolicy: .immediate)
-        }
-        return .result()
     }
 }

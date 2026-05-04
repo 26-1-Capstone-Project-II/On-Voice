@@ -42,6 +42,8 @@ struct Recording: Identifiable, Hashable {
 }
 
 class AudioRecorder: ObservableObject {
+    static let shared = AudioRecorder()
+
     @Published var recordings: [Recording] = []
     
     private var recorder: AVAudioRecorder?
@@ -94,12 +96,20 @@ class AudioRecorder: ObservableObject {
     }
     
     func stop() {
-        recorder?.stop()
-        if let url = recorder?.url {
+        guard let recorder else { return }
+
+        let shouldPersistRecording = recorder.isRecording || recorder.currentTime > 0
+        recorder.stop()
+
+        if shouldPersistRecording {
+            let url = recorder.url
             let duration = getAccurateAudioDuration(from: url)
             let recording = Recording(fileURL: url, createdAt: Date(), duration: duration)
             recordings.append(recording)
         }
+
+        self.recorder = nil
+        startTime = nil
     }
 
     func deleteRecording(_ recording: Recording) throws {
