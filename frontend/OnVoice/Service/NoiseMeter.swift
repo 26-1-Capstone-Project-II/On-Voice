@@ -124,7 +124,9 @@ class NoiseMeter{
                 decibels: Int(self.decibels),
                 level: level,
                 progress: self.calculateProgress(for: decibels),
-                title: self.nowSituation?.title ?? ""
+                title: self.nowSituation?.title ?? "",
+                lowThreshold: self.nowSituation?.decibels.0 ?? 0,
+                highThreshold: self.nowSituation?.decibels.1 ?? 0
             )
             let content = ActivityContent(state: contentState, staleDate: nil, relevanceScore: 1)
             
@@ -178,7 +180,9 @@ class NoiseMeter{
             decibels: Int(self.decibels),
             level: level,
             progress: calculateProgress(for: decibels),
-            title: self.nowSituation?.title ?? ""
+            title: self.nowSituation?.title ?? "",
+            lowThreshold: self.nowSituation?.decibels.0 ?? 0,
+            highThreshold: self.nowSituation?.decibels.1 ?? 0
         )
         await self.activity?.update(ActivityContent<OnVoiceLiveActivityAttributes.ContentState>(
             state: contentState,

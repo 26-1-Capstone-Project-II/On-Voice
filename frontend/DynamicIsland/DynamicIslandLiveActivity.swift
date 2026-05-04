@@ -29,7 +29,7 @@ struct DynamicIslandWidgetLiveActivity: Widget {
                             .frame(width: 95, height: 48)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 24)
-                                    .stroke(borderColor(for: context.state.level), lineWidth: 1)
+                                    .stroke(borderColor(for: context.state), lineWidth: 1)
                             )
                         HStack(spacing: 1) {
                             Text(emoji(for: context.state.level))
@@ -52,7 +52,7 @@ struct DynamicIslandWidgetLiveActivity: Widget {
                             .frame(width: 222, height: 48)
                         
                         RoundedRectangle(cornerRadius: 24)
-                            .fill(fillColor(for: context.state.level))
+                            .fill(fillColor(for: context.state))
                             .frame(width: CGFloat(context.state.progress) / 100 * 222, height: 48)
                     }
                 }
@@ -69,7 +69,7 @@ struct DynamicIslandWidgetLiveActivity: Widget {
                                 .frame(width: 95, height: 48)
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 24)
-                                        .stroke(borderColor(for: context.state.level), lineWidth: 1)
+                                        .stroke(borderColor(for: context.state), lineWidth: 1)
                                 )
                             HStack(alignment: .bottom, spacing: 1) {
                                 Text(emoji(for: context.state.level))
@@ -93,7 +93,7 @@ struct DynamicIslandWidgetLiveActivity: Widget {
                 DynamicIslandExpandedRegion(.trailing) {
                     Image(systemName: symbolName(for: context.state.level))
                         .font(.title2)
-                        .foregroundStyle(fillColor(for: context.state.level))
+                        .foregroundStyle(fillColor(for: context.state))
                         .frame(width: 40, height: 40)
                         .padding(.trailing, 11)
                 }
@@ -112,7 +112,7 @@ struct DynamicIslandWidgetLiveActivity: Widget {
                                 .frame(width: geometry.size.width, height: 29)
                             
                             RoundedRectangle(cornerRadius: 24)
-                                .fill(fillColor(for: context.state.level))
+                                .fill(fillColor(for: context.state))
                                 .frame(width: geometry.size.width * CGFloat(context.state.progress) / 100, height: 29)
                         }
                     }
@@ -122,11 +122,11 @@ struct DynamicIslandWidgetLiveActivity: Widget {
             } compactLeading: {
                 compactDecibelView(for: context.state)
             } compactTrailing: {
-                compactLevelIndicator(for: context.state.level)
+                compactLevelIndicator(for: context.state)
             } minimal: {
-                minimalLevelIndicator(for: context.state.level)
+                minimalLevelIndicator(for: context.state)
             }
-            .keylineTint(borderColor(for: context.state.level))
+            .keylineTint(borderColor(for: context.state))
         }
     }
 
@@ -146,23 +146,23 @@ struct DynamicIslandWidgetLiveActivity: Widget {
     }
 
     @ViewBuilder
-    private func compactLevelIndicator(for level: OnVoiceLiveActivityAttributes.Level) -> some View {
+    private func compactLevelIndicator(for state: OnVoiceLiveActivityAttributes.ContentState) -> some View {
         Capsule()
-            .fill(levelGradient(for: level))
+            .fill(levelGradient(for: state))
             .overlay(
                 Capsule()
-                    .stroke(borderColor(for: level).opacity(0.35), lineWidth: 1)
+                    .stroke(borderColor(for: state).opacity(0.35), lineWidth: 1)
             )
             .frame(width: 41, height: 23)
     }
 
     @ViewBuilder
-    private func minimalLevelIndicator(for level: OnVoiceLiveActivityAttributes.Level) -> some View {
+    private func minimalLevelIndicator(for state: OnVoiceLiveActivityAttributes.ContentState) -> some View {
         Circle()
-            .fill(levelGradient(for: level))
+            .fill(levelGradient(for: state))
             .overlay(
                 Circle()
-                    .stroke(borderColor(for: level).opacity(0.4), lineWidth: 1)
+                    .stroke(borderColor(for: state).opacity(0.4), lineWidth: 1)
             )
             .frame(width: 20, height: 20)
     }
@@ -180,59 +180,62 @@ struct DynamicIslandWidgetLiveActivity: Widget {
         }
     }
 
-    private func levelGradient(for level: OnVoiceLiveActivityAttributes.Level) -> LinearGradient {
-        let colors: [Color]
-
-        switch level {
-        case .low:
-            colors = [
-                Color(red: 0.99, green: 0.99, blue: 0.78),
-                Color(red: 1.0, green: 0.97, blue: 0.36)
-            ]
-        case .medium:
-            colors = [
-                Color(red: 0.56, green: 0.77, blue: 1.0),
-                Color(red: 0.24, green: 0.44, blue: 0.96)
-            ]
-        case .high:
-            colors = [
-                Color(red: 1.0, green: 0.58, blue: 0.68),
-                Color(red: 1.0, green: 0.30, blue: 0.39)
-            ]
-        case .idle:
-            colors = [
-                Color(red: 0.72, green: 0.72, blue: 0.76),
-                Color(red: 0.52, green: 0.52, blue: 0.56)
-            ]
+    private func levelGradient(for state: OnVoiceLiveActivityAttributes.ContentState) -> LinearGradient {
+        guard state.level != .idle else {
+            return LinearGradient(
+                colors: [
+                    Color(red: 0.72, green: 0.72, blue: 0.76),
+                    Color(red: 0.52, green: 0.52, blue: 0.56)
+                ],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
         }
 
-        return LinearGradient(colors: colors, startPoint: .leading, endPoint: .trailing)
+        let gradientColors = gradientColors(for: state)
+        return LinearGradient(colors: gradientColors, startPoint: .leading, endPoint: .trailing)
     }
 
-    private func fillColor(for level: OnVoiceLiveActivityAttributes.Level) -> Color {
-        switch level {
-        case .low:
-            return Color(red: 0.96, green: 0.74, blue: 0.23)
-        case .medium:
-            return Color(red: 0.31, green: 0.67, blue: 0.95)
-        case .high:
-            return Color(red: 0.91, green: 0.35, blue: 0.33)
-        case .idle:
+    private func fillColor(for state: OnVoiceLiveActivityAttributes.ContentState) -> Color {
+        guard state.level != .idle else {
             return Color.gray
         }
+
+        let phase = colorInterpolationPhase(for: state)
+        if phase <= 0.5 {
+            return mixColor(
+                from: Color(red: 0.96, green: 0.74, blue: 0.23),
+                to: Color(red: 0.31, green: 0.67, blue: 0.95),
+                fraction: phase / 0.5
+            )
+        }
+
+        return mixColor(
+            from: Color(red: 0.31, green: 0.67, blue: 0.95),
+            to: Color(red: 0.91, green: 0.35, blue: 0.33),
+            fraction: (phase - 0.5) / 0.5
+        )
     }
 
-    private func borderColor(for level: OnVoiceLiveActivityAttributes.Level) -> Color {
-        switch level {
-        case .low:
-            return Color(red: 0.98, green: 0.85, blue: 0.40)
-        case .medium:
-            return Color(red: 0.46, green: 0.76, blue: 0.98)
-        case .high:
-            return Color(red: 0.98, green: 0.52, blue: 0.49)
-        case .idle:
+    private func borderColor(for state: OnVoiceLiveActivityAttributes.ContentState) -> Color {
+        guard state.level != .idle else {
             return Color.gray.opacity(0.6)
         }
+
+        let phase = colorInterpolationPhase(for: state)
+        if phase <= 0.5 {
+            return mixColor(
+                from: Color(red: 0.98, green: 0.85, blue: 0.40),
+                to: Color(red: 0.46, green: 0.76, blue: 0.98),
+                fraction: phase / 0.5
+            )
+        }
+
+        return mixColor(
+            from: Color(red: 0.46, green: 0.76, blue: 0.98),
+            to: Color(red: 0.98, green: 0.52, blue: 0.49),
+            fraction: (phase - 0.5) / 0.5
+        )
     }
 
     private func emoji(for level: OnVoiceLiveActivityAttributes.Level) -> String {
@@ -259,5 +262,106 @@ struct DynamicIslandWidgetLiveActivity: Widget {
         case .idle:
             return "speaker.slash.fill"
         }
+    }
+
+    private func gradientColors(for state: OnVoiceLiveActivityAttributes.ContentState) -> [Color] {
+        let phase = colorInterpolationPhase(for: state)
+
+        let lowGradient = (
+            Color(red: 0.99, green: 0.99, blue: 0.78),
+            Color(red: 1.0, green: 0.97, blue: 0.36)
+        )
+        let mediumGradient = (
+            Color(red: 0.56, green: 0.77, blue: 1.0),
+            Color(red: 0.24, green: 0.44, blue: 0.96)
+        )
+        let highGradient = (
+            Color(red: 1.0, green: 0.58, blue: 0.68),
+            Color(red: 1.0, green: 0.30, blue: 0.39)
+        )
+
+        if phase <= 0.5 {
+            let fraction = phase / 0.5
+            return [
+                mixColor(from: lowGradient.0, to: mediumGradient.0, fraction: fraction),
+                mixColor(from: lowGradient.1, to: mediumGradient.1, fraction: fraction)
+            ]
+        }
+
+        let fraction = (phase - 0.5) / 0.5
+        return [
+            mixColor(from: mediumGradient.0, to: highGradient.0, fraction: fraction),
+            mixColor(from: mediumGradient.1, to: highGradient.1, fraction: fraction)
+        ]
+    }
+
+    private func colorInterpolationPhase(for state: OnVoiceLiveActivityAttributes.ContentState) -> Double {
+        let decibels = Double(state.decibels)
+        let low = Double(state.lowThreshold)
+        let high = Double(state.highThreshold)
+        let transitionWidth = 8.0
+        let halfTransition = transitionWidth / 2
+
+        guard state.level != .idle else { return 0 }
+
+        if high <= low {
+            return decibels > high ? 1 : 0
+        }
+
+        let lowTransitionStart = low - halfTransition
+        let lowTransitionEnd = low + halfTransition
+        let highTransitionStart = high - halfTransition
+        let highTransitionEnd = high + halfTransition
+
+        if decibels <= lowTransitionStart {
+            return 0
+        }
+
+        if decibels < lowTransitionEnd {
+            let fraction = (decibels - lowTransitionStart) / transitionWidth
+            return smoothStep(fraction) * 0.5
+        }
+
+        if decibels <= highTransitionStart {
+            return 0.5
+        }
+
+        if decibels < highTransitionEnd {
+            let fraction = (decibels - highTransitionStart) / transitionWidth
+            return 0.5 + smoothStep(fraction) * 0.5
+        }
+
+        return 1.0
+    }
+
+    private func mixColor(from start: Color, to end: Color, fraction: Double) -> Color {
+        let clampedFraction = min(max(fraction, 0), 1)
+        let startComponents = rgbaComponents(for: UIColor(start))
+        let endComponents = rgbaComponents(for: UIColor(end))
+
+        return Color(
+            red: startComponents.red + (endComponents.red - startComponents.red) * clampedFraction,
+            green: startComponents.green + (endComponents.green - startComponents.green) * clampedFraction,
+            blue: startComponents.blue + (endComponents.blue - startComponents.blue) * clampedFraction,
+            opacity: startComponents.alpha + (endComponents.alpha - startComponents.alpha) * clampedFraction
+        )
+    }
+
+    private func rgbaComponents(for color: UIColor) -> (red: Double, green: Double, blue: Double, alpha: Double) {
+        var red: CGFloat = 0
+        var green: CGFloat = 0
+        var blue: CGFloat = 0
+        var alpha: CGFloat = 0
+
+        guard color.getRed(&red, green: &green, blue: &blue, alpha: &alpha) else {
+            return (0, 0, 0, 1)
+        }
+
+        return (Double(red), Double(green), Double(blue), Double(alpha))
+    }
+
+    private func smoothStep(_ value: Double) -> Double {
+        let clampedValue = min(max(value, 0), 1)
+        return clampedValue * clampedValue * (3 - 2 * clampedValue)
     }
 }

@@ -7,6 +7,8 @@ struct OnVoiceLiveActivityAttributes: ActivityAttributes {
         let level: Level
         let progress: Int
         let title: String
+        let lowThreshold: Int
+        let highThreshold: Int
     }
 
     enum Level: String, Codable, Hashable {
