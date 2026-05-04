@@ -153,7 +153,7 @@ struct DynamicIslandWidgetLiveActivity: Widget {
         cornerRadius: CGFloat
     ) -> some View {
         let clampedProgress = min(max(CGFloat(state.progress) / 100, 0), 1)
-        let fillWidth = max(height, width * clampedProgress)
+        let fillWidth = width * clampedProgress
         let isIdle = state.level == .idle || state.progress == 0
 
         ZStack(alignment: .leading) {
