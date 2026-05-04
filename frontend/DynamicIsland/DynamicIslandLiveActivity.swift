@@ -120,27 +120,93 @@ struct DynamicIslandWidgetLiveActivity: Widget {
                     .padding(.horizontal, 11)
                 }
             } compactLeading: {
-                HStack(alignment: .bottom, spacing: 1) {
-                    Text("\(context.state.decibels)")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.white)
-                        .frame(width: 22)
-                    Text("dB")
-                        .font(.caption2)
-                        .foregroundStyle(.white)
-                        .padding(.bottom, 2)
-                }
+                compactDecibelView(for: context.state)
             } compactTrailing: {
-                Image(systemName: symbolName(for: context.state.level))
-                    .foregroundStyle(fillColor(for: context.state.level))
+                compactLevelIndicator(for: context.state.level)
             } minimal: {
-                HStack(alignment: .bottom, spacing: 1) {
-                    Text(emoji(for: context.state.level))
-                        .font(.caption)
-                }
+                minimalLevelIndicator(for: context.state.level)
             }
-            .keylineTint(fillColor(for: context.state.level))
+            .keylineTint(borderColor(for: context.state.level))
         }
+    }
+
+    @ViewBuilder
+    private func compactDecibelView(for state: OnVoiceLiveActivityAttributes.ContentState) -> some View {
+        HStack(alignment: .lastTextBaseline, spacing: 1) {
+            Text("\(state.decibels)")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(compactNumberColor(for: state.level))
+                .monospacedDigit()
+
+            Text("dB")
+                .font(.system(size: 10, weight: .regular))
+                .foregroundStyle(compactUnitColor)
+        }
+        .frame(minWidth: 33, alignment: .leading)
+    }
+
+    @ViewBuilder
+    private func compactLevelIndicator(for level: OnVoiceLiveActivityAttributes.Level) -> some View {
+        Capsule()
+            .fill(levelGradient(for: level))
+            .overlay(
+                Capsule()
+                    .stroke(borderColor(for: level).opacity(0.35), lineWidth: 1)
+            )
+            .frame(width: 41, height: 23)
+    }
+
+    @ViewBuilder
+    private func minimalLevelIndicator(for level: OnVoiceLiveActivityAttributes.Level) -> some View {
+        Circle()
+            .fill(levelGradient(for: level))
+            .overlay(
+                Circle()
+                    .stroke(borderColor(for: level).opacity(0.4), lineWidth: 1)
+            )
+            .frame(width: 20, height: 20)
+    }
+
+    private var compactUnitColor: Color {
+        Color(red: 0.83, green: 0.88, blue: 0.98)
+    }
+
+    private func compactNumberColor(for level: OnVoiceLiveActivityAttributes.Level) -> Color {
+        switch level {
+        case .idle:
+            return Color.white.opacity(0.75)
+        default:
+            return Color(red: 0.86, green: 0.91, blue: 1.0)
+        }
+    }
+
+    private func levelGradient(for level: OnVoiceLiveActivityAttributes.Level) -> LinearGradient {
+        let colors: [Color]
+
+        switch level {
+        case .low:
+            colors = [
+                Color(red: 0.99, green: 0.99, blue: 0.78),
+                Color(red: 1.0, green: 0.97, blue: 0.36)
+            ]
+        case .medium:
+            colors = [
+                Color(red: 0.56, green: 0.77, blue: 1.0),
+                Color(red: 0.24, green: 0.44, blue: 0.96)
+            ]
+        case .high:
+            colors = [
+                Color(red: 1.0, green: 0.58, blue: 0.68),
+                Color(red: 1.0, green: 0.30, blue: 0.39)
+            ]
+        case .idle:
+            colors = [
+                Color(red: 0.72, green: 0.72, blue: 0.76),
+                Color(red: 0.52, green: 0.52, blue: 0.56)
+            ]
+        }
+
+        return LinearGradient(colors: colors, startPoint: .leading, endPoint: .trailing)
     }
 
     private func fillColor(for level: OnVoiceLiveActivityAttributes.Level) -> Color {
