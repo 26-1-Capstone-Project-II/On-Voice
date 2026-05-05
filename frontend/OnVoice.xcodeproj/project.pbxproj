@@ -9,19 +9,12 @@
 /* Begin PBXBuildFile section */
 		0ACF9C672F7D03AF00D8C2D7 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = 0ACF9C662F7D03AF00D8C2D7 /* FirebaseAnalytics */; };
 		0BDAD4A83084000100A1B2C3 /* DotLottie in Frameworks */ = {isa = PBXBuildFile; productRef = 0BDAD4A73084000100A1B2C3 /* DotLottie */; };
-<<<<<<< HEAD
-		CE2FE5E42E30D69500C90F26 /* DyanmicIslandBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2FE5DE2E30D69500C90F26 /* DyanmicIslandBundle.swift */; };
-		CE2FE5E52E30D69500C90F26 /* AppIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2FE5E02E30D69500C90F26 /* AppIntent.swift */; };
-		CE2FE5E62E30D69500C90F26 /* DyanmicIslandLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2FE5DF2E30D69500C90F26 /* DyanmicIslandLiveActivity.swift */; };
-		D1A0B1C32F8E000100ABCDEF /* RecordingRowSwipeBehaviorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A0B1C22F8E000100ABCDEF /* RecordingRowSwipeBehaviorTests.swift */; };
-=======
 		D1A0B1C32F8E000100ABCDEF /* RecordingRowSwipeBehaviorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A0B1C22F8E000100ABCDEF /* RecordingRowSwipeBehaviorTests.swift */; };
 		F0A100012F90000100ABCD01 /* DynamicIsland.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = F0A100062F90000100ABCD01 /* DynamicIsland.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		F0A100022F90000100ABCD01 /* DynamicIslandBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2FE5DE2E30D69500C90F26 /* DynamicIslandBundle.swift */; };
 		F0A100032F90000100ABCD01 /* DynamicIslandLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2FE5DF2E30D69500C90F26 /* DynamicIslandLiveActivity.swift */; };
 		F0A100042F90000100ABCD01 /* LiveActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0A100072F90000100ABCD01 /* LiveActivityAttributes.swift */; };
 		F0A100132F90000100ABCD01 /* LiveActivityState.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0A100142F90000100ABCD01 /* LiveActivityState.swift */; };
->>>>>>> e680b062158768dac31aa0a1bc45c64082202a08
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -39,8 +32,6 @@
 			remoteGlobalIDString = CE2FE4232E3085E600C90F26;
 			remoteInfo = OnVoice;
 		};
-<<<<<<< HEAD
-=======
 		F0A100082F90000100ABCD01 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = CE2FE41C2E3085E600C90F26 /* Project object */;
@@ -48,7 +39,6 @@
 			remoteGlobalIDString = F0A1000A2F90000100ABCD01;
 			remoteInfo = DynamicIsland;
 		};
->>>>>>> e680b062158768dac31aa0a1bc45c64082202a08
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -58,10 +48,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 13;
 			files = (
-<<<<<<< HEAD
-=======
 				F0A100012F90000100ABCD01 /* DynamicIsland.appex in Embed Foundation Extensions */,
->>>>>>> e680b062158768dac31aa0a1bc45c64082202a08
 			);
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -74,23 +61,15 @@
 		CE2FE43D2E3085E800C90F26 /* OnVoiceUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OnVoiceUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CE2FE5A92E30D31F00C90F26 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		CE2FE5AB2E30D31F00C90F26 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
-<<<<<<< HEAD
-		CE2FE5DE2E30D69500C90F26 /* DyanmicIslandBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DyanmicIslandBundle.swift; sourceTree = "<group>"; };
-		CE2FE5DF2E30D69500C90F26 /* DyanmicIslandLiveActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DyanmicIslandLiveActivity.swift; sourceTree = "<group>"; };
-=======
 		CE2FE5DE2E30D69500C90F26 /* DynamicIslandBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DynamicIslandBundle.swift; sourceTree = "<group>"; };
 		CE2FE5DF2E30D69500C90F26 /* DynamicIslandLiveActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DynamicIslandLiveActivity.swift; sourceTree = "<group>"; };
->>>>>>> e680b062158768dac31aa0a1bc45c64082202a08
 		CE2FE5E02E30D69500C90F26 /* AppIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppIntent.swift; sourceTree = "<group>"; };
 		CE2FE5E12E30D69500C90F26 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		CE2FE5E22E30D69500C90F26 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		D1A0B1C22F8E000100ABCDEF /* RecordingRowSwipeBehaviorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingRowSwipeBehaviorTests.swift; sourceTree = "<group>"; };
-<<<<<<< HEAD
-=======
 		F0A100062F90000100ABCD01 /* DynamicIsland.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = DynamicIsland.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		F0A100072F90000100ABCD01 /* LiveActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = LiveActivityAttributes.swift; path = ../OnVoice/Model/LiveActivityAttributes.swift; sourceTree = "<group>"; };
 		F0A100142F90000100ABCD01 /* LiveActivityState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = LiveActivityState.swift; path = ../OnVoice/Model/LiveActivityState.swift; sourceTree = "<group>"; };
->>>>>>> e680b062158768dac31aa0a1bc45c64082202a08
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -162,8 +141,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-<<<<<<< HEAD
-=======
 		F0A1000B2F90000100ABCD01 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -171,7 +148,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
->>>>>>> e680b062158768dac31aa0a1bc45c64082202a08
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -180,11 +156,7 @@
 			children = (
 				CE2FE4262E3085E600C90F26 /* OnVoice */,
 				D1A0B1C12F8E000100ABCDEF /* OnVoiceTests */,
-<<<<<<< HEAD
-				CE2FE5E32E30D69500C90F26 /* DyanmicIsland */,
-=======
 				CE2FE5E32E30D69500C90F26 /* DynamicIsland */,
->>>>>>> e680b062158768dac31aa0a1bc45c64082202a08
 				CE2FE5A82E30D31F00C90F26 /* Frameworks */,
 				CE2FE4252E3085E600C90F26 /* Products */,
 			);
@@ -193,11 +165,8 @@
 		CE2FE4252E3085E600C90F26 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				CE2FE4242E3085E600C90F26 /* OnVoice.app */,
-<<<<<<< HEAD
-=======
+				CE2FE4242E3085E600C90F26 /* OnVoice.app */,				
 				F0A100062F90000100ABCD01 /* DynamicIsland.appex */,
->>>>>>> e680b062158768dac31aa0a1bc45c64082202a08
 				CE2FE4332E3085E800C90F26 /* OnVoiceTests.xctest */,
 				CE2FE43D2E3085E800C90F26 /* OnVoiceUITests.xctest */,
 			);
@@ -213,18 +182,6 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
-<<<<<<< HEAD
-		CE2FE5E32E30D69500C90F26 /* DyanmicIsland */ = {
-			isa = PBXGroup;
-			children = (
-				CE2FE5DE2E30D69500C90F26 /* DyanmicIslandBundle.swift */,
-				CE2FE5DF2E30D69500C90F26 /* DyanmicIslandLiveActivity.swift */,
-				CE2FE5E02E30D69500C90F26 /* AppIntent.swift */,
-				CE2FE5E12E30D69500C90F26 /* Assets.xcassets */,
-				CE2FE5E22E30D69500C90F26 /* Info.plist */,
-			);
-			path = DyanmicIsland;
-=======
 		CE2FE5E32E30D69500C90F26 /* DynamicIsland */ = {
 			isa = PBXGroup;
 			children = (
@@ -237,7 +194,6 @@
 				CE2FE5E22E30D69500C90F26 /* Info.plist */,
 			);
 			path = DynamicIsland;
->>>>>>> e680b062158768dac31aa0a1bc45c64082202a08
 			sourceTree = "<group>";
 		};
 		D1A0B1C12F8E000100ABCDEF /* OnVoiceTests */ = {
@@ -263,10 +219,7 @@
 			buildRules = (
 			);
 			dependencies = (
-<<<<<<< HEAD
-=======
 				F0A100092F90000100ABCD01 /* PBXTargetDependency */,
->>>>>>> e680b062158768dac31aa0a1bc45c64082202a08
 			);
 			fileSystemSynchronizedGroups = (
 				CE2FE4262E3085E600C90F26 /* OnVoice */,
@@ -320,8 +273,6 @@
 			productReference = CE2FE43D2E3085E800C90F26 /* OnVoiceUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
-<<<<<<< HEAD
-=======
 		F0A1000A2F90000100ABCD01 /* DynamicIsland */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = F0A100122F90000100ABCD01 /* Build configuration list for PBXNativeTarget "DynamicIsland" */;
@@ -341,7 +292,6 @@
 			productReference = F0A100062F90000100ABCD01 /* DynamicIsland.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
->>>>>>> e680b062158768dac31aa0a1bc45c64082202a08
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -363,12 +313,9 @@
 						CreatedOnToolsVersion = 16.4;
 						TestTargetID = CE2FE4232E3085E600C90F26;
 					};
-<<<<<<< HEAD
-=======
 					F0A1000A2F90000100ABCD01 = {
 						CreatedOnToolsVersion = 16.4;
 					};
->>>>>>> e680b062158768dac31aa0a1bc45c64082202a08
 				};
 			};
 			buildConfigurationList = CE2FE41F2E3085E600C90F26 /* Build configuration list for PBXProject "OnVoice" */;
@@ -390,10 +337,7 @@
 			projectRoot = "";
 			targets = (
 				CE2FE4232E3085E600C90F26 /* OnVoice */,
-<<<<<<< HEAD
-=======
 				F0A1000A2F90000100ABCD01 /* DynamicIsland */,
->>>>>>> e680b062158768dac31aa0a1bc45c64082202a08
 				CE2FE4322E3085E800C90F26 /* OnVoiceTests */,
 				CE2FE43C2E3085E800C90F26 /* OnVoiceUITests */,
 			);
@@ -422,8 +366,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-<<<<<<< HEAD
-=======
 		F0A1000D2F90000100ABCD01 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -431,7 +373,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
->>>>>>> e680b062158768dac31aa0a1bc45c64082202a08
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -439,12 +380,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-<<<<<<< HEAD
-				CE2FE5E42E30D69500C90F26 /* DyanmicIslandBundle.swift in Sources */,
-				CE2FE5E52E30D69500C90F26 /* AppIntent.swift in Sources */,
-				CE2FE5E62E30D69500C90F26 /* DyanmicIslandLiveActivity.swift in Sources */,
-=======
->>>>>>> e680b062158768dac31aa0a1bc45c64082202a08
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -463,8 +398,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-<<<<<<< HEAD
-=======
 		F0A1000C2F90000100ABCD01 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -476,7 +409,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
->>>>>>> e680b062158768dac31aa0a1bc45c64082202a08
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -490,14 +422,11 @@
 			target = CE2FE4232E3085E600C90F26 /* OnVoice */;
 			targetProxy = CE2FE43E2E3085E800C90F26 /* PBXContainerItemProxy */;
 		};
-<<<<<<< HEAD
-=======
 		F0A100092F90000100ABCD01 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = F0A1000A2F90000100ABCD01 /* DynamicIsland */;
 			targetProxy = F0A100082F90000100ABCD01 /* PBXContainerItemProxy */;
 		};
->>>>>>> e680b062158768dac31aa0a1bc45c64082202a08
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
@@ -632,11 +561,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-<<<<<<< HEAD
-				DEVELOPMENT_TEAM = 4V3996X43N;
-=======
 				DEVELOPMENT_TEAM = JWWVL9L4B5;
->>>>>>> e680b062158768dac31aa0a1bc45c64082202a08
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = OnVoice/Info.plist;
@@ -653,11 +578,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-<<<<<<< HEAD
-				PRODUCT_BUNDLE_IDENTIFIER = yeankong.onvoice;
-=======
 				PRODUCT_BUNDLE_IDENTIFIER = OnVoice.mingly;
->>>>>>> e680b062158768dac31aa0a1bc45c64082202a08
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -674,11 +595,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-<<<<<<< HEAD
-				DEVELOPMENT_TEAM = 4V3996X43N;
-=======
 				DEVELOPMENT_TEAM = JWWVL9L4B5;
->>>>>>> e680b062158768dac31aa0a1bc45c64082202a08
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = OnVoice/Info.plist;
@@ -695,11 +612,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-<<<<<<< HEAD
-				PRODUCT_BUNDLE_IDENTIFIER = yeankong.onvoice;
-=======
 				PRODUCT_BUNDLE_IDENTIFIER = OnVoice.mingly;
->>>>>>> e680b062158768dac31aa0a1bc45c64082202a08
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -780,8 +693,6 @@
 			};
 			name = Release;
 		};
-<<<<<<< HEAD
-=======
 		F0A100102F90000100ABCD01 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -836,9 +747,7 @@
 			};
 			name = Release;
 		};
->>>>>>> e680b062158768dac31aa0a1bc45c64082202a08
 /* End XCBuildConfiguration section */
-
 /* Begin XCConfigurationList section */
 		CE2FE41F2E3085E600C90F26 /* Build configuration list for PBXProject "OnVoice" */ = {
 			isa = XCConfigurationList;
@@ -876,8 +785,6 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-<<<<<<< HEAD
-=======
 		F0A100122F90000100ABCD01 /* Build configuration list for PBXNativeTarget "DynamicIsland" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -887,7 +794,6 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
->>>>>>> e680b062158768dac31aa0a1bc45c64082202a08
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
