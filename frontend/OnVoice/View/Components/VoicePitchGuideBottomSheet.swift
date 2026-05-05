@@ -9,27 +9,13 @@ import SwiftUI
 
 struct VoicePitchGuideBottomSheet: View {
     let onConfirm: () -> Void
-    let onDragChanged: (DragGesture.Value) -> Void
-    let onDragEnded: (DragGesture.Value) -> Void
-
-    private var dragGesture: some Gesture {
-        DragGesture(minimumDistance: 4, coordinateSpace: .global)
-            .onChanged(onDragChanged)
-            .onEnded(onDragEnded)
-    }
 
     var body: some View {
         VStack(spacing: 0) {
-            Color.clear
-                .frame(height: 36)
-                .overlay(alignment: .top) {
-                    RoundedRectangle(cornerRadius: 999)
-                        .fill(Color.gray9)
-                        .frame(width: 64, height: 6)
-                        .padding(.top, 16)
-                }
-                .contentShape(Rectangle())
-                .highPriorityGesture(dragGesture)
+            RoundedRectangle(cornerRadius: 999)
+                .fill(Color.gray9)
+                .frame(width: 64, height: 6)
+                .padding(.top, 16)
 
             VStack(spacing: 0) {
                 Text("스마트폰 위치 설정")
@@ -40,10 +26,7 @@ struct VoicePitchGuideBottomSheet: View {
                     .padding(.vertical, 5)
                     .background(Color.gray9)
                     .clipShape(Capsule())
-                .frame(maxWidth: .infinity)
-                .frame(height: 38)
-                .padding(.top, 22)
-                .padding(.horizontal, 24)
+                    .padding(.top, 42)
 
                 Text("팔을 자연스럽게 내렸을 때\n손이 위치하는 거리에 스마트폰을 내려주세요")
                     .font(.Pretendard.SemiBold.size18)
@@ -90,10 +73,6 @@ struct VoicePitchGuideBottomSheet: View {
 #Preview {
     ZStack(alignment: .bottom) {
         Color.bg.ignoresSafeArea()
-        VoicePitchGuideBottomSheet(
-            onConfirm: {},
-            onDragChanged: { _ in },
-            onDragEnded: { _ in }
-        )
+        VoicePitchGuideBottomSheet(onConfirm: {})
     }
 }

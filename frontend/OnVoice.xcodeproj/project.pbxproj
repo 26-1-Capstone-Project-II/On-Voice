@@ -167,7 +167,7 @@
 		CE2FE4252E3085E600C90F26 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				CE2FE4242E3085E600C90F26 /* OnVoice.app */,
+				CE2FE4242E3085E600C90F26 /* OnVoice.app */,				
 				F0A100062F90000100ABCD01 /* DynamicIsland.appex */,
 				CE2FE4332E3085E800C90F26 /* OnVoiceTests.xctest */,
 				CE2FE43D2E3085E800C90F26 /* OnVoiceUITests.xctest */,
@@ -752,7 +752,6 @@
 			name = Release;
 		};
 /* End XCBuildConfiguration section */
-
 /* Begin XCConfigurationList section */
 		CE2FE41F2E3085E600C90F26 /* Build configuration list for PBXProject "OnVoice" */ = {
 			isa = XCConfigurationList;
