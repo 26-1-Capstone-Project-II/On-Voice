@@ -10,6 +10,7 @@ struct LibraryView: View {
     @Binding var selectedTab: OnVoiceTab
     let userProfile: UserProfile
     @State private var isShowingSituationRecognition = false
+    @State private var isShowingMyPage = false
     @State private var isShowingLibraryOptionsAlert = false
     @State private var selectedRecording: Recording?
     @State private var openedRowID: Recording.ID?
@@ -36,6 +37,9 @@ struct LibraryView: View {
                         profileImageData: userProfile.customImageData,
                         showsProfileButton: true,
                         titleTopOffset: 32,
+                        onProfileButtonTap: {
+                            isShowingMyPage = true
+                        },
                         onTitleTrailingButtonTap: {
                             isShowingLibraryOptionsAlert = true
                         }
@@ -59,6 +63,9 @@ struct LibraryView: View {
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(isPresented: $isShowingSituationRecognition) {
                 SituationRecognitionView()
+            }
+            .navigationDestination(isPresented: $isShowingMyPage) {
+                MyPageView(userProfile: userProfile)
             }
             .navigationDestination(item: $selectedRecording) { recording in
                 AnalysisSummaryView(recording: recording)
