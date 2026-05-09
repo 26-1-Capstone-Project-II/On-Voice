@@ -9,6 +9,7 @@ struct HomeHeaderView: View {
     let title: String
     var showsProfileButton: Bool = true
     var titleTopOffset: CGFloat = 0
+    var onProfileButtonTap: (() -> Void)? = nil
     private let headerHeight: CGFloat = 152
     private let horizontalPadding: CGFloat = 18
     private let logoTopPadding: CGFloat = 22
@@ -76,7 +77,9 @@ struct HomeHeaderView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
 
                 if showsProfileButton {
-                    Button {} label: {
+                    Button {
+                        onProfileButtonTap?()
+                    } label: {
                         ZStack {
                             Circle()
                                 .fill(Color.gray8.opacity(0.92))

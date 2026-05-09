@@ -11,6 +11,7 @@ struct HomeView: View {
     @EnvironmentObject var recorder: AudioRecorder
     @Binding var selectedTab: OnVoiceTab
     @State private var isShowingSituationRecognition = false
+    @State private var isShowingMyPage = false
     @State private var selectedRecording: Recording?
     @State private var openedRowID: Recording.ID?
     @State private var recordingToRename: Recording?
@@ -32,7 +33,10 @@ struct HomeView: View {
                 VStack(spacing: 0) {
                     HomeHeaderView(
                         title: todayDateString(),
-                        showsProfileButton: true
+                        showsProfileButton: true,
+                        onProfileButtonTap: {
+                            isShowingMyPage = true
+                        }
                     )
 
                     VStack(alignment: .leading, spacing: 0) {
@@ -100,6 +104,9 @@ struct HomeView: View {
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(isPresented: $isShowingSituationRecognition) {
                 SituationRecognitionView()
+            }
+            .navigationDestination(isPresented: $isShowingMyPage) {
+                MyPageView()
             }
             .navigationDestination(item: $selectedRecording) { recording in
                 AnalysisSummaryView(recording: recording)
