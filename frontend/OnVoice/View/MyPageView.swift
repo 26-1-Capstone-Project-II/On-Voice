@@ -12,6 +12,9 @@ struct MyPageView: View {
     private let nickname = "도연바보뽕뽕삼"
     private let baseScreenWidth: CGFloat = 393
     private let baseContentHeight: CGFloat = 772
+    private var appVersion: String {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "-"
+    }
 
     var body: some View {
         GeometryReader { proxy in
@@ -160,7 +163,7 @@ struct MyPageView: View {
 
             Spacer()
 
-            Text("1.0.1")
+            Text(appVersion)
                 .font(.Pretendard.Medium.size16)
                 .foregroundStyle(Color.white.opacity(0.3))
         }
