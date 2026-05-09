@@ -7,9 +7,8 @@ import SwiftUI
 
 struct MyPageView: View {
     @Environment(\.dismiss) private var dismiss
+    let userProfile: UserProfile
 
-    private let defaultProfileImageName = "profileDefaultYellow"
-    private let nickname = "도연바보뽕뽕삼"
     private let baseScreenWidth: CGFloat = 393
     private let baseContentHeight: CGFloat = 772
     private var appVersion: String {
@@ -75,9 +74,7 @@ struct MyPageView: View {
     private func profileSection(widthScale: CGFloat) -> some View {
         VStack(spacing: 18) {
             ZStack(alignment: .bottomTrailing) {
-                Image(defaultProfileImageName)
-                    .resizable()
-                    .scaledToFill()
+                profileImageView
                     .frame(width: 104, height: 104)
                     .clipShape(Circle())
 
@@ -93,14 +90,33 @@ struct MyPageView: View {
                 .offset(x: -1, y: -1)
             }
 
-            Text(nickname)
-                .font(.Pretendard.Bold.size18)
-                .foregroundStyle(Color.white)
-                .lineLimit(1)
-                .minimumScaleFactor(0.9)
+            if !userProfile.displayNickname.isEmpty {
+                Text(userProfile.displayNickname)
+                    .font(.Pretendard.Bold.size18)
+                    .foregroundStyle(Color.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.9)
+            }
         }
         .frame(maxWidth: .infinity)
         .padding(.horizontal, 144.5 * widthScale)
+    }
+
+    @ViewBuilder
+    private var profileImageView: some View {
+        if let customImageData = userProfile.customImageData,
+           let uiImage = UIImage(data: customImageData) {
+            Image(uiImage: uiImage)
+                .resizable()
+                .scaledToFill()
+        } else if !userProfile.defaultImageName.isEmpty {
+            Image(userProfile.defaultImageName)
+                .resizable()
+                .scaledToFill()
+        } else {
+            Circle()
+                .fill(Color.gray2)
+        }
     }
 
     private func socialAccountRow(widthScale: CGFloat, heightScale: CGFloat) -> some View {
@@ -232,6 +248,6 @@ private struct MyPageMenuRow: View {
 
 #Preview {
     NavigationStack {
-        MyPageView()
+        MyPageView(userProfile: .placeholder)
     }
 }

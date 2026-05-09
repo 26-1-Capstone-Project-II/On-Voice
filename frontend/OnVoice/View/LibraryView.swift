@@ -8,6 +8,7 @@ import SwiftUI
 struct LibraryView: View {
     @EnvironmentObject var recorder: AudioRecorder
     @Binding var selectedTab: OnVoiceTab
+    let userProfile: UserProfile
     @State private var isShowingSituationRecognition = false
     @State private var isShowingLibraryOptionsAlert = false
     @State private var selectedRecording: Recording?
@@ -31,6 +32,8 @@ struct LibraryView: View {
                 VStack(spacing: 0) {
                     HomeHeaderView(
                         title: "라이브러리",
+                        profileImageName: userProfile.defaultImageName,
+                        profileImageData: userProfile.customImageData,
                         showsProfileButton: true,
                         titleTopOffset: 32,
                         onTitleTrailingButtonTap: {
@@ -294,6 +297,6 @@ struct LibraryView: View {
 }
 
 #Preview {
-    LibraryView(selectedTab: .constant(.library))
+    LibraryView(selectedTab: .constant(.library), userProfile: .placeholder)
         .environmentObject(AudioRecorder())
 }

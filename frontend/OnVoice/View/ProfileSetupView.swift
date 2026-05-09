@@ -11,7 +11,7 @@ import Speech
 import UserNotifications
 
 struct ProfileSetupView: View {
-    let onNext: () -> Void
+    let onNext: (UserProfile) -> Void
 
     @State private var defaultProfileImageName = ProfileDefaultImage.randomName()
     @FocusState private var isNicknameFocused: Bool
@@ -21,6 +21,7 @@ struct ProfileSetupView: View {
     @State private var showsPhotoPicker = false
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var selectedProfileImage: Image?
+    @State private var selectedProfileImageData: Data?
     @State private var microphonePermission = PermissionState.unknown
     @State private var speechPermission = PermissionState.unknown
     @State private var notificationPermission = PermissionState.unknown
@@ -149,6 +150,7 @@ struct ProfileSetupView: View {
                 if let data = try? await newValue.loadTransferable(type: Data.self),
                    let uiImage = UIImage(data: data) {
                     await MainActor.run {
+                        selectedProfileImageData = data
                         selectedProfileImage = Image(uiImage: uiImage)
                     }
                 }
@@ -308,6 +310,7 @@ struct ProfileSetupView: View {
 
                 Button {
                     defaultProfileImageName = ProfileDefaultImage.randomName(excluding: defaultProfileImageName)
+                    selectedProfileImageData = nil
                     selectedProfileImage = nil
                     showsImageSheet = false
                 } label: {
@@ -426,7 +429,13 @@ struct ProfileSetupView: View {
 
                 Button {
                     showsPermissionSheet = false
-                    onNext()
+                    onNext(
+                        UserProfile(
+                            nickname: trimmedNickname,
+                            defaultImageName: defaultProfileImageName,
+                            customImageData: selectedProfileImageData
+                        )
+                    )
                 } label: {
                     Text("시작하기")
                         .font(.Pretendard.SemiBold.size20)
@@ -668,5 +677,5 @@ private enum PhotoLibraryPermissionRequester {
 }
 
 #Preview {
-    ProfileSetupView(onNext: {})
+    ProfileSetupView(onNext: { _ in })
 }

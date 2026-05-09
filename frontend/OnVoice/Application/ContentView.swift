@@ -18,6 +18,7 @@ enum OnVoiceFlow: Equatable {
 struct ContentView: View {
     @State private var selectedTab: OnVoiceTab = .home
     @State private var flow: OnVoiceFlow = .login
+    @State private var userProfile = UserProfile.placeholder
 
     var body: some View {
         Group {
@@ -27,15 +28,16 @@ struct ContentView: View {
                     flow = .profileSetup
                 }
             case .profileSetup:
-                ProfileSetupView {
+                ProfileSetupView { profile in
+                    userProfile = profile
                     flow = .app
                 }
             case .app:
                 switch selectedTab {
                 case .home:
-                    HomeView(selectedTab: $selectedTab)
+                    HomeView(selectedTab: $selectedTab, userProfile: userProfile)
                 case .library:
-                    LibraryView(selectedTab: $selectedTab)
+                    LibraryView(selectedTab: $selectedTab, userProfile: userProfile)
                 }
             }
         }
