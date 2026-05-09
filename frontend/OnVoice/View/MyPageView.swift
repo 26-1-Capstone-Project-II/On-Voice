@@ -4,10 +4,16 @@
 //
 
 import SwiftUI
+import PhotosUI
+import Photos
 
 struct MyPageView: View {
     @Environment(\.dismiss) private var dismiss
-    let userProfile: UserProfile
+    @Binding var userProfile: UserProfile
+    @State private var showsImageSheet = false
+    @State private var showsPhotoPicker = false
+    @State private var selectedPhotoItem: PhotosPickerItem?
+    @State private var showsPhotoPermissionAlert = false
 
     private let baseScreenWidth: CGFloat = 393
     private let baseContentHeight: CGFloat = 772
@@ -48,9 +54,36 @@ struct MyPageView: View {
                 withdrawalButton()
                     .padding(.bottom, proxy.safeAreaInsets.bottom * heightScale)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+
+                if showsImageSheet {
+                    imageSelectionSheet
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
             }
         }
         .toolbar(.hidden, for: .navigationBar)
+        .animation(.easeInOut(duration: 0.2), value: showsImageSheet)
+        .photosPicker(isPresented: $showsPhotoPicker, selection: $selectedPhotoItem, matching: .images)
+        .alert("사진 권한이 필요해요", isPresented: $showsPhotoPermissionAlert) {
+            Button("취소", role: .cancel) {}
+            Button("설정 열기") {
+                guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+                UIApplication.shared.open(url)
+            }
+        } message: {
+            Text("갤러리에서 프로필 이미지를 선택하려면 사진 접근 권한을 허용해주세요.")
+        }
+        .onChange(of: selectedPhotoItem) { newValue in
+            guard let newValue else { return }
+
+            Task {
+                if let data = try? await newValue.loadTransferable(type: Data.self) {
+                    await MainActor.run {
+                        userProfile.customImageData = data
+                    }
+                }
+            }
+        }
     }
 
     private var headerView: some View {
@@ -78,15 +111,20 @@ struct MyPageView: View {
                     .frame(width: 104, height: 104)
                     .clipShape(Circle())
 
-                ZStack {
-                    Circle()
-                        .fill(Color.gray1)
+                Button {
+                    showsImageSheet = true
+                } label: {
+                    ZStack {
+                        Circle()
+                            .fill(Color.gray1)
 
-                    Image(systemName: "camera.fill")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(Color.gray6)
+                        Image(systemName: "camera.fill")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(Color.gray6)
+                    }
+                    .frame(width: 32, height: 32)
                 }
-                .frame(width: 32, height: 32)
+                .buttonStyle(.plain)
                 .offset(x: -1, y: -1)
             }
 
@@ -217,6 +255,111 @@ struct MyPageView: View {
         .frame(maxWidth: .infinity)
     }
 
+    private var imageSelectionSheet: some View {
+        ZStack(alignment: .bottom) {
+            Color(hex: "15161C").opacity(0.8)
+                .ignoresSafeArea()
+                .onTapGesture {
+                    showsImageSheet = false
+                }
+
+            VStack(spacing: 0) {
+                Text("이미지 선택하기")
+                    .font(.Pretendard.SemiBold.size18)
+                    .foregroundStyle(Color.white)
+                    .padding(.top, 22)
+                    .padding(.bottom, 26)
+
+                Button {
+                    userProfile.defaultImageName = MyPageProfileDefaultImage.randomName(
+                        excluding: userProfile.defaultImageName.isEmpty ? nil : userProfile.defaultImageName
+                    )
+                    userProfile.customImageData = nil
+                    showsImageSheet = false
+                } label: {
+                    sheetRow(systemImage: "photo", title: "기본 이미지로 설정하기")
+                }
+                .buttonStyle(.plain)
+
+                Button {
+                    Task {
+                        await handleGallerySelection()
+                    }
+                } label: {
+                    sheetRow(systemImage: "photo.on.rectangle.angled", title: "갤러리에서 선택하기")
+                }
+                .buttonStyle(.plain)
+
+                Capsule()
+                    .fill(Color.sub)
+                    .frame(width: 134, height: 5)
+                    .padding(.top, 26)
+                    .padding(.bottom, 10)
+            }
+            .frame(maxWidth: .infinity)
+            .background(Color.gray10)
+            .clipShape(
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+            )
+        }
+    }
+
+    private func sheetRow(systemImage: String, title: String) -> some View {
+        HStack(spacing: 14) {
+            Image(systemName: systemImage)
+                .font(.system(size: 18, weight: .medium))
+                .foregroundStyle(Color.white)
+                .frame(width: 18)
+
+            Text(title)
+                .font(.Pretendard.Medium.size18)
+                .foregroundStyle(Color.white)
+
+            Spacer()
+        }
+        .padding(.horizontal, 22)
+        .frame(height: 54)
+    }
+
+    @MainActor
+    private func handleGallerySelection() async {
+        showsImageSheet = false
+
+        let currentStatus = PHPhotoLibrary.authorizationStatus(for: .readWrite)
+        let status: PHAuthorizationStatus
+
+        switch currentStatus {
+        case .notDetermined:
+            status = await PHPhotoLibrary.requestAuthorization(for: .readWrite)
+        default:
+            status = currentStatus
+        }
+
+        switch status {
+        case .authorized, .limited:
+            showsPhotoPicker = true
+        case .denied, .restricted:
+            showsPhotoPermissionAlert = true
+        case .notDetermined:
+            break
+        @unknown default:
+            break
+        }
+    }
+
+}
+
+private enum MyPageProfileDefaultImage {
+    static let names = [
+        "profileDefaultYellow",
+        "profileDefaultPurple",
+        "profileDefaultPink"
+    ]
+
+    static func randomName(excluding currentName: String? = nil) -> String {
+        let availableNames = names.filter { $0 != currentName }
+        return availableNames.randomElement() ?? currentName ?? names[0]
+    }
 }
 
 private struct MyPageMenuRow: View {
@@ -248,6 +391,6 @@ private struct MyPageMenuRow: View {
 
 #Preview {
     NavigationStack {
-        MyPageView(userProfile: .placeholder)
+        MyPageView(userProfile: .constant(.placeholder))
     }
 }

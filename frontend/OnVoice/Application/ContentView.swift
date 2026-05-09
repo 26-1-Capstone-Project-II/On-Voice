@@ -35,9 +35,9 @@ struct ContentView: View {
             case .app:
                 switch selectedTab {
                 case .home:
-                    HomeView(selectedTab: $selectedTab, userProfile: userProfile)
+                    HomeView(selectedTab: $selectedTab, userProfile: $userProfile)
                 case .library:
-                    LibraryView(selectedTab: $selectedTab, userProfile: userProfile)
+                    LibraryView(selectedTab: $selectedTab, userProfile: $userProfile)
                 }
             }
         }

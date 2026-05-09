@@ -8,7 +8,7 @@ import SwiftUI
 struct LibraryView: View {
     @EnvironmentObject var recorder: AudioRecorder
     @Binding var selectedTab: OnVoiceTab
-    let userProfile: UserProfile
+    @Binding var userProfile: UserProfile
     @State private var isShowingSituationRecognition = false
     @State private var isShowingMyPage = false
     @State private var isShowingLibraryOptionsAlert = false
@@ -65,7 +65,7 @@ struct LibraryView: View {
                 SituationRecognitionView()
             }
             .navigationDestination(isPresented: $isShowingMyPage) {
-                MyPageView(userProfile: userProfile)
+                MyPageView(userProfile: $userProfile)
             }
             .navigationDestination(item: $selectedRecording) { recording in
                 AnalysisSummaryView(recording: recording)
@@ -304,6 +304,6 @@ struct LibraryView: View {
 }
 
 #Preview {
-    LibraryView(selectedTab: .constant(.library), userProfile: .placeholder)
+    LibraryView(selectedTab: .constant(.library), userProfile: .constant(.placeholder))
         .environmentObject(AudioRecorder())
 }

@@ -295,7 +295,7 @@ struct ProfileSetupView: View {
 
     private var imageSelectionSheet: some View {
         ZStack(alignment: .bottom) {
-            Color.black.opacity(0.32)
+            Color(hex: "15161C").opacity(0.8)
                 .ignoresSafeArea()
                 .onTapGesture {
                     showsImageSheet = false
@@ -303,8 +303,8 @@ struct ProfileSetupView: View {
 
             VStack(spacing: 0) {
                 Text("이미지 선택하기")
-                    .font(.Pretendard.SemiBold.size20)
-                    .foregroundStyle(Color.sub)
+                    .font(.Pretendard.SemiBold.size18)
+                    .foregroundStyle(Color.white)
                     .padding(.top, 22)
                     .padding(.bottom, 26)
 
@@ -345,12 +345,12 @@ struct ProfileSetupView: View {
         HStack(spacing: 14) {
             Image(systemName: systemImage)
                 .font(.system(size: 18, weight: .medium))
-                .foregroundStyle(Color.sub)
+                .foregroundStyle(Color.white)
                 .frame(width: 18)
 
             Text(title)
                 .font(.Pretendard.Medium.size18)
-                .foregroundStyle(Color.sub)
+                .foregroundStyle(Color.white)
 
             Spacer()
         }
@@ -360,7 +360,7 @@ struct ProfileSetupView: View {
 
     private var permissionSheet: some View {
         ZStack(alignment: .bottom) {
-            Color.black.opacity(0.58)
+            Color(hex: "15161C").opacity(0.8)
                 .ignoresSafeArea()
 
             VStack(alignment: .leading, spacing: 0) {
