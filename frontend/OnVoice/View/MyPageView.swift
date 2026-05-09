@@ -10,36 +10,42 @@ struct MyPageView: View {
 
     private let defaultProfileImageName = "profileDefaultYellow"
     private let nickname = "도연바보뽕뽕삼"
+    private let baseScreenWidth: CGFloat = 393
+    private let baseContentHeight: CGFloat = 772
 
     var body: some View {
-        ZStack {
-            Color.bg.ignoresSafeArea()
+        GeometryReader { proxy in
+            let widthScale = proxy.size.width / baseScreenWidth
+            let contentHeight = max(proxy.size.height - proxy.safeAreaInsets.top - proxy.safeAreaInsets.bottom, 1)
+            let heightScale = contentHeight / baseContentHeight
 
-            VStack(spacing: 0) {
+            ZStack(alignment: .top) {
+                Color.bg.ignoresSafeArea()
+
                 headerView
 
-                ScrollView(showsIndicators: false) {
-                    VStack(spacing: 0) {
-                        profileSection
-                            .padding(.top, 22)
+                ZStack(alignment: .top) {
+                    profileSection(widthScale: widthScale)
+                        .padding(.top, 70 * heightScale)
 
-                        socialAccountRow
-                            .padding(.top, 28)
+                    socialAccountRow(widthScale: widthScale, heightScale: heightScale)
+                        .padding(.top, 270 * heightScale)
 
-                        settingsSection
-                            .padding(.top, 24)
+                    settingsSection(widthScale: widthScale, heightScale: heightScale)
+                        .padding(.top, 353 * heightScale)
 
-                        infoSection
-                            .padding(.top, 28)
+                    versionInfoRow(widthScale: widthScale, heightScale: heightScale)
+                        .padding(.top, 540 * heightScale)
 
-                        Spacer(minLength: 116)
-
-                        withdrawalButton
-                            .padding(.bottom, 20)
-                    }
-                    .padding(.horizontal, 24)
-                    .frame(maxWidth: .infinity)
+                    logoutRow(widthScale: widthScale, heightScale: heightScale)
+                        .padding(.top, 600 * heightScale)
                 }
+                .frame(maxWidth: .infinity, maxHeight: contentHeight, alignment: .top)
+                .padding(.top, 16)
+
+                withdrawalButton(heightScale: heightScale)
+                    .padding(.bottom, proxy.safeAreaInsets.bottom * heightScale)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
             }
         }
         .toolbar(.hidden, for: .navigationBar)
@@ -63,149 +69,161 @@ struct MyPageView: View {
         .padding(.top, 16)
     }
 
-    private var profileSection: some View {
-        VStack(spacing: 12) {
+    private func profileSection(widthScale: CGFloat) -> some View {
+        VStack(spacing: 18) {
             ZStack(alignment: .bottomTrailing) {
                 Image(defaultProfileImageName)
                     .resizable()
                     .scaledToFill()
-                    .frame(width: 110, height: 110)
+                    .frame(width: 104, height: 104)
                     .clipShape(Circle())
 
                 ZStack {
                     Circle()
-                        .fill(Color.gray6)
+                        .fill(Color.gray1)
 
                     Image(systemName: "camera.fill")
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(Color.sub)
+                        .foregroundStyle(Color.gray6)
                 }
                 .frame(width: 32, height: 32)
                 .offset(x: -1, y: -1)
             }
 
             Text(nickname)
-                .font(.Pretendard.SemiBold.size20)
-                .foregroundStyle(Color.sub)
+                .font(.Pretendard.Bold.size18)
+                .foregroundStyle(Color.white)
+                .lineLimit(1)
+                .minimumScaleFactor(0.9)
         }
         .frame(maxWidth: .infinity)
+        .padding(.horizontal, 144.5 * widthScale)
     }
 
-    private var socialAccountRow: some View {
+    private func socialAccountRow(widthScale: CGFloat, heightScale: CGFloat) -> some View {
         HStack(spacing: 12) {
             Text("연결된 소셜 계정")
                 .font(.Pretendard.Medium.size16)
-                .foregroundStyle(Color.sub)
+                .foregroundStyle(Color.white)
 
             Spacer()
 
             HStack(spacing: 8) {
                 Image(systemName: "applelogo")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(Color.sub)
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(Color.white)
 
                 Text("Apple")
                     .font(.Pretendard.Medium.size16)
-                    .foregroundStyle(Color.sub)
+                    .foregroundStyle(Color.white)
             }
         }
         .padding(.horizontal, 18)
-        .frame(height: 48)
+        .frame(width: 345 * widthScale, height: 58 * heightScale)
         .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(Color.gray8, lineWidth: 1)
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .stroke(Color.gray8, lineWidth: 1.8)
         )
+        .frame(maxWidth: .infinity)
     }
 
-    private var settingsSection: some View {
-        VStack(spacing: 0) {
-            MyPageMenuRow(icon: "bell", title: "알림 및 권한 설정")
-            divider
-            MyPageMenuRow(icon: "doc.text", title: "개인정보 처리 방침 및 이용약관")
-            divider
-            MyPageMenuRow(icon: "message", title: "문의하기")
+    private func settingsSection(widthScale: CGFloat, heightScale: CGFloat) -> some View {
+        VStack(spacing: 6 * heightScale) {
+            MyPageMenuRow(
+                icon: "bell",
+                title: "알림 및 권한 설정",
+                height: 48 * heightScale
+            )
+            MyPageMenuRow(icon: "doc.text", title: "개인정보 처리 방침 및 이용약관", height: 48 * heightScale)
+            MyPageMenuRow(
+                icon: "bubble.left.and.exclamationmark.bubble.right",
+                title: "문의하기",
+                height: 48 * heightScale
+            )
         }
+        .frame(width: 345 * widthScale, height: 170 * heightScale)
         .background(Color.gray9)
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .frame(maxWidth: .infinity)
     }
 
-    private var infoSection: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 12) {
-                Image(systemName: "info.circle")
-                    .font(.system(size: 17, weight: .medium))
-                    .foregroundStyle(Color.gray4)
-                    .frame(width: 20, height: 20)
+    private func versionInfoRow(widthScale: CGFloat, heightScale: CGFloat) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: "info.circle")
+                .font(.system(size: 17, weight: .medium))
+                .foregroundStyle(Color.white)
+                .frame(width: 20, height: 20)
 
-                Text("버전 정보")
-                    .font(.Pretendard.Medium.size16)
-                    .foregroundStyle(Color.sub)
+            Text("버전 정보")
+                .font(.Pretendard.Medium.size16)
+                .foregroundStyle(Color.white)
 
-                Spacer()
+            Spacer()
 
-                Text("1.0.1")
-                    .font(.Pretendard.Medium.size16)
-                    .foregroundStyle(Color.gray5)
-            }
-            .frame(height: 54)
-
-            HStack(spacing: 12) {
-                Image(systemName: "rectangle.portrait.and.arrow.right")
-                    .font(.system(size: 17, weight: .medium))
-                    .foregroundStyle(Color.gray4)
-                    .frame(width: 20, height: 20)
-
-                Text("로그아웃")
-                    .font(.Pretendard.Medium.size16)
-                    .foregroundStyle(Color.sub)
-
-                Spacer()
-            }
-            .frame(height: 54)
+            Text("1.0.1")
+                .font(.Pretendard.Medium.size16)
+                .foregroundStyle(Color.white.opacity(0.3))
         }
+        .padding(.horizontal, 18)
+        .frame(width: 345 * widthScale, height: 54 * heightScale)
+        .frame(maxWidth: .infinity)
     }
 
-    private var withdrawalButton: some View {
+    private func logoutRow(widthScale: CGFloat, heightScale: CGFloat) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: "iphone.and.arrow.right.outward")
+                .font(.system(size: 17, weight: .medium))
+                .foregroundStyle(Color.white)
+                .frame(width: 20, height: 20)
+
+            Text("로그아웃")
+                .font(.Pretendard.Medium.size16)
+                .foregroundStyle(Color.white)
+
+            Spacer()
+        }
+        .padding(.horizontal, 18)
+        .frame(width: 345 * widthScale, height: 54 * heightScale)
+        .frame(maxWidth: .infinity)
+    }
+
+    private func withdrawalButton(heightScale: CGFloat) -> some View {
         Button {} label: {
             Text("회원탈퇴")
                 .font(.Pretendard.Medium.size14)
-                .foregroundStyle(Color.gray6)
+                .foregroundStyle(Color.white.opacity(0.3))
+                .underline()
         }
         .buttonStyle(.plain)
         .frame(maxWidth: .infinity)
     }
 
-    private var divider: some View {
-        Rectangle()
-            .fill(Color.gray8)
-            .frame(height: 1)
-            .padding(.leading, 52)
-    }
 }
 
 private struct MyPageMenuRow: View {
     let icon: String
     let title: String
+    let height: CGFloat
 
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: icon)
                 .font(.system(size: 17, weight: .medium))
-                .foregroundStyle(Color.gray3)
+                .foregroundStyle(Color.white)
                 .frame(width: 20, height: 20)
 
             Text(title)
                 .font(.Pretendard.Medium.size16)
-                .foregroundStyle(Color.sub)
+                .foregroundStyle(Color.white)
 
             Spacer()
 
             Image(systemName: "chevron.right")
                 .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(Color.gray5)
+                .foregroundStyle(Color.white.opacity(0.3))
         }
         .padding(.horizontal, 18)
-        .frame(height: 56)
+        .frame(height: height)
     }
 }
 
