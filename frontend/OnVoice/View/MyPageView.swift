@@ -46,7 +46,7 @@ struct MyPageView: View {
                 .frame(maxWidth: .infinity, maxHeight: contentHeight, alignment: .top)
                 .padding(.top, 16)
 
-                withdrawalButton(heightScale: heightScale)
+                withdrawalButton()
                     .padding(.bottom, proxy.safeAreaInsets.bottom * heightScale)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
             }
@@ -190,7 +190,7 @@ struct MyPageView: View {
         .frame(maxWidth: .infinity)
     }
 
-    private func withdrawalButton(heightScale: CGFloat) -> some View {
+    private func withdrawalButton() -> some View {
         Button {} label: {
             Text("회원탈퇴")
                 .font(.Pretendard.Medium.size14)
