@@ -33,8 +33,7 @@ struct LibraryView: View {
                 VStack(spacing: 0) {
                     HomeHeaderView(
                         title: "라이브러리",
-                        profileImageName: userProfile.defaultImageName,
-                        profileImageData: userProfile.customImageData,
+                        userProfile: userProfile,
                         showsProfileButton: true,
                         titleTopOffset: 32,
                         onProfileButtonTap: {

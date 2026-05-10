@@ -34,8 +34,7 @@ struct HomeView: View {
                 VStack(spacing: 0) {
                     HomeHeaderView(
                         title: todayDateString(),
-                        profileImageName: userProfile.defaultImageName,
-                        profileImageData: userProfile.customImageData,
+                        userProfile: userProfile,
                         showsProfileButton: true,
                         onProfileButtonTap: {
                             isShowingMyPage = true

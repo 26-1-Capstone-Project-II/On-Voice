@@ -5,7 +5,6 @@
 
 import SwiftUI
 import PhotosUI
-import Photos
 
 struct MyPageView: View {
     @Environment(\.dismiss) private var dismiss
@@ -13,7 +12,6 @@ struct MyPageView: View {
     @State private var showsImageSheet = false
     @State private var showsPhotoPicker = false
     @State private var selectedPhotoItem: PhotosPickerItem?
-    @State private var showsPhotoPermissionAlert = false
 
     private let baseScreenWidth: CGFloat = 393
     private let baseContentHeight: CGFloat = 772
@@ -64,22 +62,18 @@ struct MyPageView: View {
         .toolbar(.hidden, for: .navigationBar)
         .animation(.easeInOut(duration: 0.2), value: showsImageSheet)
         .photosPicker(isPresented: $showsPhotoPicker, selection: $selectedPhotoItem, matching: .images)
-        .alert("사진 권한이 필요해요", isPresented: $showsPhotoPermissionAlert) {
-            Button("취소", role: .cancel) {}
-            Button("설정 열기") {
-                guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
-                UIApplication.shared.open(url)
-            }
-        } message: {
-            Text("갤러리에서 프로필 이미지를 선택하려면 사진 접근 권한을 허용해주세요.")
-        }
         .onChange(of: selectedPhotoItem) { newValue in
             guard let newValue else { return }
 
             Task {
                 if let data = try? await newValue.loadTransferable(type: Data.self) {
                     await MainActor.run {
-                        userProfile.customImageData = data
+                        userProfile.applyCustomImageData(data)
+                        selectedPhotoItem = nil
+                    }
+                } else {
+                    await MainActor.run {
+                        selectedPhotoItem = nil
                     }
                 }
             }
@@ -142,13 +136,13 @@ struct MyPageView: View {
 
     @ViewBuilder
     private var profileImageView: some View {
-        if let customImageData = userProfile.customImageData,
+        if let customImageData = userProfile.displayImageData,
            let uiImage = UIImage(data: customImageData) {
             Image(uiImage: uiImage)
                 .resizable()
                 .scaledToFill()
-        } else if !userProfile.defaultImageName.isEmpty {
-            Image(userProfile.defaultImageName)
+        } else if let defaultImageName = userProfile.displayImageName {
+            Image(defaultImageName)
                 .resizable()
                 .scaledToFill()
         } else {
@@ -271,10 +265,11 @@ struct MyPageView: View {
                     .padding(.bottom, 26)
 
                 Button {
-                    userProfile.defaultImageName = MyPageProfileDefaultImage.randomName(
+                    userProfile.applyDefaultImageName(
+                        MyPageProfileDefaultImage.randomName(
                         excluding: userProfile.defaultImageName.isEmpty ? nil : userProfile.defaultImageName
+                        )
                     )
-                    userProfile.customImageData = nil
                     showsImageSheet = false
                 } label: {
                     sheetRow(systemImage: "photo", title: "기본 이미지로 설정하기")
@@ -282,9 +277,8 @@ struct MyPageView: View {
                 .buttonStyle(.plain)
 
                 Button {
-                    Task {
-                        await handleGallerySelection()
-                    }
+                    showsImageSheet = false
+                    showsPhotoPicker = true
                 } label: {
                     sheetRow(systemImage: "photo.on.rectangle.angled", title: "갤러리에서 선택하기")
                 }
@@ -319,32 +313,6 @@ struct MyPageView: View {
         }
         .padding(.horizontal, 22)
         .frame(height: 54)
-    }
-
-    @MainActor
-    private func handleGallerySelection() async {
-        showsImageSheet = false
-
-        let currentStatus = PHPhotoLibrary.authorizationStatus(for: .readWrite)
-        let status: PHAuthorizationStatus
-
-        switch currentStatus {
-        case .notDetermined:
-            status = await PHPhotoLibrary.requestAuthorization(for: .readWrite)
-        default:
-            status = currentStatus
-        }
-
-        switch status {
-        case .authorized, .limited:
-            showsPhotoPicker = true
-        case .denied, .restricted:
-            showsPhotoPermissionAlert = true
-        case .notDetermined:
-            break
-        @unknown default:
-            break
-        }
     }
 
 }

@@ -152,6 +152,11 @@ struct ProfileSetupView: View {
                     await MainActor.run {
                         selectedProfileImageData = data
                         selectedProfileImage = Image(uiImage: uiImage)
+                        selectedPhotoItem = nil
+                    }
+                } else {
+                    await MainActor.run {
+                        selectedPhotoItem = nil
                     }
                 }
             }

@@ -7,8 +7,7 @@ import SwiftUI
 
 struct HomeHeaderView: View {
     let title: String
-    var profileImageName: String? = nil
-    var profileImageData: Data? = nil
+    var userProfile: UserProfile? = nil
     var showsProfileButton: Bool = true
     var titleTopOffset: CGFloat = 0
     var onProfileButtonTap: (() -> Void)? = nil
@@ -97,14 +96,14 @@ struct HomeHeaderView: View {
 
     @ViewBuilder
     private var profileButtonContent: some View {
-        if let profileImageData,
+        if let profileImageData = userProfile?.displayImageData,
            let uiImage = UIImage(data: profileImageData) {
             Image(uiImage: uiImage)
                 .resizable()
                 .scaledToFill()
                 .frame(width: 48, height: 48)
                 .clipShape(Circle())
-        } else if let profileImageName, !profileImageName.isEmpty {
+        } else if let profileImageName = userProfile?.displayImageName {
             Image(profileImageName)
                 .resizable()
                 .scaledToFill()
