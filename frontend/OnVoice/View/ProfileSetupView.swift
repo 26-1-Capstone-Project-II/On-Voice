@@ -11,7 +11,7 @@ import Speech
 import UserNotifications
 
 struct ProfileSetupView: View {
-    let onNext: () -> Void
+    let onNext: (UserProfile) -> Void
 
     @State private var defaultProfileImageName = ProfileDefaultImage.randomName()
     @FocusState private var isNicknameFocused: Bool
@@ -21,6 +21,7 @@ struct ProfileSetupView: View {
     @State private var showsPhotoPicker = false
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var selectedProfileImage: Image?
+    @State private var selectedProfileImageData: Data?
     @State private var microphonePermission = PermissionState.unknown
     @State private var speechPermission = PermissionState.unknown
     @State private var notificationPermission = PermissionState.unknown
@@ -149,7 +150,13 @@ struct ProfileSetupView: View {
                 if let data = try? await newValue.loadTransferable(type: Data.self),
                    let uiImage = UIImage(data: data) {
                     await MainActor.run {
+                        selectedProfileImageData = data
                         selectedProfileImage = Image(uiImage: uiImage)
+                        selectedPhotoItem = nil
+                    }
+                } else {
+                    await MainActor.run {
+                        selectedPhotoItem = nil
                     }
                 }
             }
@@ -293,7 +300,7 @@ struct ProfileSetupView: View {
 
     private var imageSelectionSheet: some View {
         ZStack(alignment: .bottom) {
-            Color.black.opacity(0.32)
+            Color(hex: "15161C").opacity(0.8)
                 .ignoresSafeArea()
                 .onTapGesture {
                     showsImageSheet = false
@@ -301,13 +308,14 @@ struct ProfileSetupView: View {
 
             VStack(spacing: 0) {
                 Text("이미지 선택하기")
-                    .font(.Pretendard.SemiBold.size20)
-                    .foregroundStyle(Color.sub)
+                    .font(.Pretendard.SemiBold.size18)
+                    .foregroundStyle(Color.white)
                     .padding(.top, 22)
                     .padding(.bottom, 26)
 
                 Button {
                     defaultProfileImageName = ProfileDefaultImage.randomName(excluding: defaultProfileImageName)
+                    selectedProfileImageData = nil
                     selectedProfileImage = nil
                     showsImageSheet = false
                 } label: {
@@ -342,12 +350,12 @@ struct ProfileSetupView: View {
         HStack(spacing: 14) {
             Image(systemName: systemImage)
                 .font(.system(size: 18, weight: .medium))
-                .foregroundStyle(Color.sub)
+                .foregroundStyle(Color.white)
                 .frame(width: 18)
 
             Text(title)
                 .font(.Pretendard.Medium.size18)
-                .foregroundStyle(Color.sub)
+                .foregroundStyle(Color.white)
 
             Spacer()
         }
@@ -357,7 +365,7 @@ struct ProfileSetupView: View {
 
     private var permissionSheet: some View {
         ZStack(alignment: .bottom) {
-            Color.black.opacity(0.58)
+            Color(hex: "15161C").opacity(0.8)
                 .ignoresSafeArea()
 
             VStack(alignment: .leading, spacing: 0) {
@@ -426,7 +434,13 @@ struct ProfileSetupView: View {
 
                 Button {
                     showsPermissionSheet = false
-                    onNext()
+                    onNext(
+                        UserProfile(
+                            nickname: trimmedNickname,
+                            defaultImageName: defaultProfileImageName,
+                            customImageData: selectedProfileImageData
+                        )
+                    )
                 } label: {
                     Text("시작하기")
                         .font(.Pretendard.SemiBold.size20)
@@ -668,5 +682,5 @@ private enum PhotoLibraryPermissionRequester {
 }
 
 #Preview {
-    ProfileSetupView(onNext: {})
+    ProfileSetupView(onNext: { _ in })
 }

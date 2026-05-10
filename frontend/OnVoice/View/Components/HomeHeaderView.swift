@@ -7,6 +7,7 @@ import SwiftUI
 
 struct HomeHeaderView: View {
     let title: String
+    var userProfile: UserProfile? = nil
     var showsProfileButton: Bool = true
     var titleTopOffset: CGFloat = 0
     var onProfileButtonTap: (() -> Void)? = nil
@@ -80,15 +81,7 @@ struct HomeHeaderView: View {
                     Button {
                         onProfileButtonTap?()
                     } label: {
-                        ZStack {
-                            Circle()
-                                .fill(Color.gray8.opacity(0.92))
-
-                            Image(systemName: "person.crop.circle.fill")
-                                .font(.system(size: 28))
-                                .foregroundColor(.gray2)
-                        }
-                        .frame(width: 48, height: 48)
+                        profileButtonContent
                     }
                     .buttonStyle(.plain)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
@@ -99,6 +92,34 @@ struct HomeHeaderView: View {
             .frame(height: headerHeight)
         }
         .frame(height: headerHeight)
+    }
+
+    @ViewBuilder
+    private var profileButtonContent: some View {
+        if let profileImageData = userProfile?.displayImageData,
+           let uiImage = UIImage(data: profileImageData) {
+            Image(uiImage: uiImage)
+                .resizable()
+                .scaledToFill()
+                .frame(width: 48, height: 48)
+                .clipShape(Circle())
+        } else if let profileImageName = userProfile?.displayImageName {
+            Image(profileImageName)
+                .resizable()
+                .scaledToFill()
+                .frame(width: 48, height: 48)
+                .clipShape(Circle())
+        } else {
+            ZStack {
+                Circle()
+                    .fill(Color.gray8.opacity(0.92))
+
+                Image(systemName: "person.crop.circle.fill")
+                    .font(.system(size: 28))
+                    .foregroundColor(.gray2)
+            }
+            .frame(width: 48, height: 48)
+        }
     }
 }
 

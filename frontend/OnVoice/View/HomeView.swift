@@ -10,6 +10,7 @@ import SwiftUI
 struct HomeView: View {
     @EnvironmentObject var recorder: AudioRecorder
     @Binding var selectedTab: OnVoiceTab
+    @Binding var userProfile: UserProfile
     @State private var isShowingSituationRecognition = false
     @State private var isShowingMyPage = false
     @State private var selectedRecording: Recording?
@@ -33,6 +34,7 @@ struct HomeView: View {
                 VStack(spacing: 0) {
                     HomeHeaderView(
                         title: todayDateString(),
+                        userProfile: userProfile,
                         showsProfileButton: true,
                         onProfileButtonTap: {
                             isShowingMyPage = true
@@ -106,7 +108,7 @@ struct HomeView: View {
                 SituationRecognitionView()
             }
             .navigationDestination(isPresented: $isShowingMyPage) {
-                MyPageView()
+                MyPageView(userProfile: $userProfile)
             }
             .navigationDestination(item: $selectedRecording) { recording in
                 AnalysisSummaryView(recording: recording)
@@ -266,6 +268,6 @@ struct HomeView: View {
 }
 
 #Preview {
-    HomeView(selectedTab: .constant(.home))
+    HomeView(selectedTab: .constant(.home), userProfile: .constant(.placeholder))
         .environmentObject(AudioRecorder())
 }

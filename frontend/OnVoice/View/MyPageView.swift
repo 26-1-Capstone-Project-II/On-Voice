@@ -4,12 +4,15 @@
 //
 
 import SwiftUI
+import PhotosUI
 
 struct MyPageView: View {
     @Environment(\.dismiss) private var dismiss
+    @Binding var userProfile: UserProfile
+    @State private var showsImageSheet = false
+    @State private var showsPhotoPicker = false
+    @State private var selectedPhotoItem: PhotosPickerItem?
 
-    private let defaultProfileImageName = "profileDefaultYellow"
-    private let nickname = "도연바보뽕뽕삼"
     private let baseScreenWidth: CGFloat = 393
     private let baseContentHeight: CGFloat = 772
     private var appVersion: String {
@@ -49,9 +52,32 @@ struct MyPageView: View {
                 withdrawalButton()
                     .padding(.bottom, proxy.safeAreaInsets.bottom * heightScale)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+
+                if showsImageSheet {
+                    imageSelectionSheet
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
             }
         }
         .toolbar(.hidden, for: .navigationBar)
+        .animation(.easeInOut(duration: 0.2), value: showsImageSheet)
+        .photosPicker(isPresented: $showsPhotoPicker, selection: $selectedPhotoItem, matching: .images)
+        .onChange(of: selectedPhotoItem) { newValue in
+            guard let newValue else { return }
+
+            Task {
+                if let data = try? await newValue.loadTransferable(type: Data.self) {
+                    await MainActor.run {
+                        userProfile.applyCustomImageData(data)
+                        selectedPhotoItem = nil
+                    }
+                } else {
+                    await MainActor.run {
+                        selectedPhotoItem = nil
+                    }
+                }
+            }
+        }
     }
 
     private var headerView: some View {
@@ -75,32 +101,54 @@ struct MyPageView: View {
     private func profileSection(widthScale: CGFloat) -> some View {
         VStack(spacing: 18) {
             ZStack(alignment: .bottomTrailing) {
-                Image(defaultProfileImageName)
-                    .resizable()
-                    .scaledToFill()
+                profileImageView
                     .frame(width: 104, height: 104)
                     .clipShape(Circle())
 
-                ZStack {
-                    Circle()
-                        .fill(Color.gray1)
+                Button {
+                    showsImageSheet = true
+                } label: {
+                    ZStack {
+                        Circle()
+                            .fill(Color.gray1)
 
-                    Image(systemName: "camera.fill")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(Color.gray6)
+                        Image(systemName: "camera.fill")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(Color.gray6)
+                    }
+                    .frame(width: 32, height: 32)
                 }
-                .frame(width: 32, height: 32)
+                .buttonStyle(.plain)
                 .offset(x: -1, y: -1)
             }
 
-            Text(nickname)
-                .font(.Pretendard.Bold.size18)
-                .foregroundStyle(Color.white)
-                .lineLimit(1)
-                .minimumScaleFactor(0.9)
+            if !userProfile.displayNickname.isEmpty {
+                Text(userProfile.displayNickname)
+                    .font(.Pretendard.Bold.size18)
+                    .foregroundStyle(Color.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.9)
+            }
         }
         .frame(maxWidth: .infinity)
         .padding(.horizontal, 144.5 * widthScale)
+    }
+
+    @ViewBuilder
+    private var profileImageView: some View {
+        if let customImageData = userProfile.displayImageData,
+           let uiImage = UIImage(data: customImageData) {
+            Image(uiImage: uiImage)
+                .resizable()
+                .scaledToFill()
+        } else if let defaultImageName = userProfile.displayImageName {
+            Image(defaultImageName)
+                .resizable()
+                .scaledToFill()
+        } else {
+            Circle()
+                .fill(Color.gray2)
+        }
     }
 
     private func socialAccountRow(widthScale: CGFloat, heightScale: CGFloat) -> some View {
@@ -201,6 +249,85 @@ struct MyPageView: View {
         .frame(maxWidth: .infinity)
     }
 
+    private var imageSelectionSheet: some View {
+        ZStack(alignment: .bottom) {
+            Color(hex: "15161C").opacity(0.8)
+                .ignoresSafeArea()
+                .onTapGesture {
+                    showsImageSheet = false
+                }
+
+            VStack(spacing: 0) {
+                Text("이미지 선택하기")
+                    .font(.Pretendard.SemiBold.size18)
+                    .foregroundStyle(Color.white)
+                    .padding(.top, 22)
+                    .padding(.bottom, 26)
+
+                Button {
+                    userProfile.applyDefaultImageName(
+                        MyPageProfileDefaultImage.randomName(
+                        excluding: userProfile.defaultImageName.isEmpty ? nil : userProfile.defaultImageName
+                        )
+                    )
+                    showsImageSheet = false
+                } label: {
+                    sheetRow(systemImage: "photo", title: "기본 이미지로 설정하기")
+                }
+                .buttonStyle(.plain)
+
+                Button {
+                    showsImageSheet = false
+                    showsPhotoPicker = true
+                } label: {
+                    sheetRow(systemImage: "photo.on.rectangle.angled", title: "갤러리에서 선택하기")
+                }
+                .buttonStyle(.plain)
+
+                Capsule()
+                    .fill(Color.sub)
+                    .frame(width: 134, height: 5)
+                    .padding(.top, 26)
+                    .padding(.bottom, 10)
+            }
+            .frame(maxWidth: .infinity)
+            .background(Color.gray10)
+            .clipShape(
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+            )
+        }
+    }
+
+    private func sheetRow(systemImage: String, title: String) -> some View {
+        HStack(spacing: 14) {
+            Image(systemName: systemImage)
+                .font(.system(size: 18, weight: .medium))
+                .foregroundStyle(Color.white)
+                .frame(width: 18)
+
+            Text(title)
+                .font(.Pretendard.Medium.size18)
+                .foregroundStyle(Color.white)
+
+            Spacer()
+        }
+        .padding(.horizontal, 22)
+        .frame(height: 54)
+    }
+
+}
+
+private enum MyPageProfileDefaultImage {
+    static let names = [
+        "profileDefaultYellow",
+        "profileDefaultPurple",
+        "profileDefaultPink"
+    ]
+
+    static func randomName(excluding currentName: String? = nil) -> String {
+        let availableNames = names.filter { $0 != currentName }
+        return availableNames.randomElement() ?? currentName ?? names[0]
+    }
 }
 
 private struct MyPageMenuRow: View {
@@ -232,6 +359,6 @@ private struct MyPageMenuRow: View {
 
 #Preview {
     NavigationStack {
-        MyPageView()
+        MyPageView(userProfile: .constant(.placeholder))
     }
 }
