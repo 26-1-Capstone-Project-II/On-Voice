@@ -12,6 +12,8 @@ struct MyPageView: View {
     let onLogout: () -> Void
     @State private var showsImageSheet = false
     @State private var showsLogoutSheet = false
+    @State private var showsWithdrawalSheet = false
+    @State private var hasConfirmedWithdrawalWarning = false
     @State private var showsPhotoPicker = false
     @State private var selectedPhotoItem: PhotosPickerItem?
 
@@ -64,11 +66,17 @@ struct MyPageView: View {
                     logoutConfirmationSheet
                         .transition(.opacity)
                 }
+
+                if showsWithdrawalSheet {
+                    withdrawalConfirmationSheet
+                        .transition(.opacity)
+                }
             }
         }
         .toolbar(.hidden, for: .navigationBar)
         .animation(.easeInOut(duration: 0.2), value: showsImageSheet)
         .animation(.easeInOut(duration: 0.2), value: showsLogoutSheet)
+        .animation(.easeInOut(duration: 0.2), value: showsWithdrawalSheet)
         .photosPicker(isPresented: $showsPhotoPicker, selection: $selectedPhotoItem, matching: .images)
         .onChange(of: selectedPhotoItem) { newValue in
             guard let newValue else { return }
@@ -253,7 +261,10 @@ struct MyPageView: View {
     }
 
     private func withdrawalButton() -> some View {
-        Button {} label: {
+        Button {
+            hasConfirmedWithdrawalWarning = false
+            showsWithdrawalSheet = true
+        } label: {
             Text("회원탈퇴")
                 .font(.Pretendard.Medium.size14)
                 .foregroundStyle(Color.white.opacity(0.3))
@@ -391,6 +402,116 @@ struct MyPageView: View {
             .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
             .padding(.horizontal, 20)
             .offset(y: -10)
+        }
+    }
+
+    private var withdrawalConfirmationSheet: some View {
+        ZStack {
+            Color(hex: "15161C").opacity(0.8)
+                .ignoresSafeArea()
+                .onTapGesture {
+                    showsWithdrawalSheet = false
+                    hasConfirmedWithdrawalWarning = false
+                }
+
+            VStack(alignment: .leading, spacing: 0) {
+                Text("회원 탈퇴하기")
+                    .font(.Pretendard.SemiBold.size22)
+                    .foregroundStyle(Color.white)
+                    .padding(.top, 24)
+
+                Text("회원 탈퇴 시 모든 정보가 삭제되며, 복구가 불가능합니다.")
+                    .font(.Pretendard.Medium.size14)
+                    .foregroundStyle(Color.white)
+                    .lineLimit(1)
+                    .allowsTightening(true)
+                    .minimumScaleFactor(0.75)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.top, 10)
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("삭제되는 정보")
+                        .font(.custom("Pretendard-Medium", size: 13))
+                        .foregroundStyle(Color.white)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("•  음성 녹음 기록")
+                        Text("•  발음 연습 기록")
+                        Text("•  발음 평가 점수")
+                    }
+                    .font(.Pretendard.Medium.size14)
+                    .foregroundStyle(Color.white)
+                }
+                .padding(.top, 20)
+
+                Button {
+                    hasConfirmedWithdrawalWarning.toggle()
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: hasConfirmedWithdrawalWarning ? "checkmark.circle.fill" : "checkmark.circle.fill")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(hasConfirmedWithdrawalWarning ? Color.white : Color.white.opacity(0.3))
+
+                        Text("회원 탈퇴 시 삭제 및 복구 불가 정보를 확인했습니다.")
+                            .font(.Pretendard.Medium.size14)
+                            .foregroundStyle(hasConfirmedWithdrawalWarning ? Color.white : Color.white.opacity(0.3))
+                            .lineLimit(1)
+                            .allowsTightening(true)
+                            .minimumScaleFactor(0.68)
+
+                        Spacer(minLength: 0)
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 20)
+
+                HStack(spacing: 16) {
+                    Button {
+                        showsWithdrawalSheet = false
+                        hasConfirmedWithdrawalWarning = false
+                    } label: {
+                        Text("취소")
+                            .font(.Pretendard.SemiBold.size16)
+                            .foregroundStyle(Color.white)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 40)
+                            .background(
+                                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                    .stroke(Color.gray8, lineWidth: 1)
+                            )
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+
+                    Button {
+                        guard hasConfirmedWithdrawalWarning else { return }
+                        showsWithdrawalSheet = false
+                        hasConfirmedWithdrawalWarning = false
+                    } label: {
+                        Text("회원 탈퇴")
+                            .font(.Pretendard.SemiBold.size16)
+                            .foregroundStyle(Color.white.opacity(hasConfirmedWithdrawalWarning ? 1 : 0.32))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 40)
+                            .background(
+                                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                    .fill(hasConfirmedWithdrawalWarning ? Color.main : Color.gray8)
+                            )
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(!hasConfirmedWithdrawalWarning)
+                }
+                .padding(.top, 26)
+                .padding(.bottom, 22)
+            }
+            .padding(.horizontal, 20)
+            .frame(width: 353, alignment: .leading)
+            .background(Color.gray9)
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .padding(.horizontal, 20)
+            .offset(y: -6)
         }
     }
 
