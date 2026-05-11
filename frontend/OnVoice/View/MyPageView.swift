@@ -361,6 +361,7 @@ struct MyPageView: View {
                                 RoundedRectangle(cornerRadius: 10, style: .continuous)
                                     .stroke(Color.gray8, lineWidth: 1)
                             )
+                            .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
 
@@ -377,6 +378,7 @@ struct MyPageView: View {
                                 RoundedRectangle(cornerRadius: 10, style: .continuous)
                                     .fill(Color.main)
                             )
+                            .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                 }
