@@ -9,7 +9,9 @@ import PhotosUI
 struct MyPageView: View {
     @Environment(\.dismiss) private var dismiss
     @Binding var userProfile: UserProfile
+    let onLogout: () -> Void
     @State private var showsImageSheet = false
+    @State private var showsLogoutSheet = false
     @State private var showsPhotoPicker = false
     @State private var selectedPhotoItem: PhotosPickerItem?
 
@@ -57,10 +59,16 @@ struct MyPageView: View {
                     imageSelectionSheet
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
+
+                if showsLogoutSheet {
+                    logoutConfirmationSheet
+                        .transition(.opacity)
+                }
             }
         }
         .toolbar(.hidden, for: .navigationBar)
         .animation(.easeInOut(duration: 0.2), value: showsImageSheet)
+        .animation(.easeInOut(duration: 0.2), value: showsLogoutSheet)
         .photosPicker(isPresented: $showsPhotoPicker, selection: $selectedPhotoItem, matching: .images)
         .onChange(of: selectedPhotoItem) { newValue in
             guard let newValue else { return }
@@ -221,21 +229,27 @@ struct MyPageView: View {
     }
 
     private func logoutRow(widthScale: CGFloat, heightScale: CGFloat) -> some View {
-        HStack(spacing: 12) {
-            Image(systemName: "iphone.and.arrow.right.outward")
-                .font(.system(size: 17, weight: .medium))
-                .foregroundStyle(Color.white)
-                .frame(width: 20, height: 20)
+        Button {
+            showsLogoutSheet = true
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "iphone.and.arrow.right.outward")
+                    .font(.system(size: 17, weight: .medium))
+                    .foregroundStyle(Color.white)
+                    .frame(width: 20, height: 20)
 
-            Text("로그아웃")
-                .font(.Pretendard.Medium.size16)
-                .foregroundStyle(Color.white)
+                Text("로그아웃")
+                    .font(.Pretendard.Medium.size16)
+                    .foregroundStyle(Color.white)
 
-            Spacer()
+                Spacer()
+            }
+            .padding(.horizontal, 18)
+            .frame(width: 345 * widthScale, height: 54 * heightScale)
+            .frame(maxWidth: .infinity)
+            .contentShape(Rectangle())
         }
-        .padding(.horizontal, 18)
-        .frame(width: 345 * widthScale, height: 54 * heightScale)
-        .frame(maxWidth: .infinity)
+        .buttonStyle(.plain)
     }
 
     private func withdrawalButton() -> some View {
@@ -315,6 +329,71 @@ struct MyPageView: View {
         .frame(height: 54)
     }
 
+    private var logoutConfirmationSheet: some View {
+        ZStack {
+            Color(hex: "15161C").opacity(0.8)
+                .ignoresSafeArea()
+                .onTapGesture {
+                    showsLogoutSheet = false
+                }
+
+            VStack(spacing: 0) {
+                Text("로그아웃 하시겠어요?")
+                    .font(.Pretendard.Medium.size20)
+                    .foregroundStyle(Color.white)
+                    .padding(.top, 24)
+
+                Text("애플 계정으로 다시 로그인할 수 있어요")
+                    .font(.Pretendard.Medium.size16)
+                    .foregroundStyle(Color.white)
+                    .padding(.top, 6)
+
+                HStack(spacing: 16) {
+                    Button {
+                        showsLogoutSheet = false
+                    } label: {
+                        Text("취소")
+                            .font(.Pretendard.SemiBold.size16)
+                            .foregroundStyle(Color.white)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 40)
+                            .background(
+                                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                    .stroke(Color.gray8, lineWidth: 1)
+                            )
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+
+                    Button {
+                        showsLogoutSheet = false
+                        onLogout()
+                    } label: {
+                        Text("로그아웃")
+                            .font(.Pretendard.SemiBold.size16)
+                            .foregroundStyle(Color.white)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 40)
+                            .background(
+                                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                    .fill(Color.main)
+                            )
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.top, 22)
+                .padding(.bottom, 26)
+                .padding(.horizontal, 24)
+            }
+            .frame(maxWidth: 353)
+            .background(Color.gray9)
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .padding(.horizontal, 20)
+            .offset(y: -10)
+        }
+    }
+
 }
 
 private enum MyPageProfileDefaultImage {
@@ -359,6 +438,6 @@ private struct MyPageMenuRow: View {
 
 #Preview {
     NavigationStack {
-        MyPageView(userProfile: .constant(.placeholder))
+        MyPageView(userProfile: .constant(.placeholder), onLogout: {})
     }
 }

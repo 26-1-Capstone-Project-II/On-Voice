@@ -9,6 +9,7 @@ struct LibraryView: View {
     @EnvironmentObject var recorder: AudioRecorder
     @Binding var selectedTab: OnVoiceTab
     @Binding var userProfile: UserProfile
+    let onLogout: () -> Void
     @State private var isShowingSituationRecognition = false
     @State private var isShowingMyPage = false
     @State private var isShowingLibraryOptionsAlert = false
@@ -64,7 +65,7 @@ struct LibraryView: View {
                 SituationRecognitionView()
             }
             .navigationDestination(isPresented: $isShowingMyPage) {
-                MyPageView(userProfile: $userProfile)
+                MyPageView(userProfile: $userProfile, onLogout: onLogout)
             }
             .navigationDestination(item: $selectedRecording) { recording in
                 AnalysisSummaryView(recording: recording)
@@ -303,6 +304,10 @@ struct LibraryView: View {
 }
 
 #Preview {
-    LibraryView(selectedTab: .constant(.library), userProfile: .constant(.placeholder))
+    LibraryView(
+        selectedTab: .constant(.library),
+        userProfile: .constant(.placeholder),
+        onLogout: {}
+    )
         .environmentObject(AudioRecorder())
 }
