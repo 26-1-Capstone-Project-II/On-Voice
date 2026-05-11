@@ -15,15 +15,14 @@ struct VoicePitchView: View {
     @Binding var currentSituation: Situation?
     
     var noiseLevel: NoiseLevel {
-        switch OnVoiceLiveActivityState.level(
+        let thresholds = currentSituation.map {
+            VoiceVolumeThresholds(low: $0.decibels.0, high: $0.decibels.1)
+        }
+
+        switch VoiceVolumeStateCalculator.level(
             for: noiseMeter.decibels,
             isMeasuring: noiseMeter.isMeasuring,
-            thresholds: currentSituation.map {
-                OnVoiceLiveActivityState.Thresholds(
-                    low: $0.decibels.0,
-                    high: $0.decibels.1
-                )
-            }
+            thresholds: thresholds
         ) {
         case .low:
             return .low

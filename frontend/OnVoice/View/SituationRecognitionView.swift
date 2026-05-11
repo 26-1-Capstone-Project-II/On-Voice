@@ -131,7 +131,7 @@ struct SituationRecognitionView: View {
                 
                 recorder.updateMeters()
                 let decibels = recorder.averagePower(forChannel: 0)
-                let normalizedDecibels = convertToDecibels(decibels)
+                let normalizedDecibels = VoiceVolumeStateCalculator.calibratedDecibels(from: decibels)
                 samples.append(normalizedDecibels)
                 
                 if !isRecognizing {
@@ -141,13 +141,6 @@ struct SituationRecognitionView: View {
         } catch {
             print("오디오 레코더 설정 실패: \(error)")
         }
-    }
-    
-    // MARK: - dB 변환
-    private func convertToDecibels(_ dbFS: Float) -> Float {
-        let referenceLevel: Float = 94.0
-        let dbSPL = dbFS + referenceLevel
-        return max(min(max(dbSPL, 0.0), 120.0) - 10, 0)
     }
     
     // MARK: - 인식 완료

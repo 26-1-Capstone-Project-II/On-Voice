@@ -14,9 +14,11 @@
 		F0A100022F90000100ABCD01 /* DynamicIslandBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2FE5DE2E30D69500C90F26 /* DynamicIslandBundle.swift */; };
 		F0A100032F90000100ABCD01 /* DynamicIslandLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2FE5DF2E30D69500C90F26 /* DynamicIslandLiveActivity.swift */; };
 		F0A100042F90000100ABCD01 /* LiveActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0A100072F90000100ABCD01 /* LiveActivityAttributes.swift */; };
-		F0A100152F90000100ABCD01 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CE2FE5E12E30D69500C90F26 /* Assets.xcassets */; };
 		F0A100132F90000100ABCD01 /* LiveActivityState.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0A100142F90000100ABCD01 /* LiveActivityState.swift */; };
+		F0A100152F90000100ABCD01 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CE2FE5E12E30D69500C90F26 /* Assets.xcassets */; };
 		F0A100162F90000100ABCD01 /* AppIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2FE5E02E30D69500C90F26 /* AppIntent.swift */; };
+		F0B200022FA0000100ABCD02 /* VoiceVolumeState.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0B200012FA0000100ABCD02 /* VoiceVolumeState.swift */; };
+		F0B200042FA0000100ABCD02 /* VoiceVolumeState.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0B200012FA0000100ABCD02 /* VoiceVolumeState.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -72,6 +74,8 @@
 		F0A100062F90000100ABCD01 /* DynamicIsland.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = DynamicIsland.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		F0A100072F90000100ABCD01 /* LiveActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = LiveActivityAttributes.swift; path = ../OnVoice/Model/LiveActivityAttributes.swift; sourceTree = "<group>"; };
 		F0A100142F90000100ABCD01 /* LiveActivityState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = LiveActivityState.swift; path = ../OnVoice/Model/LiveActivityState.swift; sourceTree = "<group>"; };
+		F0B200012FA0000100ABCD02 /* VoiceVolumeState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = VoiceVolumeState.swift; path = ../OnVoice/Model/VoiceVolumeState.swift; sourceTree = "<group>"; };
+		F0B200062FA0000100ABCD02 /* OnVoiceWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OnVoiceWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -117,6 +121,11 @@
 			path = OnVoice;
 			sourceTree = "<group>";
 		};
+		F0B200052FA0000100ABCD02 /* OnVoiceWatch */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = OnVoiceWatch;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -150,6 +159,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		F0B200092FA0000100ABCD02 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -157,6 +173,7 @@
 			isa = PBXGroup;
 			children = (
 				CE2FE4262E3085E600C90F26 /* OnVoice */,
+				F0B200052FA0000100ABCD02 /* OnVoiceWatch */,
 				D1A0B1C12F8E000100ABCDEF /* OnVoiceTests */,
 				CE2FE5E32E30D69500C90F26 /* DynamicIsland */,
 				CE2FE5A82E30D31F00C90F26 /* Frameworks */,
@@ -167,7 +184,8 @@
 		CE2FE4252E3085E600C90F26 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				CE2FE4242E3085E600C90F26 /* OnVoice.app */,				
+				CE2FE4242E3085E600C90F26 /* OnVoice.app */,
+				F0B200062FA0000100ABCD02 /* OnVoiceWatch.app */,
 				F0A100062F90000100ABCD01 /* DynamicIsland.appex */,
 				CE2FE4332E3085E800C90F26 /* OnVoiceTests.xctest */,
 				CE2FE43D2E3085E800C90F26 /* OnVoiceUITests.xctest */,
@@ -192,6 +210,7 @@
 				CE2FE5E02E30D69500C90F26 /* AppIntent.swift */,
 				F0A100072F90000100ABCD01 /* LiveActivityAttributes.swift */,
 				F0A100142F90000100ABCD01 /* LiveActivityState.swift */,
+				F0B200012FA0000100ABCD02 /* VoiceVolumeState.swift */,
 				CE2FE5E12E30D69500C90F26 /* Assets.xcassets */,
 				CE2FE5E22E30D69500C90F26 /* Info.plist */,
 			);
@@ -294,6 +313,28 @@
 			productReference = F0A100062F90000100ABCD01 /* DynamicIsland.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		F0B200072FA0000100ABCD02 /* OnVoiceWatch */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F0B2000C2FA0000100ABCD02 /* Build configuration list for PBXNativeTarget "OnVoiceWatch" */;
+			buildPhases = (
+				F0B200082FA0000100ABCD02 /* Sources */,
+				F0B200092FA0000100ABCD02 /* Frameworks */,
+				F0B2000A2FA0000100ABCD02 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				F0B200052FA0000100ABCD02 /* OnVoiceWatch */,
+			);
+			name = OnVoiceWatch;
+			packageProductDependencies = (
+			);
+			productName = OnVoiceWatch;
+			productReference = F0B200062FA0000100ABCD02 /* OnVoiceWatch.app */;
+			productType = "com.apple.product-type.application";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -318,6 +359,9 @@
 					F0A1000A2F90000100ABCD01 = {
 						CreatedOnToolsVersion = 16.4;
 					};
+					F0B200072FA0000100ABCD02 = {
+						CreatedOnToolsVersion = 16.4;
+					};
 				};
 			};
 			buildConfigurationList = CE2FE41F2E3085E600C90F26 /* Build configuration list for PBXProject "OnVoice" */;
@@ -339,6 +383,7 @@
 			projectRoot = "";
 			targets = (
 				CE2FE4232E3085E600C90F26 /* OnVoice */,
+				F0B200072FA0000100ABCD02 /* OnVoiceWatch */,
 				F0A1000A2F90000100ABCD01 /* DynamicIsland */,
 				CE2FE4322E3085E800C90F26 /* OnVoiceTests */,
 				CE2FE43C2E3085E800C90F26 /* OnVoiceUITests */,
@@ -376,6 +421,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		F0B2000A2FA0000100ABCD02 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -410,6 +462,15 @@
 				F0A100162F90000100ABCD01 /* AppIntent.swift in Sources */,
 				F0A100042F90000100ABCD01 /* LiveActivityAttributes.swift in Sources */,
 				F0A100132F90000100ABCD01 /* LiveActivityState.swift in Sources */,
+				F0B200022FA0000100ABCD02 /* VoiceVolumeState.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F0B200082FA0000100ABCD02 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F0B200042FA0000100ABCD02 /* VoiceVolumeState.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -751,7 +812,68 @@
 			};
 			name = Release;
 		};
+		F0B2000D2FA0000100ABCD02 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = JWWVL9L4B5;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "밍글리";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "목소리 크기 측정을 위해 마이크 접근 권한이 필요합니다.";
+				INFOPLIST_KEY_WKApplication = YES;
+				INFOPLIST_KEY_WKWatchOnly = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = OnVoice.mingly.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 11.5;
+			};
+			name = Debug;
+		};
+		F0B2000E2FA0000100ABCD02 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = JWWVL9L4B5;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "밍글리";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "목소리 크기 측정을 위해 마이크 접근 권한이 필요합니다.";
+				INFOPLIST_KEY_WKApplication = YES;
+				INFOPLIST_KEY_WKWatchOnly = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = OnVoice.mingly.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 11.5;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
+
 /* Begin XCConfigurationList section */
 		CE2FE41F2E3085E600C90F26 /* Build configuration list for PBXProject "OnVoice" */ = {
 			isa = XCConfigurationList;
@@ -794,6 +916,15 @@
 			buildConfigurations = (
 				F0A100102F90000100ABCD01 /* Debug */,
 				F0A100112F90000100ABCD01 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F0B2000C2FA0000100ABCD02 /* Build configuration list for PBXNativeTarget "OnVoiceWatch" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F0B2000D2FA0000100ABCD02 /* Debug */,
+				F0B2000E2FA0000100ABCD02 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

@@ -8,6 +8,10 @@ enum OnVoiceLiveActivityState {
         var isValid: Bool {
             low >= 0 && high > low
         }
+
+        var voiceVolumeThresholds: VoiceVolumeThresholds {
+            VoiceVolumeThresholds(low: low, high: high)
+        }
     }
 
     static func makeContentState(
@@ -19,13 +23,13 @@ enum OnVoiceLiveActivityState {
         let sanitizedThresholds = sanitized(thresholds)
 
         return OnVoiceLiveActivityAttributes.ContentState(
-            decibels: clampedDecibels(decibels),
+            decibels: VoiceVolumeStateCalculator.clampedDecibels(decibels),
             level: level(
                 for: decibels,
                 isMeasuring: isMeasuring,
                 thresholds: sanitizedThresholds
             ),
-            progress: progress(for: decibels),
+            progress: VoiceVolumeStateCalculator.progress(for: decibels),
             title: title?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "",
             lowThreshold: sanitizedThresholds?.low ?? 0,
             highThreshold: sanitizedThresholds?.high ?? 0
@@ -37,21 +41,12 @@ enum OnVoiceLiveActivityState {
         isMeasuring: Bool,
         thresholds: Thresholds?
     ) -> OnVoiceLiveActivityAttributes.Level {
-        guard isMeasuring, let thresholds = sanitized(thresholds) else {
-            return .idle
-        }
-
-        let decibelValue = Double(clampedDecibels(decibels))
-
-        if decibelValue > Double(thresholds.high) {
-            return .high
-        }
-
-        if decibelValue > Double(thresholds.low) {
-            return .medium
-        }
-
-        return .low
+        let volumeLevel = VoiceVolumeStateCalculator.level(
+            for: decibels,
+            isMeasuring: isMeasuring,
+            thresholds: sanitized(thresholds)?.voiceVolumeThresholds
+        )
+        return OnVoiceLiveActivityAttributes.Level(volumeLevel)
     }
 
     static func interpolationPhase(
@@ -113,8 +108,7 @@ enum OnVoiceLiveActivityState {
     }
 
     static func progress(for decibels: Float) -> Int {
-        let normalizedDecibels = min(max(decibels / 120.0, 0.0), 1.0)
-        return Int(normalizedDecibels * 100)
+        VoiceVolumeStateCalculator.progress(for: decibels)
     }
 
     private static func sanitized(_ thresholds: Thresholds?) -> Thresholds? {
@@ -125,12 +119,23 @@ enum OnVoiceLiveActivityState {
         return thresholds
     }
 
-    private static func clampedDecibels(_ decibels: Float) -> Int {
-        Int(min(max(decibels, 0), 120))
-    }
-
     private static func smoothStep(_ value: Double) -> Double {
         let clampedValue = min(max(value, 0), 1)
         return clampedValue * clampedValue * (3 - 2 * clampedValue)
+    }
+}
+
+private extension OnVoiceLiveActivityAttributes.Level {
+    init(_ volumeLevel: VoiceVolumeLevel) {
+        switch volumeLevel {
+        case .low:
+            self = .low
+        case .medium:
+            self = .medium
+        case .high:
+            self = .high
+        case .idle:
+            self = .idle
+        }
     }
 }

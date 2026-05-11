@@ -79,7 +79,7 @@ class NoiseMeter{
             self.timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in
                 self.audioRecorder.updateMeters()
                 let db = self.audioRecorder.averagePower(forChannel: 0)
-                self.decibels = self.convertToDecibels(db)
+                self.decibels = VoiceVolumeStateCalculator.calibratedDecibels(from: db)
             }
         }
     }
@@ -172,14 +172,6 @@ class NoiseMeter{
         ))
     }
     
-    // TODO: - 보정 알고리즘 개선 필요
-    /// dB 보정하는 함수
-    private func convertToDecibels(_ dbFS: Float) -> Float {
-        let referenceLevel: Float = 94.0
-        let dbSPL = dbFS + referenceLevel
-        return max(min(max(dbSPL, 0.0), 120.0) - 10, 0)
-    }
-
     private func liveActivityContentState() -> OnVoiceLiveActivityAttributes.ContentState {
         let contentState = OnVoiceLiveActivityState.makeContentState(
             decibels: self.decibels,

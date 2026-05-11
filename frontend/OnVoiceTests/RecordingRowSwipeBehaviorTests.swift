@@ -387,3 +387,61 @@ final class LiveActivityStateTests: XCTestCase {
         XCTAssertEqual(OnVoiceLiveActivityState.interpolationPhase(for: state), 0)
     }
 }
+
+final class VoiceVolumeStateCalculatorTests: XCTestCase {
+    func testReturnsIdleWhenNotMeasuring() {
+        let level = VoiceVolumeStateCalculator.level(
+            for: 80,
+            isMeasuring: false,
+            thresholds: .loudTalking
+        )
+
+        XCTAssertEqual(level, .idle)
+    }
+
+    func testTracksLowMediumHighBoundaries() {
+        let thresholds = VoiceVolumeThresholds(low: 58, high: 80)
+
+        XCTAssertEqual(
+            VoiceVolumeStateCalculator.level(
+                for: 58,
+                isMeasuring: true,
+                thresholds: thresholds
+            ),
+            .low
+        )
+        XCTAssertEqual(
+            VoiceVolumeStateCalculator.level(
+                for: 59,
+                isMeasuring: true,
+                thresholds: thresholds
+            ),
+            .medium
+        )
+        XCTAssertEqual(
+            VoiceVolumeStateCalculator.level(
+                for: 81,
+                isMeasuring: true,
+                thresholds: thresholds
+            ),
+            .high
+        )
+    }
+
+    func testInvalidThresholdsFallBackToIdle() {
+        let level = VoiceVolumeStateCalculator.level(
+            for: 80,
+            isMeasuring: true,
+            thresholds: VoiceVolumeThresholds(low: 80, high: 80)
+        )
+
+        XCTAssertEqual(level, .idle)
+    }
+
+    func testProgressAndDecibelsAreClamped() {
+        XCTAssertEqual(VoiceVolumeStateCalculator.progress(for: -10), 0)
+        XCTAssertEqual(VoiceVolumeStateCalculator.progress(for: 240), 100)
+        XCTAssertEqual(VoiceVolumeStateCalculator.clampedDecibels(-10), 0)
+        XCTAssertEqual(VoiceVolumeStateCalculator.clampedDecibels(240), 120)
+    }
+}
