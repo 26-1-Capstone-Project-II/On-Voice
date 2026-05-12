@@ -262,7 +262,6 @@ struct MyPageView: View {
 
     private func withdrawalButton() -> some View {
         Button {
-            hasConfirmedWithdrawalWarning = false
             showsWithdrawalSheet = true
         } label: {
             Text("회원탈퇴")
@@ -410,8 +409,7 @@ struct MyPageView: View {
             Color(hex: "15161C").opacity(0.8)
                 .ignoresSafeArea()
                 .onTapGesture {
-                    showsWithdrawalSheet = false
-                    hasConfirmedWithdrawalWarning = false
+                    closeWithdrawalSheet()
                 }
 
             VStack(alignment: .leading, spacing: 0) {
@@ -449,7 +447,7 @@ struct MyPageView: View {
                     hasConfirmedWithdrawalWarning.toggle()
                 } label: {
                     HStack(spacing: 8) {
-                        Image(systemName: hasConfirmedWithdrawalWarning ? "checkmark.circle.fill" : "checkmark.circle.fill")
+                        Image(systemName: "checkmark.circle.fill")
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundStyle(hasConfirmedWithdrawalWarning ? Color.white : Color.white.opacity(0.3))
 
@@ -465,12 +463,14 @@ struct MyPageView: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("회원 탈퇴 안내 확인")
+                .accessibilityHint("회원 탈퇴 전에 삭제 및 복구 불가 안내를 확인했음을 표시합니다.")
+                .accessibilityValue(hasConfirmedWithdrawalWarning ? "선택됨" : "선택 안 됨")
                 .padding(.top, 20)
 
                 HStack(spacing: 16) {
                     Button {
-                        showsWithdrawalSheet = false
-                        hasConfirmedWithdrawalWarning = false
+                        closeWithdrawalSheet()
                     } label: {
                         Text("취소")
                             .font(.Pretendard.SemiBold.size16)
@@ -487,8 +487,7 @@ struct MyPageView: View {
 
                     Button {
                         guard hasConfirmedWithdrawalWarning else { return }
-                        showsWithdrawalSheet = false
-                        hasConfirmedWithdrawalWarning = false
+                        closeWithdrawalSheet()
                     } label: {
                         Text("회원 탈퇴")
                             .font(.Pretendard.SemiBold.size16)
@@ -514,6 +513,11 @@ struct MyPageView: View {
             .padding(.horizontal, 20)
             .offset(y: -6)
         }
+    }
+
+    private func closeWithdrawalSheet() {
+        showsWithdrawalSheet = false
+        hasConfirmedWithdrawalWarning = false
     }
 
 }
