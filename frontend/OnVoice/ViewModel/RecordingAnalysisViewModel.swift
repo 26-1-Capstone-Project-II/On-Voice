@@ -29,6 +29,10 @@ final class RecordingAnalysisViewModel: ObservableObject {
         analysis?.overallAccuracy ?? 0
     }
 
+    var isPronunciationEvaluationAvailable: Bool {
+        analysis?.isPronunciationEvaluationAvailable ?? false
+    }
+
     var errorSentences: [AnalysisSentence] {
         analysis?.errorSentences ?? []
     }

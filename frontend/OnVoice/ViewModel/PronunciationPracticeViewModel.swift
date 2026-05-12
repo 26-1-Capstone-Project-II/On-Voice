@@ -14,6 +14,7 @@ final class PronunciationPracticeViewModel: ObservableObject {
     @Published private(set) var practiceCount = 0
     @Published private(set) var recognizedText = ""
     @Published private(set) var currentAccuracy = 0.0
+    @Published private(set) var isEvaluationAvailable = false
 
     private let analyzer: SpeechAnalyzer
 
@@ -32,6 +33,9 @@ final class PronunciationPracticeViewModel: ObservableObject {
         analyzer.$currentAccuracy
             .receive(on: RunLoop.main)
             .assign(to: &$currentAccuracy)
+        analyzer.$isEvaluationAvailable
+            .receive(on: RunLoop.main)
+            .assign(to: &$isEvaluationAvailable)
     }
 
     var hasReachedTarget: Bool {
