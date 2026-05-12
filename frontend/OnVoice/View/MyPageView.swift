@@ -420,7 +420,7 @@ struct MyPageView: View {
                     .foregroundStyle(Color.white)
                     .padding(.top, 24)
 
-                Text("회원 탈퇴 시 모든 정보가 삭제되며, 복구가 불가능합니다.")
+                Text("회원 탈퇴 시 모든 정보가 삭제되며,복구가 불가능합니다.")
                     .font(.Pretendard.Medium.size14)
                     .foregroundStyle(Color.white)
                     .lineLimit(1)
@@ -441,6 +441,7 @@ struct MyPageView: View {
                     }
                     .font(.Pretendard.Medium.size14)
                     .foregroundStyle(Color.white)
+                    .padding(.leading, 10)
                 }
                 .padding(.top, 20)
 
