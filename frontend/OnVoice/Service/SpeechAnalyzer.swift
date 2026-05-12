@@ -16,9 +16,10 @@ final class SpeechAnalyzer: NSObject, ObservableObject, AVSpeechSynthesizerDeleg
     @Published var practiceCount: Int = 0
     @Published var recognizedText: String = ""
     @Published var currentAccuracy: Double = 0.0  // 0~100
+    @Published var isEvaluationAvailable: Bool = false
 
     // 목표 달성 여부 (80% 이상)
-    var hasReachedTarget: Bool { currentAccuracy >= 80.0 }
+    var hasReachedTarget: Bool { isEvaluationAvailable && currentAccuracy >= 80.0 }
 
     // 4회 연습 완료 여부
     var hasCompletedFourAttempts: Bool { practiceCount >= 4 }
@@ -43,6 +44,7 @@ final class SpeechAnalyzer: NSObject, ObservableObject, AVSpeechSynthesizerDeleg
         practiceCount = 0
         recognizedText = ""
         currentAccuracy = 0.0
+        isEvaluationAvailable = false
         stopTTSIfNeeded()
         stopRecorderIfNeeded()
     }
@@ -95,6 +97,7 @@ final class SpeechAnalyzer: NSObject, ObservableObject, AVSpeechSynthesizerDeleg
         )
         recognizedText = assessment.recognizedText
         currentAccuracy = assessment.accuracy
+        isEvaluationAvailable = assessment.isEvaluationAvailable
     }
 
     private func stopRecorderIfNeeded() {
