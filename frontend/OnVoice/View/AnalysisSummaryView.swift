@@ -42,8 +42,20 @@ struct AnalysisSummaryView: View {
 
                     Spacer()
 
-                    // 발음 오류 문장이 있을 때만 다음 버튼 표시
-                    if !viewModel.errorSentences.isEmpty {
+                    if !viewModel.isPronunciationEvaluationAvailable {
+                        VStack(spacing: 16) {
+                            Text("발음 평가 알고리즘을 준비 중입니다")
+                                .font(.Pretendard.Bold.size20)
+                                .foregroundColor(.point)
+
+                            Text("분석 화면은 유지되어 있으며 새 알고리즘 연결 후 결과가 표시됩니다")
+                                .font(.Pretendard.Medium.size16)
+                                .foregroundColor(.suGray2)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 24)
+                        }
+                        .padding(.bottom, 24)
+                    } else if !viewModel.errorSentences.isEmpty {
                         // 다음 버튼
                         NavigationLink(isActive: $goToPractice) {
                             RecordingAnalysisView(viewModel: viewModel)

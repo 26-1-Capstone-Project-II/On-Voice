@@ -30,13 +30,14 @@ struct RecordingAnalysisView: View {
     // 녹음 버튼 활성화 조건
     private var canRecord: Bool {
         // 목표 달성했으면 녹음 불가, 4회 완료했으면 5번째부터 연습 가능
-        !practiceViewModel.hasReachedTarget
+        viewModel.isPronunciationEvaluationAvailable && !practiceViewModel.hasReachedTarget
     }
 
     // 다음 버튼 활성화 조건
     private var canProceedToNext: Bool {
         // 목표 달성했거나, 4회 완료했으면 다음으로 이동 가능
-        practiceViewModel.hasReachedTarget || practiceViewModel.hasCompletedFourAttempts
+        viewModel.isPronunciationEvaluationAvailable
+            && (practiceViewModel.hasReachedTarget || practiceViewModel.hasCompletedFourAttempts)
     }
 
     // 다음 버튼 텍스트
@@ -66,6 +67,8 @@ struct RecordingAnalysisView: View {
                             if practiceViewModel.practiceCount > 0 {
                                 practiceResultView
                             }
+                        } else if !viewModel.isLoading {
+                            unavailableView
                         }
                     }
                     .padding(.horizontal, 20)
@@ -178,7 +181,7 @@ struct RecordingAnalysisView: View {
                 .foregroundColor(.suGray2)
 
             HStack {
-                Text("연습 횟수: \(practiceViewModel.practiceCount)/4")
+                Text(viewModel.isPronunciationEvaluationAvailable ? "연습 횟수: \(practiceViewModel.practiceCount)/4" : "발음 평가 알고리즘 준비 중")
                     .font(.Pretendard.Medium.size14)
                     .foregroundColor(.white)
 
@@ -208,18 +211,40 @@ struct RecordingAnalysisView: View {
                 .foregroundColor(.suGray2)
 
             VStack(alignment: .leading, spacing: 8) {
-                Text("인식된 발음: \(practiceViewModel.recognizedText)")
-                    .font(.Pretendard.Regular.size14)
-                    .foregroundColor(.white)
+                if practiceViewModel.isEvaluationAvailable {
+                    Text("인식된 발음: \(practiceViewModel.recognizedText)")
+                        .font(.Pretendard.Regular.size14)
+                        .foregroundColor(.white)
 
-                Text("정확도: \(Int(practiceViewModel.currentAccuracy))%")
-                    .font(.Pretendard.Medium.size14)
-                    .foregroundColor(practiceViewModel.currentAccuracy >= 80 ? .point : .red)
+                    Text("정확도: \(Int(practiceViewModel.currentAccuracy))%")
+                        .font(.Pretendard.Medium.size14)
+                        .foregroundColor(practiceViewModel.currentAccuracy >= 80 ? .point : .red)
+                } else {
+                    Text("새 평가 알고리즘 연결 후 결과가 표시됩니다")
+                        .font(.Pretendard.Regular.size14)
+                        .foregroundColor(.suGray2)
+                }
             }
             .padding(12)
             .background(Color.suGray7)
             .clipShape(RoundedRectangle(cornerRadius: 8))
         }
+    }
+
+    private var unavailableView: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("발음 평가 알고리즘을 준비 중입니다")
+                .font(.Pretendard.Bold.size18)
+                .foregroundColor(.point)
+
+            Text("화면 구조는 유지되어 있으며 새 알고리즘 연결 후 문장별 분석과 연습 결과가 표시됩니다")
+                .font(.Pretendard.Medium.size14)
+                .foregroundColor(.suGray2)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.suGray7)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
     // MARK: - Bottom Buttons View

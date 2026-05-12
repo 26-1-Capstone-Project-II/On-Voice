@@ -31,13 +31,16 @@ struct AnalysisResult {
     let standardPronunciation: String
     let sentences: [AnalysisSentence]
     let overallAccuracy: Double
+    let isPronunciationEvaluationAvailable: Bool
 
     var errorSentences: [AnalysisSentence] {
-        sentences.filter { $0.accuracy < 0.8 }
+        guard isPronunciationEvaluationAvailable else { return [] }
+        return sentences.filter { $0.accuracy < 0.8 }
     }
 }
 
 struct PracticeEvaluationResult {
     let recognizedText: String
     let accuracy: Double
+    let isEvaluationAvailable: Bool
 }
