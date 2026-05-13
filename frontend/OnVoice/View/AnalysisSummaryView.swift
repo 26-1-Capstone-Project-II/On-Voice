@@ -34,7 +34,7 @@ struct AnalysisSummaryView: View {
 
     var body: some View {
         ZStack {
-            Color.suBlack.ignoresSafeArea()
+            Color.bg.ignoresSafeArea()
 
             VStack(spacing: 0) {
                 ScrollView(showsIndicators: false) {
@@ -67,7 +67,7 @@ struct AnalysisSummaryView: View {
             }
         }
         .toolbarBackground(.visible, for: .navigationBar)
-        .toolbarBackground(Color.suBlack, for: .navigationBar)
+        .toolbarBackground(Color.bg, for: .navigationBar)
         .toolbarColorScheme(.dark, for: .navigationBar)
         .task {
             await viewModel.loadIfNeeded()
@@ -105,7 +105,7 @@ struct AnalysisSummaryView: View {
             .padding(.top, 32)
             .padding(.horizontal, 22)
             .padding(.bottom, 32)
-            .background(Color(hex: "#1D1E26"))
+            .background(Color.gray10)
             .clipShape(RoundedRectangle(cornerRadius: 24))
         }
     }
@@ -152,7 +152,7 @@ struct AnalysisSummaryView: View {
             .padding(.horizontal, 24)
             .padding(.top, 12)
             .padding(.bottom, 24)
-            .background(Color.suBlack)
+            .background(Color.bg)
         }
     }
 }
@@ -247,7 +247,7 @@ private struct PronunciationDonutChart: View {
     var body: some View {
         ZStack {
             Circle()
-                .stroke(Color(hex: "#2E303A"), lineWidth: 14)
+                .stroke(Color.gray9, lineWidth: 14)
 
             Circle()
                 .trim(from: 0, to: progress)
@@ -294,9 +294,9 @@ private struct PronunciationDifficultyRow: View {
 
                     Image(systemName: "chevron.down")
                         .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(Color.suGray4)
+                        .foregroundColor(Color.gray6)
                         .frame(width: 24, height: 24)
-                        .background(Color.suGray8)
+                        .background(Color.gray8)
                         .clipShape(Circle())
                         .rotationEffect(.degrees(isExpanded ? 180 : 0))
                 }

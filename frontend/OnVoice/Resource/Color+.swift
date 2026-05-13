@@ -11,7 +11,7 @@ import UIKit
 
 private enum OnVoicePalette {
     static let main = UIColor(red: 61 / 255, green: 100 / 255, blue: 189 / 255, alpha: 1)
-    static let sub = UIColor(red: 221 / 255, green: 232 / 255, blue: 253 / 255, alpha: 1)
+    static let sub = UIColor(red: 255 / 255, green: 255 / 255, blue: 255 / 255, alpha: 1)
     static let bg = UIColor(red: 21 / 255, green: 22 / 255, blue: 28 / 255, alpha: 1)
     static let gray1 = UIColor(red: 240 / 255, green: 240 / 255, blue: 243 / 255, alpha: 1)
     static let gray2 = UIColor(red: 218 / 255, green: 219 / 255, blue: 224 / 255, alpha: 1)
