@@ -9,7 +9,7 @@ import SwiftUI
 
 struct AnalysisSummaryView: View {
     @StateObject private var viewModel: RecordingAnalysisViewModel
-    @State private var expandedItemID: UUID?
+    @State private var expandedItemID: String?
     @State private var goToPractice = false
 
     init(recording: Recording) {
@@ -196,7 +196,7 @@ private enum PronunciationScoreLevel {
 }
 
 private struct PronunciationDifficultyItem: Identifiable {
-    let id = UUID()
+    let id: String
     let rank: Int
     let title: String
     let subtitle: String
@@ -207,6 +207,7 @@ private struct PronunciationDifficultyItem: Identifiable {
 
     static let samples: [PronunciationDifficultyItem] = [
         PronunciationDifficultyItem(
+            id: "final-consonant",
             rank: 1,
             title: "종성 오류",
             subtitle: "받침 소리가 부정확해요",
@@ -216,6 +217,7 @@ private struct PronunciationDifficultyItem: Identifiable {
             imageName: "error_img_1"
         ),
         PronunciationDifficultyItem(
+            id: "fortis-lenis-aspirated",
             rank: 2,
             title: "된소리/평음/격음 혼동",
             subtitle: "ㄱ/ㄲ/ㅋ 발음 구분이 어려워요",
@@ -225,6 +227,7 @@ private struct PronunciationDifficultyItem: Identifiable {
             imageName: "error_img_1"
         ),
         PronunciationDifficultyItem(
+            id: "syllable-simplification",
             rank: 3,
             title: "음절 구조 단순화",
             subtitle: "발음하지 않는 음절이 있어요",
