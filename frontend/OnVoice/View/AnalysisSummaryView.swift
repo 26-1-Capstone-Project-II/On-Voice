@@ -86,7 +86,7 @@ struct AnalysisSummaryView: View {
                     score: score,
                     progressColor: scoreLevel.color
                 )
-                .frame(width: 135, height: 135)
+                .frame(width: 130, height: 130)
 
                 VStack(spacing: 12) {
                     Text(scoreLevel.title)
@@ -239,6 +239,7 @@ private struct PronunciationDifficultyItem: Identifiable {
 private struct PronunciationDonutChart: View {
     let score: Int
     let progressColor: Color
+    @State private var animatedProgress = 0.0
 
     private var progress: Double {
         min(max(Double(score) / 100, 0), 1)
@@ -250,17 +251,28 @@ private struct PronunciationDonutChart: View {
                 .stroke(Color.gray9, lineWidth: 14)
 
             Circle()
-                .trim(from: 0, to: progress)
+                .trim(from: 0, to: animatedProgress)
                 .stroke(
                     progressColor,
                     style: StrokeStyle(lineWidth: 14, lineCap: .butt)
                 )
                 .rotationEffect(.degrees(-90))
-                .animation(.easeInOut(duration: 0.45), value: progress)
 
             Text("\(score)점")
                 .font(.Pretendard.SemiBold.size22)
                 .foregroundColor(.white)
+        }
+        .onAppear {
+            animatedProgress = 0
+
+            withAnimation(.easeOut(duration: 0.8)) {
+                animatedProgress = progress
+            }
+        }
+        .onChange(of: score) { _ in
+            withAnimation(.easeOut(duration: 0.8)) {
+                animatedProgress = progress
+            }
         }
     }
 }
