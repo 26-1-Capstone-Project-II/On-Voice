@@ -134,7 +134,7 @@ struct AnalysisSummaryView: View {
     private var bottomButton: some View {
         VStack(spacing: 0) {
             NavigationLink(isActive: $goToPractice) {
-                RecordingAnalysisView(viewModel: viewModel)
+                PronunciationErrorScriptView()
             } label: {
                 EmptyView()
             }
