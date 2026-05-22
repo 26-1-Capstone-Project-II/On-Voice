@@ -48,6 +48,11 @@ class AudioRecorder: ObservableObject {
     
     private var recorder: AVAudioRecorder?
     private var startTime: Date?
+    private var pendingStart: DispatchWorkItem?
+
+    // 마이크 입력 파이프라인이 안정화되기 전 구간(초기 클릭, AGC 릴리즈 등)이
+    // 모델에 들어가지 않도록 record() 호출 전에 비워두는 슬립 시간.
+    private static let warmupDelay: TimeInterval = 0.15
 
     enum RecordingMutationError: LocalizedError {
         case recordingNotFound
@@ -69,7 +74,11 @@ class AudioRecorder: ObservableObject {
     func start() {
         let audioSession = AVAudioSession.sharedInstance()
         do {
-            try audioSession.setCategory(.playAndRecord, mode: .default)
+            // .measurement 모드는 iOS의 자동 게인/에코 캔슬/노이즈 서프레션을 끈다.
+            // Whisper(파인튜닝)는 가공되지 않은 원시 음성을 가정하므로
+            // 일반 통화용 신호처리가 들어가면 음운 변별 정보가 깨진다.
+            try audioSession.setCategory(.playAndRecord, mode: .measurement, options: [.defaultToSpeaker])
+            try audioSession.setPreferredSampleRate(16000)
             try audioSession.setActive(true)
 
             let url = getFileURL()
@@ -83,23 +92,40 @@ class AudioRecorder: ObservableObject {
                 AVLinearPCMIsBigEndianKey: false,
                 AVLinearPCMIsFloatKey: false
             ]
-            recorder = try AVAudioRecorder(url: url, settings: settings)
-            recorder?.record()
-            startTime = Date()
+            let newRecorder = try AVAudioRecorder(url: url, settings: settings)
+            newRecorder.prepareToRecord()
+            recorder = newRecorder
+
+            // 워밍업 윈도우 동안 stop()이 들어오면 record() 호출을 취소해야
+            // 빈 녹음이 영구화되지 않는다.
+            let work = DispatchWorkItem { [weak self] in
+                guard let self else { return }
+                guard let recorder = self.recorder else { return }
+                recorder.record()
+                self.startTime = Date()
+                self.pendingStart = nil
+            }
+            pendingStart = work
+            DispatchQueue.main.asyncAfter(deadline: .now() + Self.warmupDelay, execute: work)
         } catch {
             print("녹음 실패: \(error)")
         }
     }
     
     func pause() {
+        pendingStart?.cancel()
+        pendingStart = nil
         recorder?.pause()
     }
-    
+
     func resume() {
         recorder?.record()
     }
-    
+
     func stop() {
+        pendingStart?.cancel()
+        pendingStart = nil
+
         guard let recorder else { return }
 
         let shouldPersistRecording = recorder.isRecording || recorder.currentTime > 0

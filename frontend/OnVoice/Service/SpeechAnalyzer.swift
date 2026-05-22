@@ -62,11 +62,17 @@ final class SpeechAnalyzer: NSObject, ObservableObject, AVSpeechSynthesizerDeleg
     }
 
     // MARK: - Recording
+
+    // 마이크 입력 파이프라인이 안정화되기 전 구간이 모델에 들어가지 않도록 두는 슬립.
+    private static let warmupDelay: TimeInterval = 0.15
+
     private func startRecording() async {
         guard !isRecording && canPractice else { return }
         let session = AVAudioSession.sharedInstance()
         do {
-            try session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth])
+            // 발음 평가 입력에는 시스템 신호처리(AGC/AEC/NS)를 끄는 .measurement 모드를 사용한다.
+            try session.setCategory(.playAndRecord, mode: .measurement, options: [.defaultToSpeaker])
+            try session.setPreferredSampleRate(16000)
             try session.setActive(true)
             let url = recordingURL()
             // Whisper 발음 평가 모델과 동일한 16 kHz mono 16-bit PCM로 녹음한다.
@@ -78,8 +84,15 @@ final class SpeechAnalyzer: NSObject, ObservableObject, AVSpeechSynthesizerDeleg
                 AVLinearPCMIsBigEndianKey: false,
                 AVLinearPCMIsFloatKey: false
             ]
-            recorder = try AVAudioRecorder(url: url, settings: settings)
-            recorder?.record()
+            let newRecorder = try AVAudioRecorder(url: url, settings: settings)
+            newRecorder.prepareToRecord()
+            recorder = newRecorder
+
+            try? await Task.sleep(nanoseconds: UInt64(Self.warmupDelay * 1_000_000_000))
+
+            // 워밍업 슬립 동안 stop이 호출돼 recorder가 정리됐다면 record()를 호출하지 않는다.
+            guard let recorder = self.recorder, recorder === newRecorder else { return }
+            recorder.record()
             isRecording = true
         } catch {
             print("Record start error:", error)

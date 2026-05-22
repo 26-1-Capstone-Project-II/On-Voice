@@ -378,7 +378,11 @@ private struct VoiceWaveformView: View {
     NavigationStack {
         PronunciationErrorScriptView(
             script: PronunciationErrorScript.makePlainScript(
-                from: "오느른 키움 히어로즈랑 고처게서 경기를 하는데 점수 5점 먼저 낻따고 투수가 막 던져서 지금 오대오 동저미야."
+                from: [
+                    "오느른 키움 히어로즈랑 고처게서 경기를 하는데",
+                    "아까 사회 초까지만 해도 쓰리런 치고 솔로포 치고 장난 아니언는데",
+                    "점수 오점 먼저 낻따고 투수가 막 던져서 지금 오대오 동저미야."
+                ]
             )
         )
     }

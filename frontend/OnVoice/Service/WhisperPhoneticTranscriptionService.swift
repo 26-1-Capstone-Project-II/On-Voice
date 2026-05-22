@@ -10,6 +10,13 @@
 import Foundation
 import WhisperKit
 
+struct PhoneticTranscription: Equatable {
+    let fullText: String
+    let segments: [String]
+
+    static let empty = PhoneticTranscription(fullText: "", segments: [])
+}
+
 actor WhisperPhoneticTranscriptionService {
     enum ServiceError: Error {
         case modelFolderNotFound
@@ -21,17 +28,24 @@ actor WhisperPhoneticTranscriptionService {
     private var pipeline: WhisperKit?
     private var loadTask: Task<WhisperKit, Error>?
 
-    func transcribe(url: URL) async -> String {
+    func transcribe(url: URL) async -> PhoneticTranscription {
         do {
             let pipe = try await loadPipelineIfNeeded()
             let results = try await pipe.transcribe(
                 audioPath: url.path,
                 decodeOptions: phoneticDecodeOptions()
             )
-            return results.map(\.text).joined(separator: " ").trimmingCharacters(in: .whitespacesAndNewlines)
+            // Whisper의 segment 경계를 보존하면 원본 UI의 문단 구조를 유지할 수 있다.
+            // 한 chunk가 통째로 들어오면 마침표가 없는 한국어 발화도 자연스러운 단락이 된다.
+            let segments = results
+                .flatMap { $0.segments.map(\.text) }
+                .map { $0.trimmingCharacters(in: .whitespaces) }
+                .filter { !$0.isEmpty }
+            let fullText = segments.joined(separator: " ")
+            return PhoneticTranscription(fullText: fullText, segments: segments)
         } catch {
             print("WhisperPhoneticTranscriptionService.transcribe error:", error)
-            return ""
+            return .empty
         }
     }
 

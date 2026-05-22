@@ -103,20 +103,27 @@ struct PronunciationErrorScript: Equatable {
 }
 
 extension PronunciationErrorScript {
-    /// 소리나는 대로 전사된 한 덩어리의 텍스트를 문장 단위로 잘라
-    /// 모든 segment를 normal 상태로 보여주는 스크립트로 변환한다.
-    ///
-    /// 1단계(스크립트 출력) 전용: 오류 하이라이트나 errorDetail은 채우지 않는다.
-    static func makePlainScript(from transcript: String) -> PronunciationErrorScript {
-        let sentences = Self.splitIntoSentences(transcript)
-            .map { sentence in
-                PronunciationTranscriptSentence(segments: [.normal(sentence)])
-            }
+    /// 원본 UI의 다문단 레이아웃을 그대로 유지하기 위해 segment 경계를 기준으로
+    /// 한 segment = 한 문단(PronunciationTranscriptSentence) 으로 매핑한다.
+    /// errorDetail은 분석 단계에서 채워지므로 이 함수는 normal segment만 만든다.
+    static func makePlainScript(from segments: [String]) -> PronunciationErrorScript {
+        let cleaned = segments
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+
+        // segment가 비어있으면 fallback으로 종결 부호 기반 분할을 시도한다.
+        if cleaned.isEmpty {
+            return .empty
+        }
+
+        let sentences = cleaned.map { paragraph in
+            PronunciationTranscriptSentence(segments: [.normal(paragraph + " ")])
+        }
         return PronunciationErrorScript(sentences: sentences)
     }
 
-    /// 한국어 발화를 종결 부호(.?!) 기준으로 문장 단위로 분리한다.
-    /// 종결 부호가 없는 마지막 조각도 하나의 문장으로 살린다.
+    /// 종결 부호(.?!) 기준 분할이 필요한 경우(예: 외부에서 단일 텍스트만 주어질 때)
+    /// 사용하는 헬퍼.
     static func splitIntoSentences(_ text: String) -> [String] {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return [] }
