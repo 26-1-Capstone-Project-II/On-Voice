@@ -9,15 +9,20 @@ import SwiftUI
 
 struct PronunciationErrorScriptView: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.presentationMode) private var presentationMode
+
+    let onFinish: (() -> Void)?
 
     @State private var selectedSentenceID: UUID?
     @State private var isRecording = false
     @State private var attempts: [PronunciationPracticeAttempt] = []
     @State private var nextAttemptIndex = 0
 
+    // TODO: Replace this fixture with AI model output when pronunciation analysis is connected.
     private let script = PronunciationErrorScript.sample
-    private let practiceCardReservedHeight: CGFloat = 430
+
+    init(onFinish: (() -> Void)? = nil) {
+        self.onFinish = onFinish
+    }
 
     private var selectedSentence: PronunciationErrorSentence? {
         guard let selectedSentenceID else { return nil }
@@ -35,9 +40,9 @@ struct PronunciationErrorScriptView: View {
                     ScrollViewReader { proxy in
                         ScrollView(showsIndicators: false) {
                             transcriptView(scrollProxy: proxy)
-                                .padding(.horizontal, 24)
-                                .padding(.top, 10)
-                                .padding(.bottom, 34)
+                                .padding(.horizontal, Layout.horizontalPadding)
+                                .padding(.top, Layout.transcriptTopPadding)
+                                .padding(.bottom, Layout.transcriptBottomPadding)
                         }
                     }
 
@@ -45,8 +50,8 @@ struct PronunciationErrorScriptView: View {
                         outsideSheetDismissLayer
 
                         errorPracticeCard(selectedSentence)
-                            .padding(.horizontal, 24)
-                            .padding(.bottom, 8)
+                            .padding(.horizontal, Layout.horizontalPadding)
+                            .padding(.bottom, Layout.practiceCardBottomPadding)
                             .transition(.move(edge: .bottom).combined(with: .opacity))
                             .zIndex(2)
                     }
@@ -65,8 +70,10 @@ struct PronunciationErrorScriptView: View {
                     dismissSelectedSentence()
                 }
 
+            // Reserved for the current bottom-card design so taps inside the sheet are not intercepted.
+            // Replace with a measured height if the card becomes dynamic after model integration.
             Color.clear
-                .frame(height: practiceCardReservedHeight)
+                .frame(height: Layout.practiceCardReservedHeight)
                 .allowsHitTesting(false)
         }
         .zIndex(1)
@@ -91,14 +98,12 @@ struct PronunciationErrorScriptView: View {
 
             Spacer()
 
-            Button("종료") {
-                presentationMode.wrappedValue.dismiss()
-            }
+            Button("종료", action: handleFinishButtonTap)
             .font(.Pretendard.Medium.size16)
             .foregroundStyle(Color.main)
             .frame(width: 44, height: 44, alignment: .trailing)
         }
-        .padding(.horizontal, 20)
+        .padding(.horizontal, Layout.navigationHorizontalPadding)
         .background(Color.bg)
     }
 
@@ -127,6 +132,8 @@ struct PronunciationErrorScriptView: View {
             }
 
             if selectedSentenceID != nil {
+                // Forces enough scrollable content so a selected sentence can align to the top
+                // even when the transcript itself is shorter than the visible area.
                 Color.clear
                     .frame(height: UIScreen.main.bounds.height)
             }
@@ -242,6 +249,8 @@ struct PronunciationErrorScriptView: View {
     }
 
     private func toggleDummyPractice() {
+        // Temporary demo interaction. Real recording start/stop and silence detection
+        // will be connected by the pronunciation model/audio integration task.
         if isRecording {
             appendDummyAttempt()
             withAnimation(.easeInOut(duration: 0.18)) {
@@ -255,6 +264,8 @@ struct PronunciationErrorScriptView: View {
     }
 
     private func appendDummyAttempt() {
+        // Keep only the latest practice result. The real model should overwrite this
+        // with the newest recognition/evaluation result for the selected sentence.
         let templates = selectedSentence?.dummyAttempts ?? PronunciationPracticeAttempt.samples
         attempts = [templates[nextAttemptIndex % templates.count]]
         nextAttemptIndex += 1
@@ -283,12 +294,32 @@ struct PronunciationErrorScriptView: View {
         }
     }
 
+    private func handleFinishButtonTap() {
+        dismissSelectedSentence()
+
+        if let onFinish {
+            onFinish()
+        } else {
+            dismiss()
+        }
+    }
+
     private func scrollSelectedSentenceToTop(_ id: UUID, scrollProxy: ScrollViewProxy) {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.16) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + Layout.scrollToSelectedSentenceDelay) {
             withAnimation(.spring(response: 0.32, dampingFraction: 0.88)) {
                 scrollProxy.scrollTo(id, anchor: .top)
             }
         }
+    }
+
+    private enum Layout {
+        static let horizontalPadding: CGFloat = 24
+        static let navigationHorizontalPadding: CGFloat = 20
+        static let transcriptTopPadding: CGFloat = 10
+        static let transcriptBottomPadding: CGFloat = 34
+        static let practiceCardBottomPadding: CGFloat = 8
+        static let practiceCardReservedHeight: CGFloat = 430
+        static let scrollToSelectedSentenceDelay: DispatchTimeInterval = .milliseconds(160)
     }
 }
 
@@ -337,6 +368,7 @@ private struct VoiceWaveformView: View {
 private struct PronunciationErrorScript {
     let sentences: [PronunciationTranscriptSentence]
 
+    // Fixture data for the UI-only phase. This should be built from real analysis DTOs later.
     static let sample: PronunciationErrorScript = {
         let hungerError = PronunciationErrorSentence.hungerSample
         let baseballError = PronunciationErrorSentence.baseballSample

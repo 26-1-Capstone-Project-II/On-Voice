@@ -112,7 +112,10 @@ struct HomeView: View {
                 MyPageView(userProfile: $userProfile, onLogout: onLogout)
             }
             .navigationDestination(item: $selectedRecording) { recording in
-                AnalysisSummaryView(recording: recording)
+                AnalysisSummaryView(recording: recording) {
+                    selectedRecording = nil
+                    selectedTab = .home
+                }
             }
             .onChange(of: selectedTab) { _ in
                 closeOpenedRowIfNeeded()
