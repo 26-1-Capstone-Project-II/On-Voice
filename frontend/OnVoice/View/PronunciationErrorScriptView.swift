@@ -63,19 +63,11 @@ struct PronunciationErrorScriptView: View {
     }
 
     private var outsideSheetDismissLayer: some View {
-        VStack(spacing: 0) {
-            Color.black.opacity(0.001)
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    dismissSelectedSentence()
-                }
-
-            // Reserved for the current bottom-card design so taps inside the sheet are not intercepted.
-            // Replace with a measured height if the card becomes dynamic after model integration.
-            Color.clear
-                .frame(height: Layout.practiceCardReservedHeight)
-                .allowsHitTesting(false)
-        }
+        Color.black.opacity(0.001)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                dismissSelectedSentence()
+            }
         .zIndex(1)
     }
 
@@ -298,8 +290,10 @@ struct PronunciationErrorScriptView: View {
         dismissSelectedSentence()
 
         if let onFinish {
+            // Parent-owned cleanup, such as resetting selectedRecording or moving to Home.
             onFinish()
         } else {
+            // Plain navigation fallback for entry points that do not need parent cleanup.
             dismiss()
         }
     }
@@ -318,7 +312,6 @@ struct PronunciationErrorScriptView: View {
         static let transcriptTopPadding: CGFloat = 10
         static let transcriptBottomPadding: CGFloat = 34
         static let practiceCardBottomPadding: CGFloat = 8
-        static let practiceCardReservedHeight: CGFloat = 430
         static let scrollToSelectedSentenceDelay: DispatchTimeInterval = .milliseconds(160)
     }
 }
@@ -365,10 +358,14 @@ private struct VoiceWaveformView: View {
     }
 }
 
+// MARK: - Demo Fixtures
+
 private struct PronunciationErrorScript {
     let sentences: [PronunciationTranscriptSentence]
 
     // Fixture data for the UI-only phase. This should be built from real analysis DTOs later.
+    // Nonstandard strings such as "오느른", "됃따고", and "아드데" intentionally mimic
+    // pronunciation spellings or user error outputs for UI verification.
     static let sample: PronunciationErrorScript = {
         let hungerError = PronunciationErrorSentence.hungerSample
         let baseballError = PronunciationErrorSentence.baseballSample

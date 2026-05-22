@@ -11,9 +11,9 @@ struct AnalysisSummaryView: View {
     @StateObject private var viewModel: RecordingAnalysisViewModel
     @State private var expandedItemID: String?
     @State private var goToPractice = false
-    let onFinish: () -> Void
+    let onFinish: (() -> Void)?
 
-    init(recording: Recording, onFinish: @escaping () -> Void = {}) {
+    init(recording: Recording, onFinish: (() -> Void)? = nil) {
         _viewModel = StateObject(wrappedValue: RecordingAnalysisViewModel(recording: recording))
         self.onFinish = onFinish
     }
