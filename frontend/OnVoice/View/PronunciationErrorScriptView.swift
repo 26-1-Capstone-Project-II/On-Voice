@@ -17,6 +17,7 @@ struct PronunciationErrorScriptView: View {
     @State private var nextAttemptIndex = 0
 
     private let script = PronunciationErrorScript.sample
+    private let practiceCardReservedHeight: CGFloat = 430
 
     private var selectedSentence: PronunciationErrorSentence? {
         guard let selectedSentenceID else { return nil }
@@ -31,25 +32,44 @@ struct PronunciationErrorScriptView: View {
                 navigationHeader
 
                 ZStack(alignment: .bottom) {
-                    ScrollView(showsIndicators: false) {
-                        transcriptView
-                            .padding(.horizontal, 24)
-                            .padding(.top, 10)
-                            .padding(.bottom, selectedSentence == nil ? 34 : 430)
+                    ScrollViewReader { proxy in
+                        ScrollView(showsIndicators: false) {
+                            transcriptView(scrollProxy: proxy)
+                                .padding(.horizontal, 24)
+                                .padding(.top, 10)
+                                .padding(.bottom, 34)
+                        }
                     }
 
                     if let selectedSentence {
+                        outsideSheetDismissLayer
+
                         errorPracticeCard(selectedSentence)
                             .padding(.horizontal, 24)
                             .padding(.bottom, 8)
                             .transition(.move(edge: .bottom).combined(with: .opacity))
-                            .zIndex(1)
+                            .zIndex(2)
                     }
                 }
             }
         }
         .navigationBarHidden(true)
         .toolbar(.hidden, for: .tabBar)
+    }
+
+    private var outsideSheetDismissLayer: some View {
+        VStack(spacing: 0) {
+            Color.black.opacity(0.001)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    dismissSelectedSentence()
+                }
+
+            Color.clear
+                .frame(height: practiceCardReservedHeight)
+                .allowsHitTesting(false)
+        }
+        .zIndex(1)
     }
 
     private var navigationHeader: some View {
@@ -82,7 +102,7 @@ struct PronunciationErrorScriptView: View {
         .background(Color.bg)
     }
 
-    private var transcriptView: some View {
+    private func transcriptView(scrollProxy: ScrollViewProxy) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             ForEach(script.sentences) { sentence in
                 HighlightedText(
@@ -92,11 +112,23 @@ struct PronunciationErrorScriptView: View {
                 )
                 .opacity(transcriptOpacity(for: sentence))
                 .fixedSize(horizontal: false, vertical: true)
+                .id(sentence.id)
                 .contentShape(Rectangle())
                 .onTapGesture {
+                    if selectedSentenceID != nil {
+                        dismissSelectedSentence()
+                        return
+                    }
+
                     guard let errorDetail = sentence.errorDetail else { return }
                     selectSentence(errorDetail)
+                    scrollSelectedSentenceToTop(sentence.id, scrollProxy: scrollProxy)
                 }
+            }
+
+            if selectedSentenceID != nil {
+                Color.clear
+                    .frame(height: UIScreen.main.bounds.height)
             }
         }
     }
@@ -235,18 +267,27 @@ struct PronunciationErrorScriptView: View {
 
     private func selectSentence(_ sentence: PronunciationErrorSentence) {
         withAnimation(.spring(response: 0.28, dampingFraction: 0.88)) {
-            if selectedSentenceID == sentence.id {
-                selectedSentenceID = nil
-                attempts = []
-                nextAttemptIndex = 0
-                isRecording = false
-                return
-            }
-
             selectedSentenceID = sentence.id
             attempts = []
             nextAttemptIndex = 0
             isRecording = false
+        }
+    }
+
+    private func dismissSelectedSentence() {
+        withAnimation(.spring(response: 0.28, dampingFraction: 0.88)) {
+            selectedSentenceID = nil
+            attempts = []
+            nextAttemptIndex = 0
+            isRecording = false
+        }
+    }
+
+    private func scrollSelectedSentenceToTop(_ id: UUID, scrollProxy: ScrollViewProxy) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.16) {
+            withAnimation(.spring(response: 0.32, dampingFraction: 0.88)) {
+                scrollProxy.scrollTo(id, anchor: .top)
+            }
         }
     }
 }
