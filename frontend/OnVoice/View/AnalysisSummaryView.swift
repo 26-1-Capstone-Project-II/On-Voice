@@ -11,9 +11,11 @@ struct AnalysisSummaryView: View {
     @StateObject private var viewModel: RecordingAnalysisViewModel
     @State private var expandedItemID: String?
     @State private var goToPractice = false
+    let onFinish: (() -> Void)?
 
-    init(recording: Recording) {
+    init(recording: Recording, onFinish: (() -> Void)? = nil) {
         _viewModel = StateObject(wrappedValue: RecordingAnalysisViewModel(recording: recording))
+        self.onFinish = onFinish
     }
 
     private var score: Int {
@@ -134,7 +136,7 @@ struct AnalysisSummaryView: View {
     private var bottomButton: some View {
         VStack(spacing: 0) {
             NavigationLink(isActive: $goToPractice) {
-                RecordingAnalysisView(viewModel: viewModel)
+                PronunciationErrorScriptView(onFinish: onFinish)
             } label: {
                 EmptyView()
             }
