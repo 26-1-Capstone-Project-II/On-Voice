@@ -71,13 +71,17 @@ class AudioRecorder: ObservableObject {
         do {
             try audioSession.setCategory(.playAndRecord, mode: .default)
             try audioSession.setActive(true)
-            
+
             let url = getFileURL()
-            let settings = [
-                AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
-                AVSampleRateKey: 12000,
+            // Whisper(파인튜닝 포함)은 16 kHz mono 16-bit PCM에서 훈련/검증되었다.
+            // 압축(AAC) 없이 동일한 입력을 보장해야 음운 전사 품질이 유지된다.
+            let settings: [String: Any] = [
+                AVFormatIDKey: Int(kAudioFormatLinearPCM),
+                AVSampleRateKey: 16000,
                 AVNumberOfChannelsKey: 1,
-                AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
+                AVLinearPCMBitDepthKey: 16,
+                AVLinearPCMIsBigEndianKey: false,
+                AVLinearPCMIsFloatKey: false
             ]
             recorder = try AVAudioRecorder(url: url, settings: settings)
             recorder?.record()
@@ -173,7 +177,7 @@ class AudioRecorder: ObservableObject {
             .joined(separator: " ")
     }
     
-    /// m4a 파일에서 실제 재생 길이 측정
+    /// 녹음 파일에서 실제 재생 길이 측정 (.wav PCM 등)
     private func getAccurateAudioDuration(from url: URL) -> TimeInterval {
         do {
             let player = try AVAudioPlayer(contentsOf: url)
@@ -187,7 +191,7 @@ class AudioRecorder: ObservableObject {
     private func getFileURL() -> URL {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyyMMdd_HHmmss"
-        let filename = "Recording_\(formatter.string(from: Date())).m4a"
+        let filename = "Recording_\(formatter.string(from: Date())).wav"
         let path = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         return path.appendingPathComponent(filename)
     }

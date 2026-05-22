@@ -69,11 +69,14 @@ final class SpeechAnalyzer: NSObject, ObservableObject, AVSpeechSynthesizerDeleg
             try session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth])
             try session.setActive(true)
             let url = recordingURL()
+            // Whisper 발음 평가 모델과 동일한 16 kHz mono 16-bit PCM로 녹음한다.
             let settings: [String: Any] = [
-                AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
-                AVSampleRateKey: 44100,
+                AVFormatIDKey: Int(kAudioFormatLinearPCM),
+                AVSampleRateKey: 16000,
                 AVNumberOfChannelsKey: 1,
-                AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
+                AVLinearPCMBitDepthKey: 16,
+                AVLinearPCMIsBigEndianKey: false,
+                AVLinearPCMIsFloatKey: false
             ]
             recorder = try AVAudioRecorder(url: url, settings: settings)
             recorder?.record()
@@ -126,6 +129,6 @@ final class SpeechAnalyzer: NSObject, ObservableObject, AVSpeechSynthesizerDeleg
 
     private func recordingURL() -> URL {
         let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        return dir.appendingPathComponent("practice-\(UUID().uuidString).m4a")
+        return dir.appendingPathComponent("practice-\(UUID().uuidString).wav")
     }
 }

@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		0ACF9C672F7D03AF00D8C2D7 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = 0ACF9C662F7D03AF00D8C2D7 /* FirebaseAnalytics */; };
 		0BDAD4A83084000100A1B2C3 /* DotLottie in Frameworks */ = {isa = PBXBuildFile; productRef = 0BDAD4A73084000100A1B2C3 /* DotLottie */; };
+		0BDAD5003084000100A1B2C4 /* WhisperKit in Frameworks */ = {isa = PBXBuildFile; productRef = 0BDAD4FF3084000100A1B2C4 /* WhisperKit */; };
 		D1A0B1C32F8E000100ABCDEF /* RecordingRowSwipeBehaviorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A0B1C22F8E000100ABCDEF /* RecordingRowSwipeBehaviorTests.swift */; };
 		F0A100012F90000100ABCD01 /* DynamicIsland.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = F0A100062F90000100ABCD01 /* DynamicIsland.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		F0A100022F90000100ABCD01 /* DynamicIslandBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2FE5DE2E30D69500C90F26 /* DynamicIslandBundle.swift */; };
@@ -126,6 +127,7 @@
 			files = (
 				0BDAD4A83084000100A1B2C3 /* DotLottie in Frameworks */,
 				0ACF9C672F7D03AF00D8C2D7 /* FirebaseAnalytics in Frameworks */,
+				0BDAD5003084000100A1B2C4 /* WhisperKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -230,6 +232,7 @@
 			packageProductDependencies = (
 				0BDAD4A73084000100A1B2C3 /* DotLottie */,
 				0ACF9C662F7D03AF00D8C2D7 /* FirebaseAnalytics */,
+				0BDAD4FF3084000100A1B2C4 /* WhisperKit */,
 			);
 			productName = OnVoice;
 			productReference = CE2FE4242E3085E600C90F26 /* OnVoice.app */;
@@ -332,6 +335,7 @@
 			packageReferences = (
 				0BDAD4A63084000100A1B2C3 /* XCRemoteSwiftPackageReference "dotlottie-ios" */,
 				0ACF9C652F7D03AF00D8C2D7 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+				0BDAD4FE3084000100A1B2C4 /* XCRemoteSwiftPackageReference "WhisperKit" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = CE2FE4252E3085E600C90F26 /* Products */;
@@ -818,6 +822,14 @@
 				minimumVersion = 0.14.1;
 			};
 		};
+		0BDAD4FE3084000100A1B2C4 /* XCRemoteSwiftPackageReference "WhisperKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/argmaxinc/WhisperKit";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.9.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -830,6 +842,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 0BDAD4A63084000100A1B2C3 /* XCRemoteSwiftPackageReference "dotlottie-ios" */;
 			productName = DotLottie;
+		};
+		0BDAD4FF3084000100A1B2C4 /* WhisperKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0BDAD4FE3084000100A1B2C4 /* XCRemoteSwiftPackageReference "WhisperKit" */;
+			productName = WhisperKit;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

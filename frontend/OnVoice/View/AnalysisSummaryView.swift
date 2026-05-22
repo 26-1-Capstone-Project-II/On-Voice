@@ -136,7 +136,10 @@ struct AnalysisSummaryView: View {
     private var bottomButton: some View {
         VStack(spacing: 0) {
             NavigationLink(isActive: $goToPractice) {
-                PronunciationErrorScriptView(onFinish: onFinish)
+                PronunciationErrorScriptView(
+                    script: viewModel.analysis?.scriptAnalysis ?? .empty,
+                    onFinish: onFinish
+                )
             } label: {
                 EmptyView()
             }

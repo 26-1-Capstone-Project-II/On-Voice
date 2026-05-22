@@ -32,6 +32,25 @@ struct AnalysisResult {
     let sentences: [AnalysisSentence]
     let overallAccuracy: Double
     let isPronunciationEvaluationAvailable: Bool
+    let scriptAnalysis: PronunciationErrorScript
+
+    init(
+        transcript: String,
+        standardText: String,
+        standardPronunciation: String,
+        sentences: [AnalysisSentence],
+        overallAccuracy: Double,
+        isPronunciationEvaluationAvailable: Bool,
+        scriptAnalysis: PronunciationErrorScript = .empty
+    ) {
+        self.transcript = transcript
+        self.standardText = standardText
+        self.standardPronunciation = standardPronunciation
+        self.sentences = sentences
+        self.overallAccuracy = overallAccuracy
+        self.isPronunciationEvaluationAvailable = isPronunciationEvaluationAvailable
+        self.scriptAnalysis = scriptAnalysis
+    }
 
     var errorSentences: [AnalysisSentence] {
         guard isPronunciationEvaluationAvailable else { return [] }

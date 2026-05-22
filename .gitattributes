@@ -1,0 +1,5 @@
+# CoreML weights for the on-device Whisper phonetic model are large binaries.
+# Track them with Git LFS so the repo stays lean.
+frontend/OnVoice/Whisper_CoreML_Model/**/weights/* filter=lfs diff=lfs merge=lfs -text
+frontend/OnVoice/Whisper_CoreML_Model/**/coremldata.bin filter=lfs diff=lfs merge=lfs -text
+frontend/OnVoice/Whisper_CoreML_Model/**/model.mil filter=lfs diff=lfs merge=lfs -text
