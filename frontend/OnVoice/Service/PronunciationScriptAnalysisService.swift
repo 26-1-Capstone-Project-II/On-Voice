@@ -53,17 +53,32 @@ final class PronunciationScriptAnalysisService: PronunciationScriptAnalyzing {
         // 3) 한글만 추출해 자모 정렬, 결과 cell 을 원본 인덱스로 remap.
         let cells = alignHangulOnly(expected: expectedAll, actual: actualAll)
 
-        // 4) segment 별 cell 그룹화. expected-only(gap) cell 은 인접 segment 에 부착.
+        // 4) segment 별 cell 그룹화.
+        //    expected-only(gap) cell 은 인접한 actual cell 의 segment 에 부착한다.
+        //    핵심 케이스: 첫 cell 부터 gap 으로 시작하면 lastSegment 기본값(=0) 에
+        //    무조건 붙는 오프바이원 버그가 발생할 수 있어, "다음에 등장할 actual
+        //    cell 의 segment" 까지 보류했다가 한꺼번에 부착한다.
         var groups: [Int: [AlignmentCell]] = [:]
-        var lastSegment = 0
+        var lastSegment: Int? = nil
+        var pendingGaps: [AlignmentCell] = []
         for cell in cells {
             if let actualIdx = cell.actualIndex {
                 let segIdx = syllableToSegment[actualIdx]
+                if !pendingGaps.isEmpty {
+                    groups[segIdx, default: []].append(contentsOf: pendingGaps)
+                    pendingGaps.removeAll()
+                }
                 groups[segIdx, default: []].append(cell)
                 lastSegment = segIdx
+            } else if let last = lastSegment {
+                groups[last, default: []].append(cell)
             } else {
-                groups[lastSegment, default: []].append(cell)
+                pendingGaps.append(cell)
             }
+        }
+        // actual cell 이 한 번도 등장하지 않았다면(=hyp 가 비어있음) 첫 segment 에 부착.
+        if !pendingGaps.isEmpty {
+            groups[0, default: []].append(contentsOf: pendingGaps)
         }
 
         // 5) 각 Whisper segment → PronunciationTranscriptSentence 재구성

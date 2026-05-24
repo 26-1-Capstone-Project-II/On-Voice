@@ -35,18 +35,21 @@ enum HangulJamo {
         var isHangul: Bool { raw == nil }
 
         /// 결합해 음절 문자열로 복원. 한글 음절이면 한 글자, 아니면 raw 문자 그대로.
-        /// 인덱스가 정상 범위(초성 0..<19, 중성 0..<21, 종성 0..<28) 를 벗어나면
-        /// scalar 가 한글 범위를 넘어가 UnicodeScalar 가 nil 을 돌려줄 수 있다.
-        /// 정상 경로에서는 도달하지 않지만, 향후 규칙 수정 시 크래시 포인트가
-        /// 되지 않도록 fallback 한다.
+        /// 인덱스를 정상 범위(초성 0..<19, 중성 0..<21, 종성 0..<28) 로 clamp 해
+        /// scalar 가 항상 한글 영역(0xAC00..0xD7A3) 안에 떨어지도록 한다.
+        /// 그래도 UnicodeScalar 가 nil 을 돌려주는 비정상 경로에서는 데이터를
+        /// 조용히 잃지 않도록 가시적 placeholder("\u{FFFD}", 즉 �) 를 반환한다.
         var composed: String {
             if let raw {
                 return String(raw)
             }
-            let scalar = 0xAC00 + initialIndex * 21 * 28 + medialIndex * 28 + finalIndex
+            let i = max(0, min(initialIndex, choseong.count - 1))
+            let m = max(0, min(medialIndex, jungseong.count - 1))
+            let f = max(0, min(finalIndex, jongseong.count - 1))
+            let scalar = 0xAC00 + i * 21 * 28 + m * 28 + f
             guard let unicode = UnicodeScalar(scalar) else {
-                assertionFailure("Invalid Hangul scalar composed: \(scalar) (initial=\(initialIndex), medial=\(medialIndex), final=\(finalIndex))")
-                return ""
+                assertionFailure("Invalid Hangul scalar composed: \(scalar) (initial=\(i), medial=\(m), final=\(f))")
+                return "\u{FFFD}"  // U+FFFD REPLACEMENT CHARACTER — 데이터 손실을 가시화
             }
             return String(unicode)
         }

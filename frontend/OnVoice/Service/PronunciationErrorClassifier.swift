@@ -174,8 +174,17 @@ enum PronunciationErrorClassifier {
             return .finalNasalization
         }
 
-        // 종성 연음화: ref 종성 없음, hyp 종성 잔존 (구개음화로 분기 안 된 일반 케이스)
-        if refFinal == 0 && hypFinal != 0 {
+        // 종성 연음화: ref 가 G2P 로 받침을 다음 음절 초성으로 옮긴 패턴.
+        //   - ref 종성 = 0 (받침이 옮겨가 비었음)
+        //   - hyp 종성 ≠ 0 (사용자가 받침을 그대로 발음)
+        //   - 다음 ref 음절의 초성이 hyp 종성과 동일 (받침이 그쪽으로 옮겨갔다는 시그니처)
+        //   - 다음 ref 음절의 초성이 ㅇ 이 아님 (ㅇ 이면 G2P 변환 일어나지 않은 케이스)
+        // 위 4개를 모두 만족할 때만 finalLinking. 그렇지 않은 단순 ASR 오인식이
+        // finalLinking 으로 흡수되는 것을 막는다.
+        if refFinal == 0 && hypFinal != 0,
+           let next = nextExpected,
+           next.initialIndex != initialO,
+           HangulJamo.jongToChoIndex[hypFinal] == next.initialIndex {
             return .finalLinking
         }
 
