@@ -32,6 +32,9 @@ final class SpeechAnalyzer: NSObject, ObservableObject, AVSpeechSynthesizerDeleg
     private let synthesizer = AVSpeechSynthesizer()
     private let assessmentService: PronunciationAssessmentService
     private var practiceTargetText: String = ""
+    /// AudioRecorder.start()와 동일한 패턴: 워밍업 슬립 도중 stop/새 startRecording이
+    /// 일어나면 이전 워크가 record()를 부르지 않도록 토큰으로 무효화한다.
+    private var pendingStartToken: UUID?
 
     init(assessmentService: PronunciationAssessmentService = PronunciationAssessmentService()) {
         self.assessmentService = assessmentService
@@ -88,18 +91,26 @@ final class SpeechAnalyzer: NSObject, ObservableObject, AVSpeechSynthesizerDeleg
             newRecorder.prepareToRecord()
             recorder = newRecorder
 
+            let token = UUID()
+            pendingStartToken = token
+
             try? await Task.sleep(nanoseconds: UInt64(Self.warmupDelay * 1_000_000_000))
 
-            // 워밍업 슬립 동안 stop이 호출돼 recorder가 정리됐다면 record()를 호출하지 않는다.
+            // 워밍업 도중 stop/새 startRecording/reset 이 일어났다면 record()를 부르지 않는다.
+            //   1) 토큰 일치 검증 — cancel/replace 케이스 차단
+            //   2) recorder identity 검증 — 같은 인스턴스인지 확인
+            guard self.pendingStartToken == token else { return }
             guard let recorder = self.recorder, recorder === newRecorder else { return }
             recorder.record()
             isRecording = true
+            pendingStartToken = nil
         } catch {
             print("Record start error:", error)
         }
     }
 
     func stopRecording() async {
+        pendingStartToken = nil
         guard isRecording else { return }
         recorder?.stop()
         isRecording = false
@@ -117,6 +128,7 @@ final class SpeechAnalyzer: NSObject, ObservableObject, AVSpeechSynthesizerDeleg
     }
 
     private func stopRecorderIfNeeded() {
+        pendingStartToken = nil
         if recorder?.isRecording == true { recorder?.stop() }
         recorder = nil
     }

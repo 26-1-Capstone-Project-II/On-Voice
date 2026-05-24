@@ -138,6 +138,7 @@ struct AnalysisSummaryView: View {
             NavigationLink(isActive: $goToPractice) {
                 PronunciationErrorScriptView(
                     script: viewModel.analysis?.scriptAnalysis ?? .empty,
+                    transcriptionFailure: viewModel.analysis?.transcriptionFailure,
                     onFinish: onFinish
                 )
             } label: {

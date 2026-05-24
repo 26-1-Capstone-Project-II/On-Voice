@@ -11,6 +11,7 @@ struct PronunciationErrorScriptView: View {
     @Environment(\.dismiss) private var dismiss
 
     let script: PronunciationErrorScript
+    let transcriptionFailure: TranscriptionFailure?
     let onFinish: (() -> Void)?
 
     @State private var selectedSentenceID: UUID?
@@ -20,9 +21,11 @@ struct PronunciationErrorScriptView: View {
 
     init(
         script: PronunciationErrorScript = .empty,
+        transcriptionFailure: TranscriptionFailure? = nil,
         onFinish: (() -> Void)? = nil
     ) {
         self.script = script
+        self.transcriptionFailure = transcriptionFailure
         self.onFinish = onFinish
     }
 
@@ -49,7 +52,11 @@ struct PronunciationErrorScriptView: View {
                     }
 
                     if script.isEmpty {
-                        emptyStateView
+                        if let transcriptionFailure {
+                            failureStateView(transcriptionFailure)
+                        } else {
+                            emptyStateView
+                        }
                     }
 
                     if let selectedSentence {
@@ -80,6 +87,46 @@ struct PronunciationErrorScriptView: View {
         }
         .padding(.horizontal, Layout.horizontalPadding)
         .padding(.bottom, 80)
+    }
+
+    private func failureStateView(_ failure: TranscriptionFailure) -> some View {
+        VStack(spacing: 8) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.system(size: 32, weight: .regular))
+                .foregroundStyle(Color(hex: "#FF3867"))
+                .padding(.bottom, 4)
+            Text(Self.failureTitle(for: failure))
+                .font(.Pretendard.Medium.size16)
+                .foregroundStyle(Color.sub)
+            Text(Self.failureMessage(for: failure))
+                .font(.Pretendard.Medium.size14)
+                .foregroundStyle(Color.gray6)
+                .multilineTextAlignment(.center)
+        }
+        .padding(.horizontal, Layout.horizontalPadding)
+        .padding(.bottom, 80)
+    }
+
+    private static func failureTitle(for failure: TranscriptionFailure) -> String {
+        switch failure {
+        case .modelMissing:
+            return "음성 인식 모델을 찾지 못했어요."
+        case .pipelineLoadFailed:
+            return "음성 인식 엔진을 불러오지 못했어요."
+        case .transcribeFailed:
+            return "녹음을 분석하지 못했어요."
+        }
+    }
+
+    private static func failureMessage(for failure: TranscriptionFailure) -> String {
+        switch failure {
+        case .modelMissing:
+            return "앱을 다시 설치하거나, 개발 빌드라면 git lfs pull로 모델 파일을 받아 주세요."
+        case .pipelineLoadFailed:
+            return "앱을 재실행해도 같은 문제가 반복되면 개발팀에 알려 주세요."
+        case .transcribeFailed:
+            return "녹음을 다시 시도해 주세요. 반복되면 개발팀에 알려 주세요."
+        }
     }
 
     private var outsideSheetDismissLayer: some View {

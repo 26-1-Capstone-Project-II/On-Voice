@@ -17,6 +17,18 @@ struct PhoneticTranscription: Equatable {
     static let empty = PhoneticTranscription(fullText: "", segments: [])
 }
 
+/// 전사 파이프라인이 실패할 수 있는 분류된 케이스. UI 상에서 단순 빈 결과와
+/// 구분해 사용자/디버깅 대상에게 원인을 노출할 수 있도록 한다.
+enum TranscriptionFailure: Error, Equatable {
+    /// 번들에 mlmodelc(AudioEncoder/TextDecoder/MelSpectrogram)가 누락됐거나
+    /// Git LFS pull이 빠져 모델 폴더를 찾지 못한 경우
+    case modelMissing
+    /// 모델 폴더는 있으나 WhisperKit 초기화(파이프라인 로드) 자체가 실패한 경우
+    case pipelineLoadFailed
+    /// 모델은 로드됐으나 실제 추론(`transcribe`) 호출이 실패한 경우
+    case transcribeFailed
+}
+
 actor WhisperPhoneticTranscriptionService {
     enum ServiceError: Error {
         case modelFolderNotFound
@@ -28,9 +40,19 @@ actor WhisperPhoneticTranscriptionService {
     private var pipeline: WhisperKit?
     private var loadTask: Task<WhisperKit, Error>?
 
-    func transcribe(url: URL) async -> PhoneticTranscription {
+    func transcribe(url: URL) async -> Result<PhoneticTranscription, TranscriptionFailure> {
+        let pipe: WhisperKit
         do {
-            let pipe = try await loadPipelineIfNeeded()
+            pipe = try await loadPipelineIfNeeded()
+        } catch ServiceError.modelFolderNotFound {
+            print("WhisperPhoneticTranscriptionService: model folder not found")
+            return .failure(.modelMissing)
+        } catch {
+            print("WhisperPhoneticTranscriptionService: pipeline load failed:", error)
+            return .failure(.pipelineLoadFailed)
+        }
+
+        do {
             let results = try await pipe.transcribe(
                 audioPath: url.path,
                 decodeOptions: phoneticDecodeOptions()
@@ -42,10 +64,10 @@ actor WhisperPhoneticTranscriptionService {
                 .map { $0.trimmingCharacters(in: .whitespaces) }
                 .filter { !$0.isEmpty }
             let fullText = segments.joined(separator: " ")
-            return PhoneticTranscription(fullText: fullText, segments: segments)
+            return .success(PhoneticTranscription(fullText: fullText, segments: segments))
         } catch {
             print("WhisperPhoneticTranscriptionService.transcribe error:", error)
-            return .empty
+            return .failure(.transcribeFailed)
         }
     }
 

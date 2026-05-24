@@ -33,6 +33,9 @@ struct AnalysisResult {
     let overallAccuracy: Double
     let isPronunciationEvaluationAvailable: Bool
     let scriptAnalysis: PronunciationErrorScript
+    /// 전사 파이프라인이 실패한 경우의 사유. nil이면 전사 자체는 성공한 것으로
+    /// 간주한다(빈 결과/분석 미구현 상태는 nil + scriptAnalysis.isEmpty 로 표현).
+    let transcriptionFailure: TranscriptionFailure?
 
     init(
         transcript: String,
@@ -41,7 +44,8 @@ struct AnalysisResult {
         sentences: [AnalysisSentence],
         overallAccuracy: Double,
         isPronunciationEvaluationAvailable: Bool,
-        scriptAnalysis: PronunciationErrorScript = .empty
+        scriptAnalysis: PronunciationErrorScript = .empty,
+        transcriptionFailure: TranscriptionFailure? = nil
     ) {
         self.transcript = transcript
         self.standardText = standardText
@@ -50,6 +54,7 @@ struct AnalysisResult {
         self.overallAccuracy = overallAccuracy
         self.isPronunciationEvaluationAvailable = isPronunciationEvaluationAvailable
         self.scriptAnalysis = scriptAnalysis
+        self.transcriptionFailure = transcriptionFailure
     }
 
     var errorSentences: [AnalysisSentence] {
