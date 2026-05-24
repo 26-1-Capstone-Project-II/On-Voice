@@ -46,6 +46,13 @@ actor WhisperPhoneticTranscriptionService {
     private var pipeline: WhisperKit?
     private var loadTask: Task<WhisperKit, Error>?
 
+    /// 앱 부팅 시점에 한 번 호출해 mlmodelc 로드 + CoreML 그래프 컴파일 +
+    /// ANE shader 생성의 콜드 스타트 비용을 미리 치른다. 실패해도 silently 흘려보내며,
+    /// 실제 transcribe 호출에서 다시 시도된다(거기서 실패 사유가 UI 로 표면화).
+    func prewarm() async {
+        _ = try? await loadPipelineIfNeeded()
+    }
+
     func transcribe(url: URL) async -> Result<PhoneticTranscription, TranscriptionFailure> {
         let pipe: WhisperKit
         do {
