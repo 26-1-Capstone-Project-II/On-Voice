@@ -63,9 +63,12 @@ final class RecordingAnalysisViewModel: ObservableObject {
         // 분석을 중단하지 않고 그대로 끝까지 기다린다. detached 라 cancel 전파도 없음.
         let result = await task.value
 
-        // task 가 끝났으니 정리한다. MainActor 격리라 중복 nil 대입은 멱등이며
-        // race 가 없다. 여러 호출자가 같은 task 를 await 중이어도 안전.
-        analysisTask = nil
+        // task 가 끝났으니 정리한다. 다만 invalidate() 후 누군가 새 task 를
+        // 시작했을 가능성이 있으므로 동일성 검사로 자기가 실행한 task 만 nil 처리.
+        // Task<_, Never> 는 Equatable 이라 옵셔널 == 비교가 안전하다.
+        if analysisTask == task {
+            analysisTask = nil
+        }
 
         if analysis == nil {
             analysis = result

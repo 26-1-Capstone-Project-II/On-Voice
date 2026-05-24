@@ -128,7 +128,11 @@ enum JamoAligner {
         if !expected.isHangul || !actual.isHangul {
             return expected.composed == actual.composed ? 0 : 2
         }
-        return jamoDifferences(expected, actual).count
+        let diffs = jamoDifferences(expected, actual).count
+        // 자모 3개가 모두 다르면 두 음절이 사실상 무관계. gapCost(=3) 와 동률이면
+        // 알고리즘이 substitution 을 선호해 "음절 통째 누락"이 잘못 분류될 수 있다.
+        // +1 페널티로 이 경우엔 gap 경로가 우선되도록 한다.
+        return diffs >= 3 ? diffs + 1 : diffs
     }
 
     private static func jamoDifferences(

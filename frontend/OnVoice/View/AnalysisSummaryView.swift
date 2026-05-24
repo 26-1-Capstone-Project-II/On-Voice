@@ -139,6 +139,7 @@ struct AnalysisSummaryView: View {
                 PronunciationErrorScriptView(
                     script: viewModel.analysis?.scriptAnalysis ?? .empty,
                     transcriptionFailure: viewModel.analysis?.transcriptionFailure,
+                    limitation: viewModel.analysis?.limitation,
                     onFinish: onFinish
                 )
             } label: {

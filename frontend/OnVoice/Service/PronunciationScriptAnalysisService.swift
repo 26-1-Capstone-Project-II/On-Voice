@@ -127,10 +127,16 @@ final class PronunciationScriptAnalysisService: PronunciationScriptAnalyzing {
         // 음절 단위 오류 표시: actual char 인덱스마다 boolean
         var syllableHasError = Array(repeating: false, count: actualChars.count)
         var categories: [PronunciationErrorCategory] = []
+        // popup 의 ref/correct 텍스트 범위 산정용. actualIndex 가 있는(=이 segment 에
+        // 확실히 속하는) cell 의 expectedIndex 만 채택한다. expected-only gap cell 은
+        // lastSegment 부착 정책으로 segment 경계를 넘는 expectedIndex 를 가져올
+        // 수 있어 popup 범위가 잘못 잡힐 수 있으므로 제외한다.
         var refIndicesInSegment: [Int] = []
 
         for cell in cells {
-            if let ei = cell.expectedIndex { refIndicesInSegment.append(ei) }
+            if cell.actualIndex != nil, let ei = cell.expectedIndex {
+                refIndicesInSegment.append(ei)
+            }
             guard cell.hasError else { continue }
 
             // 비-한글 cell(공백/구두점 차이) 은 분류/색칠 대상에서 제외.

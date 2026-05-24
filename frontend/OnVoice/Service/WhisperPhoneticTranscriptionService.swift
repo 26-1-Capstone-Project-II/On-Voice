@@ -8,7 +8,10 @@
 //
 
 import Foundation
+import OSLog
 import WhisperKit
+
+private let logger = Logger(subsystem: "com.onvoice", category: "whisper-phonetic")
 
 struct PhoneticTranscription: Equatable {
     let fullText: String
@@ -54,7 +57,7 @@ actor WhisperPhoneticTranscriptionService {
         do {
             _ = try await loadPipelineIfNeeded()
         } catch {
-            print("WhisperPhoneticTranscriptionService.prewarm failed:", error)
+            logger.error("prewarm failed: \(String(describing: error), privacy: .public)")
         }
     }
 
@@ -63,10 +66,10 @@ actor WhisperPhoneticTranscriptionService {
         do {
             pipe = try await loadPipelineIfNeeded()
         } catch ServiceError.modelFolderNotFound {
-            print("WhisperPhoneticTranscriptionService: model folder not found")
+            logger.error("model folder not found")
             return .failure(.modelMissing)
         } catch {
-            print("WhisperPhoneticTranscriptionService: pipeline load failed:", error)
+            logger.error("pipeline load failed: \(String(describing: error), privacy: .public)")
             return .failure(.pipelineLoadFailed)
         }
 
@@ -87,14 +90,14 @@ actor WhisperPhoneticTranscriptionService {
             // 실패 같은 critical 케이스와 구분해 처리할 수 있도록 명시적 failure로
             // 매핑한다. success 타입은 항상 비어있지 않다는 불변식을 보장한다.
             guard !segments.isEmpty else {
-                print("WhisperPhoneticTranscriptionService: transcribe returned no segments")
+                logger.info("transcribe returned no segments")
                 return .failure(.noSpeechDetected)
             }
 
             let fullText = segments.joined(separator: " ")
             return .success(PhoneticTranscription(fullText: fullText, segments: segments))
         } catch {
-            print("WhisperPhoneticTranscriptionService.transcribe error:", error)
+            logger.error("transcribe error: \(String(describing: error), privacy: .public)")
             return .failure(.transcribeFailed)
         }
     }
