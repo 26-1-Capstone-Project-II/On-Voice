@@ -75,12 +75,15 @@ struct PronunciationErrorScriptView: View {
         .toolbar(.hidden, for: .tabBar)
     }
 
+    // 이 화면은 항상 분석 단계 이후 진입하고, Whisper 추론은 segment가 0개일 때도
+    // .failure(.noSpeechDetected)로 매핑되어 failureStateView 분기로 흐른다.
+    // 따라서 이 emptyStateView는 이론상 도달하지 않는 defensive 분기로만 남는다.
     private var emptyStateView: some View {
         VStack(spacing: 8) {
-            Text("아직 분석된 발화가 없어요.")
+            Text("분석 결과가 비어있어요.")
                 .font(.Pretendard.Medium.size16)
                 .foregroundStyle(Color.sub)
-            Text("녹음을 마치면 소리나는 대로 적힌 스크립트가 표시됩니다.")
+            Text("앱을 재실행해도 같은 문제가 반복되면 개발팀에 알려 주세요.")
                 .font(.Pretendard.Medium.size14)
                 .foregroundStyle(Color.gray6)
                 .multilineTextAlignment(.center)
@@ -90,10 +93,11 @@ struct PronunciationErrorScriptView: View {
     }
 
     private func failureStateView(_ failure: TranscriptionFailure) -> some View {
-        VStack(spacing: 8) {
-            Image(systemName: "exclamationmark.triangle")
+        let style = Self.failureIcon(for: failure)
+        return VStack(spacing: 8) {
+            Image(systemName: style.name)
                 .font(.system(size: 32, weight: .regular))
-                .foregroundStyle(Color(hex: "#FF3867"))
+                .foregroundStyle(style.color)
                 .padding(.bottom, 4)
             Text(Self.failureTitle(for: failure))
                 .font(.Pretendard.Medium.size16)
@@ -107,6 +111,17 @@ struct PronunciationErrorScriptView: View {
         .padding(.bottom, 80)
     }
 
+    private static func failureIcon(for failure: TranscriptionFailure) -> (name: String, color: Color) {
+        switch failure {
+        case .modelMissing, .pipelineLoadFailed, .transcribeFailed:
+            // 시스템/모델 단의 오류는 critical 톤(빨강 경고 아이콘).
+            return ("exclamationmark.triangle", Color(hex: "#FF3867"))
+        case .noSpeechDetected:
+            // 발화가 비어있는 informational 케이스는 중립 톤(회색 마이크 아이콘).
+            return ("mic.slash", Color.gray6)
+        }
+    }
+
     private static func failureTitle(for failure: TranscriptionFailure) -> String {
         switch failure {
         case .modelMissing:
@@ -115,6 +130,8 @@ struct PronunciationErrorScriptView: View {
             return "음성 인식 엔진을 불러오지 못했어요."
         case .transcribeFailed:
             return "녹음을 분석하지 못했어요."
+        case .noSpeechDetected:
+            return "분석할 발화가 없어요."
         }
     }
 
@@ -126,6 +143,8 @@ struct PronunciationErrorScriptView: View {
             return "앱을 재실행해도 같은 문제가 반복되면 개발팀에 알려 주세요."
         case .transcribeFailed:
             return "녹음을 다시 시도해 주세요. 반복되면 개발팀에 알려 주세요."
+        case .noSpeechDetected:
+            return "녹음에서 음성이 충분히 감지되지 않았어요.\n다시 녹음해 보세요."
         }
     }
 

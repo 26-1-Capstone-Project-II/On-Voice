@@ -17,8 +17,9 @@ struct PhoneticTranscription: Equatable {
     static let empty = PhoneticTranscription(fullText: "", segments: [])
 }
 
-/// 전사 파이프라인이 실패할 수 있는 분류된 케이스. UI 상에서 단순 빈 결과와
-/// 구분해 사용자/디버깅 대상에게 원인을 노출할 수 있도록 한다.
+/// 전사 파이프라인이 정상적인 success(=비어있지 않은 transcription)를 돌려주지
+/// 못한 모든 경우를 분류해 표현한다. success 타입은 "항상 비어있지 않다"는
+/// 불변식을 갖도록 해, UI/로그가 단순 빈 결과와 실패를 구분할 수 있게 한다.
 enum TranscriptionFailure: Error, Equatable {
     /// 번들에 mlmodelc(AudioEncoder/TextDecoder/MelSpectrogram)가 누락됐거나
     /// Git LFS pull이 빠져 모델 폴더를 찾지 못한 경우
@@ -27,6 +28,11 @@ enum TranscriptionFailure: Error, Equatable {
     case pipelineLoadFailed
     /// 모델은 로드됐으나 실제 추론(`transcribe`) 호출이 실패한 경우
     case transcribeFailed
+    /// 추론은 성공했지만 segment가 0개로 돌아온 경우(무음/노이즈/너무 짧은 클립).
+    /// 기술적 실패가 아닌 informational 분류이며, UI는 "다시 녹음해 주세요" 톤으로
+    /// 노출한다. 이 케이스를 success(빈 결과)로 흘려보내면 사용자도 개발자도
+    /// 모델 로드 실패와 구분할 수 없으므로 명시적으로 failure 사이드에 둔다.
+    case noSpeechDetected
 }
 
 actor WhisperPhoneticTranscriptionService {
@@ -63,6 +69,16 @@ actor WhisperPhoneticTranscriptionService {
                 .flatMap { $0.segments.map(\.text) }
                 .map { $0.trimmingCharacters(in: .whitespaces) }
                 .filter { !$0.isEmpty }
+
+            // segment가 0개면 success로 흘려보내지 않는다. 무음/노이즈/너무 짧은
+            // 클립 등 의미 있는 발화가 잡히지 않은 케이스이며, UI/로그가 모델 로드
+            // 실패 같은 critical 케이스와 구분해 처리할 수 있도록 명시적 failure로
+            // 매핑한다. success 타입은 항상 비어있지 않다는 불변식을 보장한다.
+            guard !segments.isEmpty else {
+                print("WhisperPhoneticTranscriptionService: transcribe returned no segments")
+                return .failure(.noSpeechDetected)
+            }
+
             let fullText = segments.joined(separator: " ")
             return .success(PhoneticTranscription(fullText: fullText, segments: segments))
         } catch {
