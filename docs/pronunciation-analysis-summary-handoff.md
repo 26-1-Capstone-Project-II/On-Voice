@@ -84,26 +84,39 @@ private var difficultyItems: [PronunciationDifficultyItem] {
 
 각 항목은 탭하면 펼쳐지고, `error_img_1` 이미지와 가이드 문구가 표시된다.
 
-## 현재 분석 서비스 상태
+## 현재 분석 서비스 상태 (2026-05 갱신)
 
-`SpeechAnalysisService.analyze()`는 아직 실제 분석을 하지 않는다.
+`SpeechAnalysisService.analyze(url:referenceText:)` 는 **온디바이스 Whisper 음운 전사**까지는 실제로 수행한다. 다만 점수/난이도 산출은 아직 미구현이므로 `isPronunciationEvaluationAvailable: false` 를 그대로 반환한다.
 
 ```swift
 final class SpeechAnalysisService {
+    init(
+        transcriptionService: WhisperPhoneticTranscriptionService = .shared,
+        scriptAnalyzer: PronunciationScriptAnalyzing = PronunciationScriptAnalysisService()
+    ) { ... }
+
     func analyze(url: URL, referenceText: String? = nil) async -> AnalysisResult {
-        AnalysisResult(
-            transcript: "",
+        // 1) 소리나는 대로 전사 (segment 단위로 다문단 보존)
+        let transcription = await transcriptionService.transcribe(url: url)
+        // 2) Whisper segment를 그대로 문단으로 옮긴 raw 스크립트
+        let rawScript = PronunciationErrorScript.makePlainScript(from: transcription.segments)
+        // 3) 분석 단계 (현재는 stub → 입력 그대로 반환, DEBUG 빌드는 데모 errorDetail 주입)
+        let analyzedScript = await scriptAnalyzer.analyze(script: rawScript, referenceText: referenceText)
+
+        return AnalysisResult(
+            transcript: transcription.fullText,
             standardText: referenceText ?? "",
             standardPronunciation: "",
             sentences: [],
             overallAccuracy: 0,
-            isPronunciationEvaluationAvailable: false
+            isPronunciationEvaluationAvailable: false,
+            scriptAnalysis: analyzedScript
         )
     }
 }
 ```
 
-즉 현재는 API 통신, 음성 파일 업로드, 문장별 발음 평가, 오류 유형 산출이 모두 비어 있다.
+즉 현재 구현된 부분은 **전사 → 스크립트 변환 → 다음 화면 전달** 까지이며, 점수/난이도 순위/오류 검출은 비어 있다. 점수가 비어 있으므로 요약 화면은 여전히 fallback 54점을 표시한다.
 
 ## 필요한 API 요약
 
@@ -166,9 +179,25 @@ Content-Type: multipart/form-data
 - `difficultyItems`: 사용자가 어려워하는 발음 유형 순위. 최대 3개 권장
 - `scriptAnalysis`: 다음 화면인 오류 발음 스크립트에서 사용할 문장 단위 상세 분석
 
-## 클라이언트 모델 제안
+## 클라이언트 모델 현황 및 제안
 
-현재 `AnalysisResult`는 점수와 문장 정보만 담고 있어 요약 화면의 순위 데이터를 표현하기 부족하다. 다음처럼 확장하는 것이 좋다.
+현재 `AnalysisResult`는 스크립트 분석 결과까지는 담을 수 있도록 확장되었다(`scriptAnalysis: PronunciationErrorScript`). 다만 점수/난이도 순위 표현용 필드는 아직 없으므로 다음 확장이 권장된다.
+
+현재 정의:
+
+```swift
+struct AnalysisResult {
+    let transcript: String
+    let standardText: String
+    let standardPronunciation: String
+    let sentences: [AnalysisSentence]
+    let overallAccuracy: Double
+    let isPronunciationEvaluationAvailable: Bool
+    let scriptAnalysis: PronunciationErrorScript   // 신규 추가, 기본값 .empty
+}
+```
+
+요약 화면이 실제 점수/순위 데이터를 받기 시작하면 다음 필드를 추가하는 것이 좋다.
 
 ```swift
 struct AnalysisResult {
@@ -184,6 +213,7 @@ struct AnalysisResult {
     let summaryComment: String
     let difficultyItems: [PronunciationDifficultyResult]
     let isPronunciationEvaluationAvailable: Bool
+    let scriptAnalysis: PronunciationErrorScript
 }
 
 struct PronunciationDifficultyResult: Identifiable {
@@ -229,10 +259,16 @@ enum PronunciationScoreLevelResult: String {
 
 ## 남은 작업
 
-- `SpeechAnalysisService`에 실제 API 업로드 구현
-- `AnalysisResult`에 요약 화면용 필드 추가
-- `PronunciationDifficultyItem.samples` 하드코딩 제거
-- 점수 카드 설명 문구를 API 응답으로 교체
-- 상세 화면으로 `scriptAnalysis` 데이터를 전달
-- API 실패, 분석 중, 분석 불가 상태 UI 정리
+완료:
+- [x] `SpeechAnalysisService` 가 온디바이스 Whisper 음운 전사를 수행하고 `scriptAnalysis` 를 채움
+- [x] `AnalysisResult.scriptAnalysis` 필드 추가
+- [x] 상세 화면으로 `scriptAnalysis` 데이터를 전달 (`AnalysisSummaryView` → `PronunciationErrorScriptView`)
+
+미완:
+- [ ] 점수/난이도 산출 알고리즘 — 현재 `isPronunciationEvaluationAvailable: false` 라 점수 카드 fallback 54점이 그대로 보임
+- [ ] `AnalysisResult` 에 `score`, `scoreLevel`, `summaryTitle`, `summaryComment`, `difficultyItems` 등 요약 전용 필드 추가
+- [ ] `PronunciationDifficultyItem.samples` 하드코딩 제거 → 분석 결과 기반으로 교체
+- [ ] 점수 카드 설명 문구 (`AnalysisSummaryView` 내 하드코딩) 를 분석 결과로 교체
+- [ ] 분석 실패/진행 중/분석 불가 상태 UI 정리 (현재 Whisper 로드 실패는 `print` 후 빈 결과 반환)
+- [ ] 백엔드 API 연동 여부 결정 (현재는 모든 처리가 온디바이스)
 
