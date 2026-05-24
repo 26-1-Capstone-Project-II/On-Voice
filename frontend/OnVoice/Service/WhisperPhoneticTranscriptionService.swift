@@ -111,6 +111,16 @@ actor WhisperPhoneticTranscriptionService {
         )
     }
 
+    private static let requiredModelComponents = [
+        "AudioEncoder.mlmodelc",
+        "TextDecoder.mlmodelc",
+        "MelSpectrogram.mlmodelc"
+    ]
+
+    /// WhisperKitConfig(modelFolder:)이 요구하는 세 mlmodelc(AudioEncoder/TextDecoder/
+    /// MelSpectrogram)가 모두 존재하는 폴더만 유효 후보로 본다.
+    /// AudioEncoder 하나만 보고 통과시키면 LFS pull 누락 등으로 일부 파일만 있는 경우에도
+    /// WhisperKit 초기화가 진행되어 런타임 실패로 이어진다.
     private static func resolveLocalModelFolder() -> URL? {
         let bundle = Bundle.main
         let candidates: [URL?] = [
@@ -120,18 +130,27 @@ actor WhisperPhoneticTranscriptionService {
         ]
 
         for candidate in candidates {
-            guard let url = candidate else { continue }
-            if FileManager.default.fileExists(atPath: url.appendingPathComponent("AudioEncoder.mlmodelc").path) {
-                return url
-            }
+            guard let url = candidate, containsAllRequiredComponents(at: url) else { continue }
+            return url
         }
 
         // fileSystemSynchronizedGroups은 폴더 구조를 유지하지 않을 수 있어
-        // mlmodelc가 번들 루트에 평탄화된 경우도 허용한다.
+        // mlmodelc가 번들 루트에 평탄화된 경우도 허용한다. 이때도 세 구성요소가
+        // 같은 위치에 모두 있어야 유효 후보로 본다.
         if let audioEncoder = bundle.url(forResource: "AudioEncoder", withExtension: "mlmodelc") {
-            return audioEncoder.deletingLastPathComponent()
+            let parent = audioEncoder.deletingLastPathComponent()
+            if containsAllRequiredComponents(at: parent) {
+                return parent
+            }
         }
 
         return nil
+    }
+
+    private static func containsAllRequiredComponents(at folder: URL) -> Bool {
+        let fileManager = FileManager.default
+        return requiredModelComponents.allSatisfy { component in
+            fileManager.fileExists(atPath: folder.appendingPathComponent(component).path)
+        }
     }
 }

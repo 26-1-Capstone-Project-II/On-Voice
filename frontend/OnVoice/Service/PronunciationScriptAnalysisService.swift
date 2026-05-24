@@ -7,7 +7,8 @@
 //  다음 작업에서 이 서비스의 구현이 채워질 예정이다. 지금은 분석 알고리즘이
 //  확정되지 않았으므로 원본 UI(빨간 하이라이트 + 탭 → popup card)의 시각적
 //  골격이 살아있는지 확인할 수 있도록 첫 문장에 데모 errorDetail을 주입한다.
-//  실제 분석 로직이 들어오면 이 stub은 통째로 교체된다.
+//  단, 이 데모 분기는 DEBUG 빌드에서만 동작하며 릴리즈 빌드에서는 placeholder가
+//  노출되지 않는다. 실제 분석 로직이 들어오면 이 stub은 통째로 교체된다.
 //
 
 import Foundation
@@ -27,9 +28,10 @@ final class PronunciationScriptAnalysisService: PronunciationScriptAnalyzing {
     ) async -> PronunciationErrorScript {
         guard !script.sentences.isEmpty else { return script }
 
-        // STEP-2 PLACEHOLDER: 첫 문장만 데모용으로 오류 표시한다.
-        // - 자모 정렬 알고리즘이 채워질 때 이 분기는 제거된다.
-        // - 데모 표시임을 명확히 하기 위해 태그 라벨에 "데모"를 박아둔다.
+#if DEBUG
+        // STEP-2 PLACEHOLDER (DEBUG 전용): 첫 문장에 데모 errorDetail을 주입해
+        // 원본 UI의 빨간 하이라이트 + popup card 골격이 살아있는지 시각적으로
+        // 검증한다. 자모 정렬 알고리즘이 채워질 때 이 #if DEBUG 분기는 제거된다.
         var sentences = script.sentences
         let first = sentences[0]
         let placeholder = Self.makeDemoErrorDetail(forSentence: first)
@@ -39,6 +41,9 @@ final class PronunciationScriptAnalysisService: PronunciationScriptAnalyzing {
             errorDetail: placeholder
         )
         return PronunciationErrorScript(sentences: sentences)
+#else
+        return script
+#endif
     }
 
     /// 데모 표시용으로 문장의 첫 어절을 빨간색으로 강조한다.

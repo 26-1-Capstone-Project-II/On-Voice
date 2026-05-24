@@ -49,6 +49,10 @@ class AudioRecorder: ObservableObject {
     private var recorder: AVAudioRecorder?
     private var startTime: Date?
     private var pendingStart: DispatchWorkItem?
+    // 워밍업 워크아이템이 실제 record()를 부르기 전 토큰을 비교해, 워밍업 도중
+    // pause/stop/새 start()가 일어나면 이전 워크아이템은 자동 무효화한다.
+    // DispatchWorkItem.cancel()이 실행 직전 작업을 막지 못하는 레이스를 보강한다.
+    private var pendingStartToken: UUID?
 
     // 마이크 입력 파이프라인이 안정화되기 전 구간(초기 클릭, AGC 릴리즈 등)이
     // 모델에 들어가지 않도록 record() 호출 전에 비워두는 슬립 시간.
@@ -96,14 +100,21 @@ class AudioRecorder: ObservableObject {
             newRecorder.prepareToRecord()
             recorder = newRecorder
 
-            // 워밍업 윈도우 동안 stop()이 들어오면 record() 호출을 취소해야
-            // 빈 녹음이 영구화되지 않는다.
-            let work = DispatchWorkItem { [weak self] in
+            // 워밍업 윈도우 동안 stop()/pause()/새 start()가 들어오면 record() 호출을
+            // 무효화해야 한다. DispatchWorkItem.cancel()은 실행 직전의 작업을 막지 못하므로
+            //   1) pendingStartToken과의 일치 여부로 cancel/replace 케이스 차단
+            //   2) recorder identity 비교로 stop() 직후 다른 인스턴스가 들어선 케이스 차단
+            // 두 가지를 함께 적용해야 빈 녹음 파일이 잘못 영구화되지 않는다.
+            let token = UUID()
+            pendingStartToken = token
+            let work = DispatchWorkItem { [weak self, weak newRecorder] in
                 guard let self else { return }
-                guard let recorder = self.recorder else { return }
-                recorder.record()
+                guard self.pendingStartToken == token else { return }
+                guard let newRecorder, self.recorder === newRecorder else { return }
+                newRecorder.record()
                 self.startTime = Date()
                 self.pendingStart = nil
+                self.pendingStartToken = nil
             }
             pendingStart = work
             DispatchQueue.main.asyncAfter(deadline: .now() + Self.warmupDelay, execute: work)
@@ -115,6 +126,7 @@ class AudioRecorder: ObservableObject {
     func pause() {
         pendingStart?.cancel()
         pendingStart = nil
+        pendingStartToken = nil
         recorder?.pause()
     }
 
@@ -125,6 +137,7 @@ class AudioRecorder: ObservableObject {
     func stop() {
         pendingStart?.cancel()
         pendingStart = nil
+        pendingStartToken = nil
 
         guard let recorder else { return }
 

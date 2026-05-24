@@ -372,7 +372,7 @@ private struct PronunciationDifficultyRow: View {
     NavigationStack {
         AnalysisSummaryView(
             recording: Recording(
-                fileURL: URL(fileURLWithPath: "/tmp/preview.m4a"),
+                fileURL: URL(fileURLWithPath: "/tmp/preview.wav"),
                 createdAt: Date(),
                 duration: 32
             )
