@@ -35,12 +35,20 @@ enum HangulJamo {
         var isHangul: Bool { raw == nil }
 
         /// 결합해 음절 문자열로 복원. 한글 음절이면 한 글자, 아니면 raw 문자 그대로.
+        /// 인덱스가 정상 범위(초성 0..<19, 중성 0..<21, 종성 0..<28) 를 벗어나면
+        /// scalar 가 한글 범위를 넘어가 UnicodeScalar 가 nil 을 돌려줄 수 있다.
+        /// 정상 경로에서는 도달하지 않지만, 향후 규칙 수정 시 크래시 포인트가
+        /// 되지 않도록 fallback 한다.
         var composed: String {
             if let raw {
                 return String(raw)
             }
             let scalar = 0xAC00 + initialIndex * 21 * 28 + medialIndex * 28 + finalIndex
-            return String(UnicodeScalar(scalar)!)
+            guard let unicode = UnicodeScalar(scalar) else {
+                assertionFailure("Invalid Hangul scalar composed: \(scalar) (initial=\(initialIndex), medial=\(medialIndex), final=\(finalIndex))")
+                return ""
+            }
+            return String(unicode)
         }
 
         var initial: Character? {

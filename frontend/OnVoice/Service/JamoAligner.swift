@@ -66,7 +66,14 @@ enum JamoAligner {
             }
         }
 
-        // backtrack
+        // Backtrack tie-break 정책 (비용이 같을 때 어떤 경로를 택할지):
+        //   1) substitution (diagonal) 최우선
+        //   2) expected-only gap (up) 다음
+        //   3) actual-only gap (left) 마지막
+        // 이유: 같은 비용이면 두 음절을 정렬해 대응 관계를 만드는 substitution 이
+        // 사용자 입장에서 "이 음절이 저 음절에 해당한다" 는 정보를 더 많이 준다.
+        // gap 으로 흘려보내면 어느 음절이 빠졌는지만 알 수 있고 대응 음절이 비게 된다.
+        // 이 순서는 같은 입력에 대해 결정적 출력을 보장한다.
         var cells: [AlignmentCell] = []
         var i = m
         var j = n

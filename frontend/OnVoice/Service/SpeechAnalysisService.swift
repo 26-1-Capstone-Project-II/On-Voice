@@ -56,6 +56,14 @@ final class SpeechAnalysisService {
                 return appleText.isEmpty ? nil : appleText
             }()
 
+            if resolvedIntent == nil {
+                // 의도 텍스트가 없으면 G2P 비교가 비활성화되어 오류 검출이 불가능하다.
+                // UI 는 phonetic 전사만 보이고 오류 하이라이트는 사라지므로, 이 분기는
+                // 디버깅 시 명확히 식별되어야 한다. (음성인식 권한 거부, Apple ASR
+                // 침묵, 또는 짧은 발화로 SFSpeechRecognizer 가 빈 결과를 돌려준 케이스)
+                print("SpeechAnalysisService: intentText is nil — Apple ASR returned empty or unauthorized; pronunciation comparison disabled")
+            }
+
             let analyzedScript = await scriptAnalyzer.analyze(
                 phoneticScript: rawScript,
                 intentText: resolvedIntent

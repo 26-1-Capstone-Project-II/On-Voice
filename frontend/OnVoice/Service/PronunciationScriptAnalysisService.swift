@@ -222,12 +222,21 @@ final class PronunciationScriptAnalysisService: PronunciationScriptAnalyzing {
 
     // MARK: - Expected slice
 
+    /// G2P 는 음절 1:1 변환이라 g2p.original 과 g2p.phonetic 의 길이가 동일하다.
+    /// 같은 [lo, hi] 범위로 양쪽을 슬라이스해도 비-한글(공백/구두점) 위치가
+    /// 어긋나지 않는다. 안전을 위해 길이 일치를 명시적으로 가드하고, 어긋나면
+    /// (회귀로 들어왔을 때) full text 로 fallback 한다.
     private static func expectedRangeText(
         refIndices: [Int],
         g2p: G2PResult
     ) -> (original: String, correct: String) {
         let originalFull = HangulJamo.compose(g2p.original)
         let correctFull = g2p.phoneticText
+
+        guard g2p.original.count == g2p.phonetic.count else {
+            assertionFailure("G2P original/phonetic length mismatch — invariant broken")
+            return (originalFull, correctFull)
+        }
         guard let lo = refIndices.min(),
               let hi = refIndices.max(),
               lo <= hi,

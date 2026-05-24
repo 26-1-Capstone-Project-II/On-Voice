@@ -9,6 +9,13 @@
 //  추론은 끊김 없이 끝까지 진행되고, 화면이 돌아오면 같은 Task 의 결과를
 //  await 해 즉시 사용한다.
 //
+//  Task lifecycle 정책:
+//   - analysis(=결과) 와 analysisTask(=진행 중 작업) 는 분리된 상태로 관리한다.
+//   - task 완료 후 analysisTask 는 반드시 nil 로 정리한다(여러 호출자가 같은
+//     task 를 await 할 수 있으므로 `=== task` 동일성 비교 후 한 번만 정리).
+//   - 동일 ViewModel 인스턴스에서 재분석을 허용하려면 analysis 만 nil 로
+//     되돌리고 다시 loadIfNeeded() 를 호출하면 새 task 가 생성된다.
+//
 
 import Combine
 import Foundation
@@ -50,11 +57,15 @@ final class RecordingAnalysisViewModel: ObservableObject {
     func loadIfNeeded() async {
         if analysis != nil { return }
 
-        let task = startAnalysisIfNeeded()
+        let task = ensureAnalysisTask()
 
         // Task<_, Never>.value 는 non-throwing 이라 view 의 .task cancel 이 와도
         // 분석을 중단하지 않고 그대로 끝까지 기다린다. detached 라 cancel 전파도 없음.
         let result = await task.value
+
+        // task 가 끝났으니 정리한다. MainActor 격리라 중복 nil 대입은 멱등이며
+        // race 가 없다. 여러 호출자가 같은 task 를 await 중이어도 안전.
+        analysisTask = nil
 
         if analysis == nil {
             analysis = result
@@ -62,7 +73,13 @@ final class RecordingAnalysisViewModel: ObservableObject {
         isLoading = false
     }
 
-    private func startAnalysisIfNeeded() -> Task<AnalysisResult, Never> {
+    /// 재분석을 원할 때 호출한다. 진행 중 task 는 손대지 않고 결과만 비워두면
+    /// 다음 `loadIfNeeded()` 호출이 새 task 를 시작한다.
+    func invalidate() {
+        analysis = nil
+    }
+
+    private func ensureAnalysisTask() -> Task<AnalysisResult, Never> {
         if let analysisTask { return analysisTask }
 
         isLoading = true

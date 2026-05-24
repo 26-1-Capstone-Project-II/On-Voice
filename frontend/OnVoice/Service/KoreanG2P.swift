@@ -186,14 +186,29 @@ enum KoreanG2P {
             return
         }
         //  2b) 받침 평음(ㄱ/ㄷ/ㅂ/ㅈ 의 종성형) + 초성 ㅎ(18) → 격음 단일 초성으로
+        //      매핑 값: (newFinal, newInitial). 단일 받침은 newFinal = 0 으로 사라지고,
+        //      겹받침(ㄺ/ㄼ 등) 은 앞 자모만 남기고 뒤 자모가 ㅎ 과 결합해 격음이 된다.
+        //      예: 밝히다 → 발키다 (ㄺ + ㅎ → ㄹ + ㅋ),
+        //          넓히다 → 널피다 (ㄼ + ㅎ → ㄹ + ㅍ)
         if onsetIdx == 18 {
-            let aspMap: [Int: Int] = [1: 15, 2: 15, 24: 15, 9: 15,  // ㄱ계 → ㅋ
-                                      7: 16, 19: 16, 20: 16, 22: 16, 23: 16, 25: 16, // ㄷ계 → ㅌ
-                                      17: 17, 26: 17] // ㅂ계 → ㅍ (ㅂ→ㅍ)
-            // 종성 일부는 격음화시 음가가 ㅋ/ㅌ/ㅍ 이 되고 종성이 사라진다.
+            let aspMap: [Int: (newFinal: Int, newInitial: Int)] = [
+                1:  (0, 15),   // ㄱ → 0 + ㅋ
+                2:  (0, 15),   // ㄲ → 0 + ㅋ
+                24: (0, 15),   // ㅋ → 0 + ㅋ
+                9:  (8, 15),   // ㄺ → ㄹ + ㅋ
+                7:  (0, 16),   // ㄷ → 0 + ㅌ
+                19: (0, 16),   // ㅅ → 0 + ㅌ
+                20: (0, 16),   // ㅆ → 0 + ㅌ
+                22: (0, 16),   // ㅈ → 0 + ㅌ
+                23: (0, 16),   // ㅊ → 0 + ㅌ
+                25: (0, 16),   // ㅌ → 0 + ㅌ
+                17: (0, 17),   // ㅂ → 0 + ㅍ
+                26: (0, 17),   // ㅍ → 0 + ㅍ
+                11: (8, 17)    // ㄼ → ㄹ + ㅍ
+            ]
             if let asp = aspMap[finalIdx] {
-                syllables[leftIndex].finalIndex = 0
-                syllables[rightIndex].initialIndex = asp
+                syllables[leftIndex].finalIndex = asp.newFinal
+                syllables[rightIndex].initialIndex = asp.newInitial
                 applications.append(.init(rule: .aspiration, leadingIndex: leftIndex, trailingIndex: rightIndex))
                 return
             }
