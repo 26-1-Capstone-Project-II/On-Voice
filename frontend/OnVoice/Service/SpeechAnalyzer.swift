@@ -32,6 +32,9 @@ final class SpeechAnalyzer: NSObject, ObservableObject, AVSpeechSynthesizerDeleg
     private let synthesizer = AVSpeechSynthesizer()
     private let assessmentService: PronunciationAssessmentService
     private var practiceTargetText: String = ""
+    /// AudioRecorder.start()와 동일한 패턴: 워밍업 슬립 도중 stop/새 startRecording이
+    /// 일어나면 이전 워크가 record()를 부르지 않도록 토큰으로 무효화한다.
+    private var pendingStartToken: UUID?
 
     init(assessmentService: PronunciationAssessmentService = PronunciationAssessmentService()) {
         self.assessmentService = assessmentService
@@ -62,28 +65,52 @@ final class SpeechAnalyzer: NSObject, ObservableObject, AVSpeechSynthesizerDeleg
     }
 
     // MARK: - Recording
+
+    // 마이크 입력 파이프라인이 안정화되기 전 구간이 모델에 들어가지 않도록 두는 슬립.
+    private static let warmupDelay: TimeInterval = 0.15
+
     private func startRecording() async {
         guard !isRecording && canPractice else { return }
         let session = AVAudioSession.sharedInstance()
         do {
-            try session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth])
+            // 발음 평가 입력에는 시스템 신호처리(AGC/AEC/NS)를 끄는 .measurement 모드를 사용한다.
+            try session.setCategory(.playAndRecord, mode: .measurement, options: [.defaultToSpeaker])
+            try session.setPreferredSampleRate(16000)
             try session.setActive(true)
             let url = recordingURL()
+            // Whisper 발음 평가 모델과 동일한 16 kHz mono 16-bit PCM로 녹음한다.
             let settings: [String: Any] = [
-                AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
-                AVSampleRateKey: 44100,
+                AVFormatIDKey: Int(kAudioFormatLinearPCM),
+                AVSampleRateKey: 16000,
                 AVNumberOfChannelsKey: 1,
-                AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
+                AVLinearPCMBitDepthKey: 16,
+                AVLinearPCMIsBigEndianKey: false,
+                AVLinearPCMIsFloatKey: false
             ]
-            recorder = try AVAudioRecorder(url: url, settings: settings)
-            recorder?.record()
+            let newRecorder = try AVAudioRecorder(url: url, settings: settings)
+            newRecorder.prepareToRecord()
+            recorder = newRecorder
+
+            let token = UUID()
+            pendingStartToken = token
+
+            try? await Task.sleep(nanoseconds: UInt64(Self.warmupDelay * 1_000_000_000))
+
+            // 워밍업 도중 stop/새 startRecording/reset 이 일어났다면 record()를 부르지 않는다.
+            //   1) 토큰 일치 검증 — cancel/replace 케이스 차단
+            //   2) recorder identity 검증 — 같은 인스턴스인지 확인
+            guard self.pendingStartToken == token else { return }
+            guard let recorder = self.recorder, recorder === newRecorder else { return }
+            recorder.record()
             isRecording = true
+            pendingStartToken = nil
         } catch {
             print("Record start error:", error)
         }
     }
 
     func stopRecording() async {
+        pendingStartToken = nil
         guard isRecording else { return }
         recorder?.stop()
         isRecording = false
@@ -101,6 +128,7 @@ final class SpeechAnalyzer: NSObject, ObservableObject, AVSpeechSynthesizerDeleg
     }
 
     private func stopRecorderIfNeeded() {
+        pendingStartToken = nil
         if recorder?.isRecording == true { recorder?.stop() }
         recorder = nil
     }
@@ -126,6 +154,6 @@ final class SpeechAnalyzer: NSObject, ObservableObject, AVSpeechSynthesizerDeleg
 
     private func recordingURL() -> URL {
         let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        return dir.appendingPathComponent("practice-\(UUID().uuidString).m4a")
+        return dir.appendingPathComponent("practice-\(UUID().uuidString).wav")
     }
 }

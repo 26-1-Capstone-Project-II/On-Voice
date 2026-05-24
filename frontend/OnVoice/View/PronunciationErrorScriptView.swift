@@ -10,6 +10,8 @@ import SwiftUI
 struct PronunciationErrorScriptView: View {
     @Environment(\.dismiss) private var dismiss
 
+    let script: PronunciationErrorScript
+    let transcriptionFailure: TranscriptionFailure?
     let onFinish: (() -> Void)?
 
     @State private var selectedSentenceID: UUID?
@@ -17,10 +19,13 @@ struct PronunciationErrorScriptView: View {
     @State private var attempts: [PronunciationPracticeAttempt] = []
     @State private var nextAttemptIndex = 0
 
-    // TODO: Replace this fixture with AI model output when pronunciation analysis is connected.
-    private let script = PronunciationErrorScript.sample
-
-    init(onFinish: (() -> Void)? = nil) {
+    init(
+        script: PronunciationErrorScript = .empty,
+        transcriptionFailure: TranscriptionFailure? = nil,
+        onFinish: (() -> Void)? = nil
+    ) {
+        self.script = script
+        self.transcriptionFailure = transcriptionFailure
         self.onFinish = onFinish
     }
 
@@ -46,6 +51,14 @@ struct PronunciationErrorScriptView: View {
                         }
                     }
 
+                    if script.isEmpty {
+                        if let transcriptionFailure {
+                            failureStateView(transcriptionFailure)
+                        } else {
+                            emptyStateView
+                        }
+                    }
+
                     if let selectedSentence {
                         outsideSheetDismissLayer
 
@@ -60,6 +73,79 @@ struct PronunciationErrorScriptView: View {
         }
         .navigationBarHidden(true)
         .toolbar(.hidden, for: .tabBar)
+    }
+
+    // 이 화면은 항상 분석 단계 이후 진입하고, Whisper 추론은 segment가 0개일 때도
+    // .failure(.noSpeechDetected)로 매핑되어 failureStateView 분기로 흐른다.
+    // 따라서 이 emptyStateView는 이론상 도달하지 않는 defensive 분기로만 남는다.
+    private var emptyStateView: some View {
+        VStack(spacing: 8) {
+            Text("분석 결과가 비어있어요.")
+                .font(.Pretendard.Medium.size16)
+                .foregroundStyle(Color.sub)
+            Text("앱을 재실행해도 같은 문제가 반복되면 개발팀에 알려 주세요.")
+                .font(.Pretendard.Medium.size14)
+                .foregroundStyle(Color.gray6)
+                .multilineTextAlignment(.center)
+        }
+        .padding(.horizontal, Layout.horizontalPadding)
+        .padding(.bottom, 80)
+    }
+
+    private func failureStateView(_ failure: TranscriptionFailure) -> some View {
+        let style = Self.failureIcon(for: failure)
+        return VStack(spacing: 8) {
+            Image(systemName: style.name)
+                .font(.system(size: 32, weight: .regular))
+                .foregroundStyle(style.color)
+                .padding(.bottom, 4)
+            Text(Self.failureTitle(for: failure))
+                .font(.Pretendard.Medium.size16)
+                .foregroundStyle(Color.sub)
+            Text(Self.failureMessage(for: failure))
+                .font(.Pretendard.Medium.size14)
+                .foregroundStyle(Color.gray6)
+                .multilineTextAlignment(.center)
+        }
+        .padding(.horizontal, Layout.horizontalPadding)
+        .padding(.bottom, 80)
+    }
+
+    private static func failureIcon(for failure: TranscriptionFailure) -> (name: String, color: Color) {
+        switch failure {
+        case .modelMissing, .pipelineLoadFailed, .transcribeFailed:
+            // 시스템/모델 단의 오류는 critical 톤(빨강 경고 아이콘).
+            return ("exclamationmark.triangle", Color(hex: "#FF3867"))
+        case .noSpeechDetected:
+            // 발화가 비어있는 informational 케이스는 중립 톤(회색 마이크 아이콘).
+            return ("mic.slash", Color.gray6)
+        }
+    }
+
+    private static func failureTitle(for failure: TranscriptionFailure) -> String {
+        switch failure {
+        case .modelMissing:
+            return "음성 인식 모델을 찾지 못했어요."
+        case .pipelineLoadFailed:
+            return "음성 인식 엔진을 불러오지 못했어요."
+        case .transcribeFailed:
+            return "녹음을 분석하지 못했어요."
+        case .noSpeechDetected:
+            return "분석할 발화가 없어요."
+        }
+    }
+
+    private static func failureMessage(for failure: TranscriptionFailure) -> String {
+        switch failure {
+        case .modelMissing:
+            return "앱을 다시 설치하거나, 개발 빌드라면 git lfs pull로 모델 파일을 받아 주세요."
+        case .pipelineLoadFailed:
+            return "앱을 재실행해도 같은 문제가 반복되면 개발팀에 알려 주세요."
+        case .transcribeFailed:
+            return "녹음을 다시 시도해 주세요. 반복되면 개발팀에 알려 주세요."
+        case .noSpeechDetected:
+            return "녹음에서 음성이 충분히 감지되지 않았어요.\n다시 녹음해 보세요."
+        }
     }
 
     private var outsideSheetDismissLayer: some View {
@@ -256,9 +342,7 @@ struct PronunciationErrorScriptView: View {
     }
 
     private func appendDummyAttempt() {
-        // Keep only the latest practice result. The real model should overwrite this
-        // with the newest recognition/evaluation result for the selected sentence.
-        let templates = selectedSentence?.dummyAttempts ?? PronunciationPracticeAttempt.samples
+        guard let templates = selectedSentence?.dummyAttempts, !templates.isEmpty else { return }
         attempts = [templates[nextAttemptIndex % templates.count]]
         nextAttemptIndex += 1
     }
@@ -290,10 +374,8 @@ struct PronunciationErrorScriptView: View {
         dismissSelectedSentence()
 
         if let onFinish {
-            // Parent-owned cleanup, such as resetting selectedRecording or moving to Home.
             onFinish()
         } else {
-            // Plain navigation fallback for entry points that do not need parent cleanup.
             dismiss()
         }
     }
@@ -358,230 +440,16 @@ private struct VoiceWaveformView: View {
     }
 }
 
-// MARK: - Demo Fixtures
-
-private struct PronunciationErrorScript {
-    let sentences: [PronunciationTranscriptSentence]
-
-    // Fixture data for the UI-only phase. This should be built from real analysis DTOs later.
-    // Nonstandard strings such as "오느른", "됃따고", and "아드데" intentionally mimic
-    // pronunciation spellings or user error outputs for UI verification.
-    static let sample: PronunciationErrorScript = {
-        let hungerError = PronunciationErrorSentence.hungerSample
-        let baseballError = PronunciationErrorSentence.baseballSample
-
-        return PronunciationErrorScript(sentences: [
-            PronunciationTranscriptSentence(segments: [
-                .normal("사실 오늘 너무 배고파서 점심 먹고 나서도 맥도날드 가서 베이컨 토마토 디럭스 세트에 스낵랩까지 먹었잖아. ")
-            ]),
-            PronunciationTranscriptSentence(
-                segments: [
-                    .normal("근데도 저녁 시간 됐다고 "),
-                    .error("어떻게"),
-                    .normal(" 바로 배고프냐. ")
-                ],
-                errorDetail: hungerError
-            ),
-            PronunciationTranscriptSentence(segments: [
-                .normal("나 요즘 야구에 빠져 가지고 6시 30분만 되면 음식 들고 TV 앞에 앉아야 돼. 그래서 그런가? 진짜 6시 30분만 되면 밥을 먹어야될 것 같아서 그런지 그 이전에 뭘 먹든 일단 그 때만 되면 배고파. ")
-            ]),
-            PronunciationTranscriptSentence(
-                segments: [
-                    .normal("오늘은 "),
-                    .error("키움 히어로즈랑"),
-                    .normal(" 고척에서 경기를 "),
-                    .error("하는데"),
-                    .normal(" 아까 "),
-                    .error("4회 초까지만 해도"),
-                    .normal(" 쓰리런 치고 "),
-                    .error("솔로포"),
-                    .normal(" 치고 "),
-                    .error("장난 아니었는데"),
-                    .normal(" 점수 5점 먼저 냈다고 "),
-                    .error("투수가"),
-                    .normal(" 막 던져서 지금 5대5 "),
-                    .error("동점이야"),
-                    .normal(". ")
-                ],
-                errorDetail: baseballError
-            ),
-            PronunciationTranscriptSentence(segments: [
-                .normal("오늘 선발 최민석이라 그래도 믿었는데 4회만에 내려갔어.")
-            ])
-        ])
-    }()
-}
-
-private struct PronunciationTranscriptSentence: Identifiable {
-    let id = UUID()
-    let segments: [PronunciationTextSegment]
-    let errorDetail: PronunciationErrorSentence?
-
-    init(
-        segments: [PronunciationTextSegment],
-        errorDetail: PronunciationErrorSentence? = nil
-    ) {
-        self.segments = segments
-        self.errorDetail = errorDetail
-    }
-}
-
-private struct PronunciationErrorSentence: Identifiable {
-    let id = UUID()
-    let originalSegments: [PronunciationTextSegment]
-    let correctSegments: [PronunciationTextSegment]
-    let userAttemptSegments: [PronunciationTextSegment]
-    let errorTypes: [PronunciationErrorType]
-    let dummyAttempts: [PronunciationPracticeAttempt]
-
-    static let hungerSample = PronunciationErrorSentence(
-        originalSegments: [
-            .muted("근데도 저녁 시간 됐다고 어떻게 바로 배고프냐.")
-        ],
-        correctSegments: [
-            .normal("근데도 저녁 시간 됃따고 "),
-            .normal("어떠케"),
-            .normal(" 바로 배고프냐.")
-        ],
-        userAttemptSegments: [
-            .normal("근데도 저녁 시간 됃따고 "),
-            .error("어떠게"),
-            .normal(" 바로 배고프냐.")
-        ],
-        errorTypes: [
-            PronunciationErrorType(title: "혼/겹모음 혼동", isDifficult: false),
-            PronunciationErrorType(title: "초성 대치", isDifficult: true)
-        ],
-        dummyAttempts: [
-            PronunciationPracticeAttempt(
-                segments: [
-                    .normal("근데도 저녁 시간 됃따고 "),
-                    .error("어떠게"),
-                    .normal(" 바로 배고프냐.")
-                ]
-            ),
-            PronunciationPracticeAttempt(
-                segments: [
-                    .normal("근데도 저녁 시간 됃따고 "),
-                    .success("어떠케"),
-                    .normal(" 바로 배고프냐.")
-                ]
-            )
-        ]
-    )
-
-    static let baseballSample = PronunciationErrorSentence(
-        originalSegments: [
-            .muted("오늘은 키움 히어로즈랑 고척에서 경기를 하는데 아까 4회 초까지만 해도 쓰리런 치고 솔로포 치고 장난 아니었는데 점수 5점 먼저 냈다고 투수가 막 던져서 지금 5대5 동점이야.")
-        ],
-        correctSegments: [
-            .normal("오느른 "),
-            .normal("키움"),
-            .normal(" 히어로즈랑 고처게서 경기를 하는데 아까 사회 초까지만 해도 쓰리런 치고 솔로포 치고 장난 아니언는데 오점 먼저 낻따고 투수가 막 던져서 지금 오대오 동저미야.")
-        ],
-        userAttemptSegments: [
-            .normal("오느른 "),
-            .error("기움"),
-            .normal(" 히어로즈랑 고처게서 경기를 하는데 아까 사"),
-            .error("에"),
-            .normal(" 초까지"),
-            .error("마 내"),
-            .normal("도 쓰리런 치고 솔로"),
-            .error("보"),
-            .normal(" 치고 장"),
-            .error("다 아디어드데"),
-            .normal(" 오점 먼저 낻따고 투"),
-            .error("슈"),
-            .normal("가 막 던저서 지금 오대오 동저"),
-            .error("비"),
-            .normal("야.")
-        ],
-        errorTypes: [
-            PronunciationErrorType(title: "혼/겹모음 혼동", isDifficult: false),
-            PronunciationErrorType(title: "종성 오류", isDifficult: true),
-            PronunciationErrorType(title: "초성 대치", isDifficult: false)
-        ],
-        dummyAttempts: PronunciationPracticeAttempt.samples
-    )
-}
-
-private struct PronunciationPracticeAttempt: Identifiable {
-    let id = UUID()
-    let segments: [PronunciationTextSegment]
-
-    static let samples: [PronunciationPracticeAttempt] = [
-        PronunciationPracticeAttempt(
-            segments: [
-                .success("오느른 "),
-                .error("기움"),
-                .success(" 히어로즈랑 고처게서 경기를 "),
-                .error("아드데"),
-                .success(" 아까 사에 초까지마 "),
-                .error("내"),
-                .success("도 쓰리런 치고 솔로"),
-                .error("보"),
-                .success(" 치고 장"),
-                .error("다"),
-                .success(" 아니언드데 오점 먼저 낻따고 투"),
-                .error("슈"),
-                .success("가 막 던저서 지금 오대오 동저"),
-                .error("비"),
-                .success("야.")
-            ]
-        ),
-        PronunciationPracticeAttempt(
-            segments: [
-                .success("오느른 "),
-                .success("키움 히어로즈랑"),
-                .success(" 고처게서 경기를 "),
-                .error("아드데"),
-                .success(" 아까 사헤 초까지마 "),
-                .success("해도"),
-                .success(" 쓰리런 치고 솔로"),
-                .error("보"),
-                .success(" 치고 장"),
-                .success("난 아니언는데"),
-                .success(" 오점 먼저 낻따고 투스가 막 던저서 지금 오대오 동저미야.")
-            ]
-        )
-    ]
-}
-
-private struct PronunciationErrorType: Identifiable {
-    let id = UUID()
-    let title: String
-    let isDifficult: Bool
-    let accentColor = Color(hex: "#FFA0A0")
-}
-
-private struct PronunciationTextSegment: Identifiable {
-    let id = UUID()
-    let text: String
-    let color: Color
-
-    static func normal(_ text: String) -> PronunciationTextSegment {
-        PronunciationTextSegment(text: text, color: Color.sub)
-    }
-
-    static func muted(_ text: String) -> PronunciationTextSegment {
-        PronunciationTextSegment(text: text, color: Color.gray6)
-    }
-
-    static func error(_ text: String) -> PronunciationTextSegment {
-        PronunciationTextSegment(text: text, color: Color(hex: "#FF3867"))
-    }
-
-    static func emphasis(_ text: String) -> PronunciationTextSegment {
-        PronunciationTextSegment(text: text, color: Color.main)
-    }
-
-    static func success(_ text: String) -> PronunciationTextSegment {
-        PronunciationTextSegment(text: text, color: Color.main)
-    }
-}
-
 #Preview {
     NavigationStack {
-        PronunciationErrorScriptView()
+        PronunciationErrorScriptView(
+            script: PronunciationErrorScript.makePlainScript(
+                from: [
+                    "오느른 키움 히어로즈랑 고처게서 경기를 하는데",
+                    "아까 사회 초까지만 해도 쓰리런 치고 솔로포 치고 장난 아니언는데",
+                    "점수 오점 먼저 낻따고 투수가 막 던져서 지금 오대오 동저미야."
+                ]
+            )
+        )
     }
 }

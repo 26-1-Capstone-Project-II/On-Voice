@@ -136,7 +136,11 @@ struct AnalysisSummaryView: View {
     private var bottomButton: some View {
         VStack(spacing: 0) {
             NavigationLink(isActive: $goToPractice) {
-                PronunciationErrorScriptView(onFinish: onFinish)
+                PronunciationErrorScriptView(
+                    script: viewModel.analysis?.scriptAnalysis ?? .empty,
+                    transcriptionFailure: viewModel.analysis?.transcriptionFailure,
+                    onFinish: onFinish
+                )
             } label: {
                 EmptyView()
             }
@@ -369,7 +373,7 @@ private struct PronunciationDifficultyRow: View {
     NavigationStack {
         AnalysisSummaryView(
             recording: Recording(
-                fileURL: URL(fileURLWithPath: "/tmp/preview.m4a"),
+                fileURL: URL(fileURLWithPath: "/tmp/preview.wav"),
                 createdAt: Date(),
                 duration: 32
             )
