@@ -9,10 +9,11 @@
 //  추론은 끊김 없이 끝까지 진행되고, 화면이 돌아오면 같은 Task 의 결과를
 //  await 해 즉시 사용한다.
 //
-//  Unstructured `Task { ... }` 는 SwiftUI .task 와 부모-자식 관계가 아니므로
-//  cancel 이 전파되지 않는다. MainActor context 는 그대로 상속하지만 analyze()
-//  내부가 nonisolated async / actor 호출 위주라 main thread 를 길게 점유하지
-//  않는다. detached 와 달리 actor isolation 이 보존되어 디버깅이 단순하다.
+//  `Task.detached` 로 시작점도 MainActor 가 아닌 global executor 에 둔다.
+//  분석 서비스(SpeechAnalysisService)가 actor 가 아닌 final class 이므로
+//  상속할 actor isolation 이 처음부터 없고, MainActor 점유로 인한 UI 스레드 부담을
+//  완전히 제거한다. 내부에서 호출하는 WhisperKit 등은 자체적으로 actor isolation
+//  을 가지고 있어 hop 으로 처리된다. cancel 전파도 끊겨 view .task 영향 받지 않음.
 //
 //  Task lifecycle 정책:
 //   - analysis(결과) / analysisTask(진행 중 작업) / loadGeneration(invalidate 토큰)
@@ -100,7 +101,7 @@ final class RecordingAnalysisViewModel: ObservableObject {
         isLoading = true
         let url = recording.fileURL
         let service = analysisService
-        let task = Task { @MainActor in
+        let task = Task.detached(priority: .userInitiated) {
             await service.analyze(url: url, referenceText: nil)
         }
         analysisTask = task

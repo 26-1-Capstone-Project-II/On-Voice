@@ -74,16 +74,16 @@ final class PronunciationScriptAnalysisServiceTests: XCTestCase {
 
     func testFirstCellExpectedOnlyGapHandledSafely() async {
         // intent: "안녕하세요" (5음절) vs hyp: "녕하세요" (4음절, 첫 음절 누락)
-        // → 첫 cell 이 expected-only gap. 누락된 음절은 hyp 상에 빨강으로 표시할
-        //   자리가 없어 errorDetail 은 만들어지지 않으며, segment 텍스트는 그대로 유지.
-        //   첫 segment 에 오탐(잘못된 빨강 색칠) 이 주입되지 않는지 검증.
+        // → 첫 cell 이 expected-only gap. errorDetail 은 popup 안내용으로 생성되지만,
+        //   메인 스크립트에는 잘못된 빨강 색칠이 주입되지 않아야 한다.
         let input = script(["녕하세요"])
         let result = await service.analyze(phoneticScript: input, intentText: "안녕하세요")
         let sentence = result.sentences[0]
-        XCTAssertNil(sentence.errorDetail)
+        // errorDetail 은 누락 음절을 popup 에 표시하기 위해 생성됨
+        XCTAssertNotNil(sentence.errorDetail)
         let joined = sentence.segments.map(\.text).joined()
         XCTAssertEqual(joined, "녕하세요 ")
-        // 색칠된 segment 가 없어야 함 (전부 normal)
+        // 메인 스크립트 색칠은 normal 만 (오탐 없음)
         XCTAssertTrue(sentence.segments.allSatisfy { $0.status == .normal })
     }
 
@@ -101,6 +101,44 @@ final class PronunciationScriptAnalysisServiceTests: XCTestCase {
         // hyp 가 "고처 게서" 면 오류 없음.
         let input = script(["고처 게서"])
         let result = await service.analyze(phoneticScript: input, intentText: "고척 에서")
+        XCTAssertNil(result.sentences[0].errorDetail)
+    }
+
+    // MARK: - 누락 음절 errorDetail 보존
+
+    func testDroppedSyllablePreservesErrorDetailForPopup() async {
+        // intent: "안녕하세요" (5음절) vs hyp: "녕하세요" (4음절).
+        // hyp 측에 색칠 자리는 없지만 정답 발음을 popup 으로 보여줘야 하므로
+        // errorDetail 이 생성되어야 한다.
+        let input = script(["녕하세요"])
+        let result = await service.analyze(phoneticScript: input, intentText: "안녕하세요")
+        let sentence = result.sentences[0]
+        XCTAssertNotNil(sentence.errorDetail)
+        // 메인 스크립트 텍스트는 그대로(누락된 음절을 잘못 색칠하지 않음)
+        XCTAssertTrue(sentence.segments.allSatisfy { $0.status == .normal })
+        // popup 의 correctSegments 에 누락된 음절을 포함한 ref 발음이 포함되어야 한다.
+        let correctText = sentence.errorDetail?.correctSegments.map(\.text).joined() ?? ""
+        XCTAssertTrue(correctText.contains("안"))
+    }
+
+    func testMultipleDroppedSyllablesProduceErrorDetail() async {
+        // intent: "오늘은 학교에 갔어요" vs hyp: "학교에 갔어요" (앞 2어절 누락).
+        // 누락 음절이 여러 개여도 한 segment 의 errorDetail 로 정확히 채워진다.
+        let input = script(["학꾜에 가써요"])
+        let result = await service.analyze(
+            phoneticScript: input,
+            intentText: "오늘은 학교에 갔어요"
+        )
+        let sentence = result.sentences[0]
+        XCTAssertNotNil(sentence.errorDetail)
+    }
+
+    // MARK: - 비-한글 segment
+
+    func testAllPunctuationSegmentNotMarkedAsError() async {
+        // segment 가 전부 비-한글이면 분류/색칠 대상 자체가 없어 오류 없음.
+        let input = script(["..."])
+        let result = await service.analyze(phoneticScript: input, intentText: "...")
         XCTAssertNil(result.sentences[0].errorDetail)
     }
 }

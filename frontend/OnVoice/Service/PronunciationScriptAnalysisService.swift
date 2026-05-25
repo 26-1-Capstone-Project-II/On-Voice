@@ -148,6 +148,9 @@ final class PronunciationScriptAnalysisService: PronunciationScriptAnalyzing {
         // lastSegment 부착 정책으로 segment 경계를 넘는 expectedIndex 를 가져올
         // 수 있어 popup 범위가 잘못 잡힐 수 있으므로 제외한다.
         var refIndicesInSegment: [Int] = []
+        // 사용자가 발음하지 않고 빠뜨린(=expected-only gap) 한글 음절이 있는지.
+        // 색칠 자리는 없지만 popup 에 정답 발음을 보여주기 위해 errorDetail 은 만들어야 한다.
+        var hasDroppedExpected = false
 
         for cell in cells {
             if cell.actualIndex != nil, let ei = cell.expectedIndex {
@@ -176,6 +179,10 @@ final class PronunciationScriptAnalysisService: PronunciationScriptAnalyzing {
                         syllableHasError[localIdx] = true
                     }
                 }
+            } else if cell.expected?.isHangul == true {
+                // hyp 자리가 없는 누락된 한글 음절. expectedIndex 도 popup 범위에 포함.
+                if let ei = cell.expectedIndex { refIndicesInSegment.append(ei) }
+                hasDroppedExpected = true
             }
         }
 
@@ -184,7 +191,12 @@ final class PronunciationScriptAnalysisService: PronunciationScriptAnalyzing {
             syllableHasError: syllableHasError
         )
 
-        let hasAnyError = syllableHasError.contains(true)
+        // errorDetail 생성 트리거는 두 가지:
+        //   1) hyp 측에 색칠할 음절이 있음 (사용자가 다르게 발음)
+        //   2) ref 에 있지만 hyp 에 없는 한글 음절이 있음 (사용자가 누락)
+        // 둘 중 하나라도 있으면 popup 을 띄울 가치가 있다. 분류 결과는 잡혔는데
+        // 색칠 대상이 없다고 errorDetail 을 통째로 버리는 silent 데이터 손실을 막는다.
+        let hasAnyError = syllableHasError.contains(true) || hasDroppedExpected
         guard hasAnyError else {
             return PronunciationTranscriptSentence(
                 segments: [.normal(segmentText)],

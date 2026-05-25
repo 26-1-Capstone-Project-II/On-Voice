@@ -59,25 +59,8 @@ final class SpeechAnalysisService {
                 return appleText.isEmpty ? nil : appleText
             }()
 
-            // 권한 거부와 빈 결과를 구분해 디버깅/지원 시 사유를 명확히 한다.
-            // UI 는 두 케이스에 대해 동일한 안내 배너를 보여주되, 로그는 사유를 분리.
-            let limitation: AnalysisLimitation? = {
-                guard resolvedIntent == nil else { return nil }
-                let status = intentService.authorizationStatus
-                if status != .authorized {
-                    return .speechAuthorizationDenied
-                }
-                return .intentTextEmpty
-            }()
-
-            switch limitation {
-            case .speechAuthorizationDenied:
-                logger.error("Speech recognition not authorized — pronunciation comparison disabled")
-            case .intentTextEmpty:
-                logger.info("Apple ASR returned empty intent text — pronunciation comparison disabled")
-            case .none:
-                break
-            }
+            let limitation = resolveLimitation(intentText: resolvedIntent)
+            logLimitation(limitation)
 
             let analyzedScript = await scriptAnalyzer.analyze(
                 phoneticScript: rawScript,
@@ -108,6 +91,29 @@ final class SpeechAnalysisService {
                 transcriptionFailure: failure,
                 limitation: nil
             )
+        }
+    }
+
+    // MARK: - Limitation helpers
+
+    /// 권한 거부 / 빈 결과 / 정상의 세 갈래를 분리해 사유를 명확히 한다.
+    /// UI 는 두 limitation 케이스를 동일한 배너로 안내하지만, 로그/지원은 분기를 보존.
+    private func resolveLimitation(intentText: String?) -> AnalysisLimitation? {
+        guard intentText == nil else { return nil }
+        if intentService.authorizationStatus != .authorized {
+            return .speechAuthorizationDenied
+        }
+        return .intentTextEmpty
+    }
+
+    private func logLimitation(_ limitation: AnalysisLimitation?) {
+        switch limitation {
+        case .speechAuthorizationDenied:
+            logger.error("Speech recognition not authorized — pronunciation comparison disabled")
+        case .intentTextEmpty:
+            logger.info("Apple ASR returned empty intent text — pronunciation comparison disabled")
+        case .none:
+            break
         }
     }
 }

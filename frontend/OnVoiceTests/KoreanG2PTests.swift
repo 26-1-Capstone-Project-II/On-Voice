@@ -117,4 +117,36 @@ final class KoreanG2PTests: XCTestCase {
         let result = KoreanG2P.apply("학교")
         XCTAssertTrue(result.applications.contains { $0.rule == .tensification })
     }
+
+    // MARK: - 규칙 충돌/우선순위
+
+    func testLinkingPrecedesNeutralizationForClusterFinal() {
+        // 닭이 → 달기 (받침 ㄺ + 초성 ㅇ + 모음 ㅣ).
+        // 연음이 먼저 적용되어 ㄱ 이 다음 음절 초성으로 이동. 종성은 ㄹ 만 남음.
+        // 종성 중화(ㄺ→ㄱ)가 먼저 적용되면 "닥이" → "다기" 가 되어 표준과 다름.
+        XCTAssertEqual(KoreanG2P.apply("닭이").phoneticText, "달기")
+    }
+
+    func testNasalizationOnClusterFinalBeforeNasalInitial() {
+        // 닭만 → 당만 (ㄺ + ㅁ): ㄺ 을 평폐쇄음 ㄱ 으로 환산 후 비음화 ㄱ→ㅇ
+        XCTAssertEqual(KoreanG2P.apply("닭만").phoneticText, "당만")
+    }
+
+    func testAspirationOnClusterFinalRk() {
+        // 밝히다 → 발키다. 격음화가 받침 처리(ㄺ→ㄹ+ㅋ)를 정확히 분해해야 한다.
+        XCTAssertEqual(KoreanG2P.apply("밝히다").phoneticText, "발키다")
+    }
+
+    func testPalatalizationPrecedesLinking() {
+        // 밭이 → 바치. 구개음화가 연음보다 먼저 적용되어 ㅌ 이 ㅊ 으로 변형됨.
+        // 연음만 적용되면 "바티" 가 되어 표준과 다름.
+        XCTAssertEqual(KoreanG2P.apply("밭이").phoneticText, "바치")
+    }
+
+    func testNeutralizationOnlyAtFinalHangulPosition() {
+        // 옆집 → 엽찝: 옆 받침 ㅍ 은 어절 사이 경음화 트리거로 평폐쇄음 ㅂ 으로 정리되고
+        // 다음 음절 초성 ㅈ → ㅉ 으로 경음화된다. 마지막 음절 집 의 받침 ㅂ 은
+        // 시퀀스 끝 중화 대상이라 ㅂ 그대로 유지된다.
+        XCTAssertEqual(KoreanG2P.apply("옆집").phoneticText, "엽찝")
+    }
 }

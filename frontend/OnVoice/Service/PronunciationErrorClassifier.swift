@@ -132,13 +132,20 @@ enum PronunciationErrorClassifier {
             }
         }
 
-        // 종성 비음화: 폐쇄음 ↔ 비음 (ㄱ↔ㅇ, ㄷ↔ㄴ, ㅂ↔ㅁ)
-        // ref/hyp 양측을 평폐쇄음 그룹으로 환산한 뒤 매칭한다.
-        // hyp 이 ㄲ/ㅋ/ㅍ/ㅅ/ㅆ/ㅈ/ㅊ/ㅌ/ㅎ 등 비평폐쇄음 종성을 발음했더라도
-        // 중화 매핑으로 ㄱ/ㄷ/ㅂ 으로 정렬해 표준 발음 기준 비교가 가능하다.
-        let stopMap = KoreanPhonemeRules.finalStopToNasal
-        if stopMap[KoreanPhonemeRules.plainStopOf(refFinal)] == hypFinal
-            || stopMap[KoreanPhonemeRules.plainStopOf(hypFinal)] == refFinal {
+        // 종성 비음화: 명시적 쌍 ㄱ↔ㅇ, ㄷ↔ㄴ, ㅂ↔ㅁ 만 허용.
+        //
+        // ref 는 G2P 적용 결과라 종성이 이미 정리되어 있다고 가정하고 그대로 본다.
+        // hyp 측은 ASR 이 ㄲ/ㅋ/ㅍ/ㅅ/ㅆ/ㅈ/ㅊ/ㅌ/ㅎ 같은 비평폐쇄음 종성을 잡았을 수
+        // 있어 한 번 평폐쇄음으로 중화(plainStopOf)한 뒤 비교한다. 그 외 케이스는
+        // finalNasalization 으로 흡수되지 않고 후속 분기로 흘려보낸다.
+        let stopToNasal = KoreanPhonemeRules.finalStopToNasal
+        let neutralizedHyp = KoreanPhonemeRules.plainStopOf(hypFinal)
+        // (a) ref 가 평폐쇄음(ㄱ/ㄷ/ㅂ) 이고 hyp 이 같은 위치 비음
+        if stopToNasal[refFinal] == neutralizedHyp {
+            return .finalNasalization
+        }
+        // (b) ref 가 비음(ㅇ/ㄴ/ㅁ) 이고 hyp 이 같은 위치 평폐쇄음 (또는 중화 후 평폐쇄음)
+        if stopToNasal[neutralizedHyp] == refFinal {
             return .finalNasalization
         }
 
