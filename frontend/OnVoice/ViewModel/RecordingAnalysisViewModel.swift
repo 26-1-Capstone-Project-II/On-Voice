@@ -87,10 +87,16 @@ final class RecordingAnalysisViewModel: ObservableObject {
         if analysis == nil { analysis = result }
     }
 
-    /// 재분석을 원할 때 호출한다. 진행 중 task 의 결과는 stale 로 처리되며
+    /// 재분석을 원할 때 호출한다. 진행 중 task 가 있으면 cancel 신호를 보내고
+    /// 결과는 loadGeneration 토큰으로 stale 처리되어 새 상태를 덮어쓰지 않는다.
     /// 다음 `loadIfNeeded()` 호출에서 새 task 가 생성된다.
+    ///
+    /// Note: detached task 의 cancel 은 WhisperKit/SFSpeechRecognizer 가 협력해야
+    /// 실제 중단된다. 협력하지 않으면 task 는 background 에서 끝까지 도지만,
+    /// loadGeneration 가드로 결과 적용은 차단된다 — 부작용은 CPU/배터리 소량 낭비.
     func invalidate() {
         loadGeneration &+= 1
+        analysisTask?.cancel()
         analysis = nil
         analysisTask = nil
     }

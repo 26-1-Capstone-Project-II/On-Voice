@@ -72,6 +72,44 @@ final class PronunciationAnalysisSnapshotTests: XCTestCase {
             "누락된 음절은 hyp 에 표시할 자리가 없어 errorTexts 가 비어야 함")
     }
 
+    func testSnapshot_boundaryGapSplit() async {
+        // 자연어 시나리오. G2P 가 "잘있" 부분에 변환을 일으켜 segment 1 에 색칠이
+        // 부수적으로 잡힐 수 있으므로 errorTexts 값 자체는 검증하지 않는다.
+        // 핵심 시그니처: 두 segment 모두 errorDetail 이 생성됐는지(=gap 분배가 양쪽에 이뤄짐).
+        let snapshot = await snapshot(for: AnalysisFixtures.boundaryGapSplit)
+        XCTAssertEqual(snapshot.sentences.count, 2)
+        XCTAssertTrue(snapshot.sentences[0].hasErrorDetail,
+            "segment 0 (안녕) 에 직후 누락 음절이 부착되지 않음 — gap 분배 회귀")
+        XCTAssertTrue(snapshot.sentences[1].hasErrorDetail,
+            "segment 1 (잘있나요) 에 직전 누락 음절이 부착되지 않음 — gap 분배 회귀")
+    }
+
+    func testSnapshot_linkingMisrecognized() async {
+        // 약한 시그니처 fallback 회귀 방지: ASR 오인식으로 strict 매칭이 실패해도
+        // 종성 연음화로 분류되어야 dropout 과대 흡수를 막을 수 있다.
+        let snapshot = await snapshot(for: AnalysisFixtures.linkingMisrecognized)
+        XCTAssertEqual(snapshot.sentences.count, 1)
+        XCTAssertTrue(snapshot.sentences[0].topCategories.contains("종성 연음화"),
+            "ASR 오인식 케이스가 dropout 으로 흡수됨 — 약한 시그니처 fallback 회귀")
+    }
+
+    func testSnapshot_boundaryGapSplitSimple() async {
+        // ref "가나다라마바사" 를 hyp ["가나", "바사"] 로 끊으면 "다라마" 가 누락 gap.
+        // ref-distance 정책으로 "다/라" 는 segment 0, "마" 는 segment 1 에 분배되어야 한다.
+        // 단순 음절만 사용해 G2P 변환이 일어나지 않으므로 errorTexts 는 양쪽 모두 비어야
+        // 한다(=오직 gap 만 부착, 색칠 음절 없음).
+        let snapshot = await snapshot(for: AnalysisFixtures.boundaryGapSplitSimple)
+        XCTAssertEqual(snapshot.sentences.count, 2)
+        XCTAssertTrue(snapshot.sentences[0].hasErrorDetail,
+            "segment 0 (가나) 에 가까운 누락 음절이 부착되지 않음")
+        XCTAssertTrue(snapshot.sentences[1].hasErrorDetail,
+            "segment 1 (바사) 에 가까운 누락 음절이 부착되지 않음 — ref-distance 정책 회귀")
+        XCTAssertEqual(snapshot.sentences[0].errorTexts, [],
+            "segment 0 에 색칠 음절이 잡힘 — G2P 가 단순 음절을 변환했거나 정렬 회귀")
+        XCTAssertEqual(snapshot.sentences[1].errorTexts, [],
+            "segment 1 에 색칠 음절이 잡힘 — G2P 가 단순 음절을 변환했거나 정렬 회귀")
+    }
+
     // MARK: - Cross-fixture invariants
 
     func testAllFixturesProduceMatchingSentenceCount() async {

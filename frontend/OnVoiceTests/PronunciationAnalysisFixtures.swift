@@ -103,10 +103,47 @@ enum AnalysisFixtures {
         phoneticSegments: ["녕하세요"]
     )
 
+    /// segment 경계 gap 시나리오 (자연어): ref "안녕하세요 잘있나요" 인데 hyp 가 두
+    /// segment ["안녕", "잘있나요"] 로 끊겨 사이의 "하세요" 가 expected-only gap.
+    /// 검증은 segment 분배 결과(hasErrorDetail) 만 — G2P 가 "잘있" 부분에 변환을 일으켜
+    /// errorTexts 가 부수적으로 채워질 수 있어 그 값은 검증하지 않는다.
+    static let boundaryGapSplit = AnalysisFixture(
+        name: "boundary-gap-split",
+        intentText: "안녕하세요 잘있나요",
+        phoneticSegments: ["안녕", "잘있나요"]
+    )
+
+    /// segment 경계 gap 분배 검증용 단순 fixture (G2P 변환 영향 없음).
+    /// ref "가나다라마바사" (받침 없는 음절만) 를 hyp ["가나", "바사"] 로 끊으면
+    /// 가운데 "다라마" 가 expected-only gap.
+    /// ref-distance 정책: "다"(exp=2, prev=1·next=5, dist 1·3) → segment 0,
+    ///                    "라"(exp=3, dist 2·2, 동률→prev) → segment 0,
+    ///                    "마"(exp=4, dist 3·1) → segment 1.
+    /// 두 segment 모두 누락 음절을 받고, errorTexts 는 둘 다 비어야 한다.
+    /// 이전 lastSegment 정책은 "다/라/마" 가 모두 segment 0 에 몰렸다.
+    static let boundaryGapSplitSimple = AnalysisFixture(
+        name: "boundary-gap-split-simple",
+        intentText: "가나다라마바사",
+        phoneticSegments: ["가나", "바사"]
+    )
+
+    /// 연음 오류이지만 ASR 이 hyp 종성을 잘못 잡은 케이스. ref "음악" → G2P "으막"
+    /// 인데 hyp 가 "응악" 으로 종성 ㅇ 을 듣는다. strict 매칭(받침 자모 ↔ 다음 ref
+    /// 초성) 은 실패하지만, 약한 시그니처 fallback 으로 종성 연음화 카테고리로
+    /// 분류되어야 한다. (이전엔 dropout 으로 흡수됐던 케이스)
+    static let linkingMisrecognized = AnalysisFixture(
+        name: "linking-asr-misrecognized",
+        intentText: "음악",
+        phoneticSegments: ["응악"]
+    )
+
     static let all: [AnalysisFixture] = [
         baseballNarration,
         tensificationMissed,
         interWordLinkingCorrect,
-        firstSyllableDropped
+        firstSyllableDropped,
+        boundaryGapSplit,
+        boundaryGapSplitSimple,
+        linkingMisrecognized
     ]
 }

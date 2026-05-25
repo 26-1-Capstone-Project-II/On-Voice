@@ -76,6 +76,23 @@ struct AnalysisResult {
         guard isPronunciationEvaluationAvailable else { return [] }
         return sentences.filter { $0.accuracy < 0.8 }
     }
+
+    // MARK: - Feature-level availability flags
+    //
+    // transcriptionFailure / limitation 은 "왜 안 되는지" 를 enum 으로 표현하는
+    // 부가 정보. UI 분기에서 "기능이 켜져 있나?" 를 직관적으로 보고 싶을 때는
+    // 아래 두 플래그가 더 명확하다. 두 플래그는 enum 의 nil 여부로 derive 된다.
+
+    /// 전사(Whisper) 자체가 성공했는가. false 면 사용자에게 실패 화면을 보여준다.
+    var isTranscriptionAvailable: Bool {
+        transcriptionFailure == nil
+    }
+
+    /// 발음 비교(Apple ASR + G2P + 자모 정렬) 까지 활성화되었는가.
+    /// false 면 전사는 보이되 오류 하이라이트/분류가 비활성화 — UI 는 안내 배너 노출.
+    var isComparisonAvailable: Bool {
+        isTranscriptionAvailable && limitation == nil && !scriptAnalysis.isEmpty
+    }
 }
 
 struct PracticeEvaluationResult {

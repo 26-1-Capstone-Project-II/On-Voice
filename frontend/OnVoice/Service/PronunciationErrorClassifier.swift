@@ -168,6 +168,18 @@ enum PronunciationErrorClassifier {
             return .finalTensification
         }
 
+        // 종성 연음화 (약한 시그니처 fallback): refFinal == 0 + hypFinal != 0
+        // + 다음 ref 초성이 ㅇ 아님. strict 매칭(받침 자모와 다음 ref 초성이 정확히
+        // 일치) 은 위에서 잡았다. ASR 오인식으로 hyp 종성이 어긋난 경우에도 "받침이
+        // 옮겨갔어야 하는데 사용자가 안 옮긴" 패턴은 명확하므로 dropout 으로 흡수되지
+        // 않도록 여기서 약한 시그니처로 finalLinking 으로 분류한다.
+        // 다음 ref 초성이 ㅇ 이면 G2P 변환 자체가 일어나지 않은 케이스라 제외.
+        if refFinal == 0 && hypFinal != 0,
+           let next = nextExpected,
+           next.initialIndex != KoreanPhonemeRules.initialO {
+            return .finalLinking
+        }
+
         return .dropout
     }
 }

@@ -199,13 +199,15 @@ final class PronunciationErrorClassifierTests: XCTestCase {
         XCTAssertEqual(result, [.dropout])
     }
 
-    func testFinalLinkingHypFinalNotMatchingNextInitialFallsToDropout() {
+    func testFinalLinkingWeakSignatureWhenHypFinalAsrMisrecognized() {
         // ref 종성 = 0, hyp 종성 = ㅁ, 다음 ref 초성 = ㄴ (jongToChoIndex[ㅁ]=ㅁ ≠ ㄴ)
-        // → finalLinking 조건 미충족 → dropout
+        // strict 매칭은 실패하지만 "받침을 옮겼어야 하는데 사용자가 안 옮긴" 패턴은
+        // 분명하므로 약한 시그니처 fallback 으로 finalLinking 으로 분류된다.
+        // ASR 오인식으로 hyp 종성이 어긋난 케이스가 dropout 으로 흡수되지 않게 한다.
         let c = cell(expected: "어", actual: "엄")
         let next = syl("나")
         let result = PronunciationErrorClassifier.classify(cell: c, nextExpected: next)
-        XCTAssertEqual(result, [.dropout])
+        XCTAssertEqual(result, [.finalLinking])
     }
 
     // MARK: - 비-한글 cell
