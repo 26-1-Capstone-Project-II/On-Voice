@@ -15,6 +15,8 @@
 		D1A0B2033000000000ABCDEF /* JamoAlignerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A0B2023000000000ABCDEF /* JamoAlignerTests.swift */; };
 		D1A0B2053000000000ABCDEF /* PronunciationErrorClassifierTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A0B2043000000000ABCDEF /* PronunciationErrorClassifierTests.swift */; };
 		D1A0B2073000000000ABCDEF /* PronunciationScriptAnalysisServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A0B2063000000000ABCDEF /* PronunciationScriptAnalysisServiceTests.swift */; };
+		D1A0B2093000000000ABCDEF /* PronunciationAnalysisFixtures.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A0B2083000000000ABCDEF /* PronunciationAnalysisFixtures.swift */; };
+		D1A0B20B3000000000ABCDEF /* PronunciationAnalysisSnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A0B20A3000000000ABCDEF /* PronunciationAnalysisSnapshotTests.swift */; };
 		F0A100012F90000100ABCD01 /* DynamicIsland.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = F0A100062F90000100ABCD01 /* DynamicIsland.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		F0A100022F90000100ABCD01 /* DynamicIslandBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2FE5DE2E30D69500C90F26 /* DynamicIslandBundle.swift */; };
 		F0A100032F90000100ABCD01 /* DynamicIslandLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2FE5DF2E30D69500C90F26 /* DynamicIslandLiveActivity.swift */; };
@@ -78,6 +80,8 @@
 		D1A0B2023000000000ABCDEF /* JamoAlignerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JamoAlignerTests.swift; sourceTree = "<group>"; };
 		D1A0B2043000000000ABCDEF /* PronunciationErrorClassifierTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PronunciationErrorClassifierTests.swift; sourceTree = "<group>"; };
 		D1A0B2063000000000ABCDEF /* PronunciationScriptAnalysisServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PronunciationScriptAnalysisServiceTests.swift; sourceTree = "<group>"; };
+		D1A0B2083000000000ABCDEF /* PronunciationAnalysisFixtures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PronunciationAnalysisFixtures.swift; sourceTree = "<group>"; };
+		D1A0B20A3000000000ABCDEF /* PronunciationAnalysisSnapshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PronunciationAnalysisSnapshotTests.swift; sourceTree = "<group>"; };
 		F0A100062F90000100ABCD01 /* DynamicIsland.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = DynamicIsland.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		F0A100072F90000100ABCD01 /* LiveActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = LiveActivityAttributes.swift; path = ../OnVoice/Model/LiveActivityAttributes.swift; sourceTree = "<group>"; };
 		F0A100142F90000100ABCD01 /* LiveActivityState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = LiveActivityState.swift; path = ../OnVoice/Model/LiveActivityState.swift; sourceTree = "<group>"; };
@@ -216,6 +220,8 @@
 				D1A0B2023000000000ABCDEF /* JamoAlignerTests.swift */,
 				D1A0B2043000000000ABCDEF /* PronunciationErrorClassifierTests.swift */,
 				D1A0B2063000000000ABCDEF /* PronunciationScriptAnalysisServiceTests.swift */,
+				D1A0B2083000000000ABCDEF /* PronunciationAnalysisFixtures.swift */,
+				D1A0B20A3000000000ABCDEF /* PronunciationAnalysisSnapshotTests.swift */,
 			);
 			path = OnVoiceTests;
 			sourceTree = "<group>";
@@ -411,6 +417,8 @@
 				D1A0B2033000000000ABCDEF /* JamoAlignerTests.swift in Sources */,
 				D1A0B2053000000000ABCDEF /* PronunciationErrorClassifierTests.swift in Sources */,
 				D1A0B2073000000000ABCDEF /* PronunciationScriptAnalysisServiceTests.swift in Sources */,
+				D1A0B2093000000000ABCDEF /* PronunciationAnalysisFixtures.swift in Sources */,
+				D1A0B20B3000000000ABCDEF /* PronunciationAnalysisSnapshotTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
