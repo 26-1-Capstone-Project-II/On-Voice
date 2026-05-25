@@ -8,7 +8,10 @@
 //
 
 import Foundation
+import OSLog
 import WhisperKit
+
+private let logger = Logger(subsystem: "com.onvoice", category: "whisper-phonetic")
 
 struct PhoneticTranscription: Equatable {
     let fullText: String
@@ -46,15 +49,27 @@ actor WhisperPhoneticTranscriptionService {
     private var pipeline: WhisperKit?
     private var loadTask: Task<WhisperKit, Error>?
 
+    /// 앱 부팅 시점에 한 번 호출해 mlmodelc 로드 + CoreML 그래프 컴파일 +
+    /// ANE shader 생성의 콜드 스타트 비용을 미리 치른다. prewarm 실패는 치명적이지 않다
+    /// — 실제 transcribe 호출에서 다시 시도되고, 거기서 실패 사유가 UI 로 표면화된다.
+    /// 다만 디버깅을 위해 실패는 로그로 남긴다.
+    func prewarm() async {
+        do {
+            _ = try await loadPipelineIfNeeded()
+        } catch {
+            logger.error("prewarm failed: \(String(describing: error), privacy: .private)")
+        }
+    }
+
     func transcribe(url: URL) async -> Result<PhoneticTranscription, TranscriptionFailure> {
         let pipe: WhisperKit
         do {
             pipe = try await loadPipelineIfNeeded()
         } catch ServiceError.modelFolderNotFound {
-            print("WhisperPhoneticTranscriptionService: model folder not found")
+            logger.error("model folder not found")
             return .failure(.modelMissing)
         } catch {
-            print("WhisperPhoneticTranscriptionService: pipeline load failed:", error)
+            logger.error("pipeline load failed: \(String(describing: error), privacy: .private)")
             return .failure(.pipelineLoadFailed)
         }
 
@@ -75,14 +90,14 @@ actor WhisperPhoneticTranscriptionService {
             // 실패 같은 critical 케이스와 구분해 처리할 수 있도록 명시적 failure로
             // 매핑한다. success 타입은 항상 비어있지 않다는 불변식을 보장한다.
             guard !segments.isEmpty else {
-                print("WhisperPhoneticTranscriptionService: transcribe returned no segments")
+                logger.info("transcribe returned no segments")
                 return .failure(.noSpeechDetected)
             }
 
             let fullText = segments.joined(separator: " ")
             return .success(PhoneticTranscription(fullText: fullText, segments: segments))
         } catch {
-            print("WhisperPhoneticTranscriptionService.transcribe error:", error)
+            logger.error("transcribe error: \(String(describing: error), privacy: .private)")
             return .failure(.transcribeFailed)
         }
     }

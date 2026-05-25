@@ -12,6 +12,7 @@ struct PronunciationErrorScriptView: View {
 
     let script: PronunciationErrorScript
     let transcriptionFailure: TranscriptionFailure?
+    let limitation: AnalysisLimitation?
     let onFinish: (() -> Void)?
 
     @State private var selectedSentenceID: UUID?
@@ -22,10 +23,12 @@ struct PronunciationErrorScriptView: View {
     init(
         script: PronunciationErrorScript = .empty,
         transcriptionFailure: TranscriptionFailure? = nil,
+        limitation: AnalysisLimitation? = nil,
         onFinish: (() -> Void)? = nil
     ) {
         self.script = script
         self.transcriptionFailure = transcriptionFailure
+        self.limitation = limitation
         self.onFinish = onFinish
     }
 
@@ -40,6 +43,10 @@ struct PronunciationErrorScriptView: View {
 
             VStack(spacing: 0) {
                 navigationHeader
+
+                if limitation != nil, !script.isEmpty {
+                    limitationBanner
+                }
 
                 ZStack(alignment: .bottom) {
                     ScrollViewReader { proxy in
@@ -73,6 +80,25 @@ struct PronunciationErrorScriptView: View {
         }
         .navigationBarHidden(true)
         .toolbar(.hidden, for: .tabBar)
+    }
+
+    /// 전사는 성공했지만 Apple ASR 의 의도 텍스트가 비어 G2P 비교가 비활성화된
+    /// 경우의 안내 배너. 사용자는 자기 발화 텍스트만 볼 수 있고 오류 하이라이트는
+    /// 사라지므로 왜 그런지 명시한다.
+    private var limitationBanner: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "info.circle")
+                .font(.system(size: 14, weight: .regular))
+                .foregroundStyle(Color.gray6)
+            Text("의도된 발음을 인식하지 못해 오류 비교를 표시할 수 없어요.\n조용한 곳에서 다시 녹음하면 분석이 가능해요.")
+                .font(.Pretendard.Medium.size14)
+                .foregroundStyle(Color.gray6)
+                .multilineTextAlignment(.leading)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, Layout.horizontalPadding)
+        .padding(.vertical, 10)
+        .background(Color.gray10.opacity(0.6))
     }
 
     // 이 화면은 항상 분석 단계 이후 진입하고, Whisper 추론은 segment가 0개일 때도

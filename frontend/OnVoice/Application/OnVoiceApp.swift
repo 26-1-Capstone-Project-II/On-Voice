@@ -17,6 +17,11 @@ struct OnVoiceApp: App {
         WindowGroup {
             ContentView()
                 .environmentObject(recorder)
+                .task(priority: .utility) {
+                    // 분석 화면 진입 시 Whisper 첫 호출이 느리지 않도록
+                    // 부팅 시점에 미리 mlmodelc 로드 + ANE 그래프를 워밍업한다.
+                    await WhisperPhoneticTranscriptionService.shared.prewarm()
+                }
         }
     }
 }
