@@ -44,7 +44,7 @@ struct PronunciationErrorScriptView: View {
             VStack(spacing: 0) {
                 navigationHeader
 
-                if limitation == .intentTextUnavailable, !script.isEmpty {
+                if limitation != nil, !script.isEmpty {
                     limitationBanner
                 }
 

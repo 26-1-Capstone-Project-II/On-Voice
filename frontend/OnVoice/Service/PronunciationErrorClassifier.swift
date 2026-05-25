@@ -4,8 +4,8 @@
 //
 //  팀에서 합의한 10종 오류 정의에 따라 (ref = G2P 적용된 기대 음절,
 //  hyp = Whisper 가 들은 실제 음절) 자모를 직접 비교해 카테고리를 결정한다.
-//  G2P 가 어떤 규칙을 적용했는지는 더 이상 분류 입력으로 쓰지 않고,
-//  ref/hyp 자모 패턴만으로 분류한다.
+//  자모 매핑은 KoreanPhonemeRules 가 single source of truth — G2P 와 동일한
+//  정의를 공유한다.
 //
 
 import Foundation
@@ -35,44 +35,6 @@ enum PronunciationErrorCategory: String, CaseIterable, Equatable {
 }
 
 enum PronunciationErrorClassifier {
-    // MARK: - Jamo index 상수 (HangulJamo 의 choseong/jongseong 배열 인덱스)
-
-    /// 초성 평음 → 경음
-    private static let initialPlainToTense: [Int: Int] = [
-        0: 1,    // ㄱ → ㄲ
-        3: 4,    // ㄷ → ㄸ
-        7: 8,    // ㅂ → ㅃ
-        9: 10,   // ㅅ → ㅆ
-        12: 13   // ㅈ → ㅉ
-    ]
-
-    /// 초성 ㄷ↔ㅈ, ㅌ↔ㅊ (구개음화)
-    private static let initialPalatalPairs: [Int: Int] = [
-        3: 12,   // ㄷ → ㅈ
-        16: 14   // ㅌ → ㅊ
-    ]
-
-    /// 종성 폐쇄음 → 비음 (ㄱ→ㅇ, ㄷ→ㄴ, ㅂ→ㅁ)
-    private static let finalStopToNasal: [Int: Int] = [
-        1: 21,   // ㄱ → ㅇ
-        7: 4,    // ㄷ → ㄴ
-        17: 16   // ㅂ → ㅁ
-    ]
-
-    /// 종성 폐쇄음 그룹(ㄱ, ㄷ, ㅂ). 경음화 트리거 변형 검출에 사용.
-    private static let finalStopGroup: Set<Int> = [1, 7, 17]
-
-    /// 초성 ㄴ(2), ㄹ(5), ㅇ(11), ㅎ(18) 인덱스
-    private static let initialN = 2
-    private static let initialR = 5
-    private static let initialO = 11
-
-    /// 중성 ㅣ 인덱스
-    private static let medialI = 20
-
-    /// 종성 ㄷ(7), ㅌ(25) 인덱스
-    private static let finalT = 7
-    private static let finalTh = 25
 
     // MARK: - Classify
 
@@ -125,28 +87,29 @@ enum PronunciationErrorClassifier {
         hypInitial: Int,
         refMedial: Int
     ) -> PronunciationErrorCategory {
+        let tense = KoreanPhonemeRules.initialPlainToTense
+
         // 초성 경음화: 평음↔경음 쌍에 해당
-        if initialPlainToTense[refInitial] == hypInitial
-            || initialPlainToTense[hypInitial] == refInitial {
+        if tense[refInitial] == hypInitial || tense[hypInitial] == refInitial {
             return .initialTensification
         }
 
         // 초성 구개음화: ref=ㅈ/ㅊ, hyp=ㄷ/ㅌ (또는 반대) + 모음 ㅣ
-        if refMedial == medialI {
-            if initialPalatalPairs[refInitial] == hypInitial
-                || initialPalatalPairs[hypInitial] == refInitial {
+        if refMedial == KoreanPhonemeRules.medialI {
+            let pal = KoreanPhonemeRules.initialPalatalPairs
+            if pal[refInitial] == hypInitial || pal[hypInitial] == refInitial {
                 return .initialPalatalization
             }
         }
 
         // 초성 비음화: ㄴ↔ㄹ
-        if (refInitial == initialN && hypInitial == initialR)
-            || (refInitial == initialR && hypInitial == initialN) {
+        if (refInitial == KoreanPhonemeRules.initialN && hypInitial == KoreanPhonemeRules.initialR)
+            || (refInitial == KoreanPhonemeRules.initialR && hypInitial == KoreanPhonemeRules.initialN) {
             return .initialNasalization
         }
 
         // 초성 연음화: ref 초성 ≠ ㅇ, hyp 초성 = ㅇ (연음 실패)
-        if refInitial != initialO && hypInitial == initialO {
+        if refInitial != KoreanPhonemeRules.initialO && hypInitial == KoreanPhonemeRules.initialO {
             return .initialLinking
         }
 
@@ -162,15 +125,20 @@ enum PronunciationErrorClassifier {
         nextExpected: HangulJamo.Syllable?
     ) -> PronunciationErrorCategory {
         // 종성 구개음화: ref 종성 없음, hyp 종성 ㄷ/ㅌ 잔존, 다음 ref 중성이 ㅣ
-        if refFinal == 0 && (hypFinal == finalT || hypFinal == finalTh) {
-            if let next = nextExpected, next.medialIndex == medialI {
+        if refFinal == 0
+            && (hypFinal == KoreanPhonemeRules.finalT || hypFinal == KoreanPhonemeRules.finalTh) {
+            if let next = nextExpected, next.medialIndex == KoreanPhonemeRules.medialI {
                 return .finalPalatalization
             }
         }
 
         // 종성 비음화: 폐쇄음 ↔ 비음 (ㄱ↔ㅇ, ㄷ↔ㄴ, ㅂ↔ㅁ)
-        if finalStopToNasal[refFinal] == hypFinal
-            || finalStopToNasal[hypFinal] == refFinal {
+        // ref/hyp 양측을 평폐쇄음 그룹으로 환산한 뒤 매칭한다.
+        // hyp 이 ㄲ/ㅋ/ㅍ/ㅅ/ㅆ/ㅈ/ㅊ/ㅌ/ㅎ 등 비평폐쇄음 종성을 발음했더라도
+        // 중화 매핑으로 ㄱ/ㄷ/ㅂ 으로 정렬해 표준 발음 기준 비교가 가능하다.
+        let stopMap = KoreanPhonemeRules.finalStopToNasal
+        if stopMap[KoreanPhonemeRules.plainStopOf(refFinal)] == hypFinal
+            || stopMap[KoreanPhonemeRules.plainStopOf(hypFinal)] == refFinal {
             return .finalNasalization
         }
 
@@ -183,13 +151,13 @@ enum PronunciationErrorClassifier {
         // finalLinking 으로 흡수되는 것을 막는다.
         if refFinal == 0 && hypFinal != 0,
            let next = nextExpected,
-           next.initialIndex != initialO,
+           next.initialIndex != KoreanPhonemeRules.initialO,
            HangulJamo.jongToChoIndex[hypFinal] == next.initialIndex {
             return .finalLinking
         }
 
         // 종성 경음화 트리거: ref 가 폐쇄음(ㄱ/ㄷ/ㅂ)인데 받침이 변형/소실됨
-        if finalStopGroup.contains(refFinal) {
+        if KoreanPhonemeRules.finalStopGroup.contains(refFinal) {
             return .finalTensification
         }
 

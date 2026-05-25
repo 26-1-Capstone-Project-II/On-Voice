@@ -27,10 +27,13 @@ struct AnalysisSentence: Identifiable {
 
 /// 전사는 성공했지만 후속 분석이 제약된 사유. transcriptionFailure 와 달리
 /// 전사 결과 자체는 화면에 보이지만 오류 하이라이트/분류가 비활성화된다.
+/// 케이스를 세분화해 디버깅/지원 시 권한 거부와 인식 실패를 구분할 수 있게 한다.
+/// UI 는 일반화된 메시지를 보여주되, 로그/리포팅은 정확한 사유를 남긴다.
 enum AnalysisLimitation: Equatable {
-    /// Apple ASR 의 의도 텍스트가 비어 있어 G2P 비교가 불가능한 경우.
-    /// (권한 거부, 너무 짧은 발화로 SFSpeechRecognizer 가 빈 결과를 돌려준 경우 등)
-    case intentTextUnavailable
+    /// Apple Speech 권한이 부여되지 않아 의도 텍스트 인식이 불가능.
+    case speechAuthorizationDenied
+    /// 권한은 있으나 SFSpeechRecognizer 가 빈 결과를 돌려준 경우(짧은 발화/잡음 등).
+    case intentTextEmpty
 }
 
 struct AnalysisResult {

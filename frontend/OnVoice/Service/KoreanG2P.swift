@@ -50,64 +50,22 @@ struct G2PResult: Equatable {
 }
 
 enum KoreanG2P {
-    /// 초성 평음 → 경음 매핑
-    private static let tenseOfPlain: [Int: Int] = [
-        0: 1,    // ㄱ → ㄲ
-        3: 4,    // ㄷ → ㄸ
-        7: 8,    // ㅂ → ㅃ
-        9: 10,   // ㅅ → ㅆ
-        12: 13   // ㅈ → ㅉ
+    // 자모 매핑은 KoreanPhonemeRules 가 단일 source of truth.
+    // 분류기와 동일한 정의를 공유해 G2P 적용 결과가 분류기 카테고리와 어긋나지 않게 한다.
+
+    /// G2P 가 처리하는 받침의 확장 그룹(겹받침 포함). plainStopOf 만으로는 잡히지 않는
+    /// 겹받침(ㄺ/ㄼ/ㄿ) 도 G2P 시점에서 평폐쇄음으로 환산한다.
+    private static let stopFinalsExtended: [Int: Int] = [
+        9:  1,   // ㄺ → ㄱ
+        11: 17,  // ㄼ → ㅂ
+        14: 17   // ㄿ → ㅂ
     ]
 
-    /// 초성 평음 → 격음 매핑 (ㅎ 결합)
-    private static let aspiratedOfPlain: [Int: Int] = [
-        0: 15,   // ㄱ → ㅋ
-        3: 16,   // ㄷ → ㅌ
-        7: 17,   // ㅂ → ㅍ
-        12: 14   // ㅈ → ㅊ
-    ]
-
-    /// 받침(종성) → 비음화시 변환되는 종성 (ㄱ→ㅇ, ㄷ→ㄴ, ㅂ→ㅁ 그룹)
-    private static let nasalizedOfFinal: [Int: Int] = [
-        1: 21,   // ㄱ → ㅇ
-        2: 21,   // ㄲ → ㅇ
-        24: 21,  // ㅋ → ㅇ
-        7: 4,    // ㄷ → ㄴ
-        19: 4,   // ㅅ → ㄴ
-        20: 4,   // ㅆ → ㄴ
-        22: 4,   // ㅈ → ㄴ
-        23: 4,   // ㅊ → ㄴ
-        25: 4,   // ㅌ → ㄴ
-        27: 4,   // ㅎ → ㄴ
-        17: 16,  // ㅂ → ㅁ
-        26: 16   // ㅍ → ㅁ
-    ]
-
-    /// 받침 → 종성 중화 결과(말끝/평폐쇄음화)
-    /// ㄱ-계열은 ㄱ(1), ㄷ-계열은 ㄷ(7), ㅂ-계열은 ㅂ(17) 으로 수렴.
-    private static let neutralizedFinal: [Int: Int] = [
-        2: 1,    // ㄲ → ㄱ
-        24: 1,   // ㅋ → ㄱ
-        19: 7,   // ㅅ → ㄷ
-        20: 7,   // ㅆ → ㄷ
-        22: 7,   // ㅈ → ㄷ
-        23: 7,   // ㅊ → ㄷ
-        25: 7,   // ㅌ → ㄷ
-        26: 17,  // ㅍ → ㅂ
-        27: 7    // ㅎ → ㄷ (단독 종성일 때)
-    ]
-
-    /// "ㄱ-계열 받침" (종성 평폐쇄음으로 묶이는 그룹). 경음화/비음화 트리거.
-    private static let stopFinalsK: Set<Int> = [1, 2, 24, 9]      // ㄱ ㄲ ㅋ ㄺ
-    private static let stopFinalsT: Set<Int> = [7, 19, 20, 22, 23, 25] // ㄷ ㅅ ㅆ ㅈ ㅊ ㅌ
-    private static let stopFinalsP: Set<Int> = [17, 26, 11, 14]    // ㅂ ㅍ ㄼ ㄿ
-
-    /// 받침이 단일 평폐쇄음으로 환산했을 때의 표준 종성 idx (ㄱ/ㄷ/ㅂ).
+    /// 받침이 평폐쇄음(ㄱ/ㄷ/ㅂ) 으로 환산되는 인덱스. 환산 불가하면 nil.
     private static func plainStop(of jongIdx: Int) -> Int? {
-        if stopFinalsK.contains(jongIdx) { return 1 }
-        if stopFinalsT.contains(jongIdx) { return 7 }
-        if stopFinalsP.contains(jongIdx) { return 17 }
-        return nil
+        if KoreanPhonemeRules.finalStopGroup.contains(jongIdx) { return jongIdx }
+        if let extended = stopFinalsExtended[jongIdx] { return extended }
+        return KoreanPhonemeRules.finalNeutralization[jongIdx]
     }
 
     static func apply(_ text: String) -> G2PResult {
@@ -140,7 +98,7 @@ enum KoreanG2P {
         let lastHangulIndex = syllables.lastIndex(where: \.isHangul)
         for idx in syllables.indices where syllables[idx].isHangul {
             guard idx == lastHangulIndex, syllables[idx].finalIndex > 0 else { continue }
-            if let neutral = neutralizedFinal[syllables[idx].finalIndex] {
+            if let neutral = KoreanPhonemeRules.finalNeutralization[syllables[idx].finalIndex] {
                 syllables[idx].finalIndex = neutral
                 applications.append(.init(rule: .neutralization, leadingIndex: idx, trailingIndex: -1))
             }
@@ -179,7 +137,7 @@ enum KoreanG2P {
 
         // 2) 격음화
         //  2a) 받침 ㅎ(27) + 평음 초성 → 받침 제거 + 초성 격음화
-        if finalIdx == 27, let asp = aspiratedOfPlain[onsetIdx] {
+        if finalIdx == 27, let asp = KoreanPhonemeRules.initialPlainToAspirated[onsetIdx] {
             syllables[leftIndex].finalIndex = 0
             syllables[rightIndex].initialIndex = asp
             applications.append(.init(rule: .aspiration, leadingIndex: leftIndex, trailingIndex: rightIndex))
@@ -216,7 +174,8 @@ enum KoreanG2P {
 
         // 3) 연음화: 받침 + 초성 ㅇ(11) → 받침을 뒤 음절 초성으로
         //    겹받침은 뒤 자모만 넘기고 앞 자모는 남는다 (단순 받침이면 통째로 이동).
-        if onsetIdx == 11, finalIdx > 0 {
+        //    받침 ㅇ(21) 은 음가가 없어 연음 대상이 아니다 (ㅇ초성 ㅇ은 동음 → 변화 없음).
+        if onsetIdx == 11, finalIdx > 0, finalIdx != 21 {
             if let split = HangulJamo.splitCluster(jongIndex: finalIdx) {
                 syllables[leftIndex].finalIndex = split.leadingJong
                 syllables[rightIndex].initialIndex = split.trailingCho
@@ -233,14 +192,15 @@ enum KoreanG2P {
         // 4) 비음화: 평폐쇄음 받침 + 비음(ㄴ/ㅁ) 초성 → 받침 비음으로
         if (onsetIdx == 2 /*ㄴ*/ || onsetIdx == 6 /*ㅁ*/),
            let neutral = plainStop(of: finalIdx),
-           let nasal = nasalizedOfFinal[neutral] {
+           let nasal = KoreanPhonemeRules.finalStopToNasal[neutral] {
             syllables[leftIndex].finalIndex = nasal
             applications.append(.init(rule: .nasalization, leadingIndex: leftIndex, trailingIndex: rightIndex))
             return
         }
 
         // 5) 경음화: 평폐쇄음 받침 + 평음 초성(ㄱ/ㄷ/ㅂ/ㅅ/ㅈ) → 초성 경음으로
-        if plainStop(of: finalIdx) != nil, let tense = tenseOfPlain[onsetIdx] {
+        if plainStop(of: finalIdx) != nil,
+           let tense = KoreanPhonemeRules.initialPlainToTense[onsetIdx] {
             // 종성은 평폐쇄음(ㄱ/ㄷ/ㅂ)으로 중화된 채로 유지
             if let plain = plainStop(of: finalIdx), syllables[leftIndex].finalIndex != plain {
                 syllables[leftIndex].finalIndex = plain

@@ -57,7 +57,7 @@ actor WhisperPhoneticTranscriptionService {
         do {
             _ = try await loadPipelineIfNeeded()
         } catch {
-            logger.error("prewarm failed: \(String(describing: error), privacy: .public)")
+            logger.error("prewarm failed: \(String(describing: error), privacy: .private)")
         }
     }
 
@@ -69,7 +69,7 @@ actor WhisperPhoneticTranscriptionService {
             logger.error("model folder not found")
             return .failure(.modelMissing)
         } catch {
-            logger.error("pipeline load failed: \(String(describing: error), privacy: .public)")
+            logger.error("pipeline load failed: \(String(describing: error), privacy: .private)")
             return .failure(.pipelineLoadFailed)
         }
 
@@ -97,7 +97,7 @@ actor WhisperPhoneticTranscriptionService {
             let fullText = segments.joined(separator: " ")
             return .success(PhoneticTranscription(fullText: fullText, segments: segments))
         } catch {
-            logger.error("transcribe error: \(String(describing: error), privacy: .public)")
+            logger.error("transcribe error: \(String(describing: error), privacy: .private)")
             return .failure(.transcribeFailed)
         }
     }

@@ -76,10 +76,11 @@ final class PronunciationScriptAnalysisService: PronunciationScriptAnalyzing {
                 pendingGaps.append(cell)
             }
         }
-        // actual cell 이 한 번도 등장하지 않았다면(=hyp 가 비어있음) 첫 segment 에 부착.
-        if !pendingGaps.isEmpty {
-            groups[0, default: []].append(contentsOf: pendingGaps)
-        }
+        // actual cell 이 한 번도 등장하지 않은 채로 cells 가 끝났다면
+        // (= 한글 hyp 음절이 하나도 없는 비정상 케이스), 첫 segment 에 강제로 부착하면
+        // 그 문장에 오탐이 주입된다. 무시하는 편이 안전 — 정상 경로에서는 phonetic
+        // 전사가 비어 있을 때 noSpeechDetected 로 분기되어 이 함수가 호출되지도 않는다.
+        pendingGaps.removeAll()
 
         // 5) 각 Whisper segment → PronunciationTranscriptSentence 재구성
         let sentences = phoneticScript.sentences.enumerated().map {

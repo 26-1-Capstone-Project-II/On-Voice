@@ -154,6 +154,17 @@ final class PronunciationErrorClassifierTests: XCTestCase {
         )
     }
 
+    func testFinalNasalizationViaNeutralization() {
+        // ref: "궁" (ㄱ ㅜ ㅇ) ↔ hyp: "굮" (ㄱ ㅜ ㄲ) — hyp 종성을 ㄱ 으로 중화한 뒤
+        // ㄱ↔ㅇ 매칭. 공용 중화 매핑이 적용되어 ASR 이 비평폐쇄음 종성을 잡아도
+        // 비음화 패턴으로 분류된다. (모음을 같게 두어 vowelError 가 같이 잡히지 않게 함.)
+        let c = cell(expected: "궁", actual: "굮")
+        XCTAssertEqual(
+            PronunciationErrorClassifier.classify(cell: c, nextExpected: nil),
+            [.finalNasalization]
+        )
+    }
+
     // MARK: - 종성 구개음화
 
     func testFinalPalatalization() {
@@ -175,6 +186,26 @@ final class PronunciationErrorClassifierTests: XCTestCase {
             PronunciationErrorClassifier.classify(cell: c, nextExpected: nil),
             [.finalTensification]
         )
+    }
+
+    // MARK: - finalLinking vs dropout 경쟁
+
+    func testFinalLinkingVsDropoutBoundary() {
+        // ref 종성 = 0, hyp 종성 = ㄹ, 다음 ref 초성 = ㅇ (G2P 변환 안 됨)
+        // → finalLinking 조건 미충족(next initial 이 ㅇ) → dropout 으로 fallback
+        let c = cell(expected: "어", actual: "얼")
+        let next = syl("아")
+        let result = PronunciationErrorClassifier.classify(cell: c, nextExpected: next)
+        XCTAssertEqual(result, [.dropout])
+    }
+
+    func testFinalLinkingHypFinalNotMatchingNextInitialFallsToDropout() {
+        // ref 종성 = 0, hyp 종성 = ㅁ, 다음 ref 초성 = ㄴ (jongToChoIndex[ㅁ]=ㅁ ≠ ㄴ)
+        // → finalLinking 조건 미충족 → dropout
+        let c = cell(expected: "어", actual: "엄")
+        let next = syl("나")
+        let result = PronunciationErrorClassifier.classify(cell: c, nextExpected: next)
+        XCTAssertEqual(result, [.dropout])
     }
 
     // MARK: - 비-한글 cell

@@ -59,14 +59,24 @@ final class SpeechAnalysisService {
                 return appleText.isEmpty ? nil : appleText
             }()
 
-            let limitation: AnalysisLimitation? = (resolvedIntent == nil)
-                ? .intentTextUnavailable
-                : nil
+            // 권한 거부와 빈 결과를 구분해 디버깅/지원 시 사유를 명확히 한다.
+            // UI 는 두 케이스에 대해 동일한 안내 배너를 보여주되, 로그는 사유를 분리.
+            let limitation: AnalysisLimitation? = {
+                guard resolvedIntent == nil else { return nil }
+                let status = intentService.authorizationStatus
+                if status != .authorized {
+                    return .speechAuthorizationDenied
+                }
+                return .intentTextEmpty
+            }()
 
-            if limitation == .intentTextUnavailable {
-                // 의도 텍스트가 없으면 G2P 비교가 비활성화되어 오류 검출이 불가능하다.
-                // UI 는 limitation 을 읽어 사용자에게 안내한다.
-                logger.error("intentText unavailable — Apple ASR empty/unauthorized; pronunciation comparison disabled")
+            switch limitation {
+            case .speechAuthorizationDenied:
+                logger.error("Speech recognition not authorized — pronunciation comparison disabled")
+            case .intentTextEmpty:
+                logger.info("Apple ASR returned empty intent text — pronunciation comparison disabled")
+            case .none:
+                break
             }
 
             let analyzedScript = await scriptAnalyzer.analyze(
