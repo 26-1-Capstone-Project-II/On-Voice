@@ -8,6 +8,7 @@ import PhotosUI
 
 struct MyPageView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.openURL) private var openURL
     @Binding var userProfile: UserProfile
     let onLogout: () -> Void
     @State private var showsImageSheet = false
@@ -19,6 +20,8 @@ struct MyPageView: View {
 
     private let baseScreenWidth: CGFloat = 393
     private let baseContentHeight: CGFloat = 772
+    private let policyAndTermsURLString = "https://aengzi.notion.site/35f35dd637af804390bfede60e6f5427?source=copy_link"
+    private let inquiryOpenChatURLString = "https://open.kakao.com/o/s3KpTIwi"
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "-"
     }
@@ -196,17 +199,41 @@ struct MyPageView: View {
 
     private func settingsSection(widthScale: CGFloat, heightScale: CGFloat) -> some View {
         VStack(spacing: 6 * heightScale) {
-            MyPageMenuRow(
-                icon: "bell",
-                title: "알림 및 권한 설정",
-                height: 48 * heightScale
-            )
-            MyPageMenuRow(icon: "doc.text", title: "개인정보 처리 방침 및 이용약관", height: 48 * heightScale)
-            MyPageMenuRow(
-                icon: "bubble.left.and.exclamationmark.bubble.right",
-                title: "문의하기",
-                height: 48 * heightScale
-            )
+            Button {
+                openAppSettings()
+            } label: {
+                MyPageMenuRow(
+                    icon: "bell",
+                    title: "알림 및 권한 설정",
+                    height: 48 * heightScale
+                )
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                openExternalLink(policyAndTermsURLString)
+            } label: {
+                MyPageMenuRow(
+                    icon: "doc.text",
+                    title: "개인정보 처리 방침 및 이용약관",
+                    height: 48 * heightScale
+                )
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                openExternalLink(inquiryOpenChatURLString)
+            } label: {
+                MyPageMenuRow(
+                    icon: "bubble.left.and.exclamationmark.bubble.right",
+                    title: "문의하기",
+                    height: 48 * heightScale
+                )
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
         }
         .frame(width: 345 * widthScale, height: 170 * heightScale)
         .background(Color.gray9)
@@ -520,6 +547,15 @@ struct MyPageView: View {
         hasConfirmedWithdrawalWarning = false
     }
 
+    private func openAppSettings() {
+        guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+        UIApplication.shared.open(url)
+    }
+
+    private func openExternalLink(_ urlString: String) {
+        guard let url = URL(string: urlString) else { return }
+        openURL(url)
+    }
 }
 
 private enum MyPageProfileDefaultImage {
