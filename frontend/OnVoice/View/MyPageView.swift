@@ -547,6 +547,7 @@ struct MyPageView: View {
         hasConfirmedWithdrawalWarning = false
     }
 
+
     private func openAppSettings() {
         guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
         UIApplication.shared.open(url)
@@ -556,6 +557,7 @@ struct MyPageView: View {
         guard let url = URL(string: urlString) else { return }
         openURL(url)
     }
+
 }
 
 private enum MyPageProfileDefaultImage {

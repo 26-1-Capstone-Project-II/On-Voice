@@ -20,6 +20,11 @@ final class AppleSpeechTranscriptionService {
         }
     }
 
+    /// 현재 권한 상태. SpeechAnalysisService 가 빈 결과 vs 권한 거부를 구분하는 데 사용.
+    var authorizationStatus: SFSpeechRecognizerAuthorizationStatus {
+        SFSpeechRecognizer.authorizationStatus()
+    }
+
     func transcribe(url: URL) async -> (String, [SFTranscriptionSegment]) {
         guard let recognizer = SFSpeechRecognizer(locale: Locale(identifier: "ko-KR")) else {
             return ("", [])

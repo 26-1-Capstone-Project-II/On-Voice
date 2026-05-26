@@ -48,6 +48,15 @@ class AudioRecorder: ObservableObject {
     
     private var recorder: AVAudioRecorder?
     private var startTime: Date?
+    private var pendingStart: DispatchWorkItem?
+    // 워밍업 워크아이템이 실제 record()를 부르기 전 토큰을 비교해, 워밍업 도중
+    // pause/stop/새 start()가 일어나면 이전 워크아이템은 자동 무효화한다.
+    // DispatchWorkItem.cancel()이 실행 직전 작업을 막지 못하는 레이스를 보강한다.
+    private var pendingStartToken: UUID?
+
+    // 마이크 입력 파이프라인이 안정화되기 전 구간(초기 클릭, AGC 릴리즈 등)이
+    // 모델에 들어가지 않도록 record() 호출 전에 비워두는 슬립 시간.
+    private static let warmupDelay: TimeInterval = 0.15
 
     enum RecordingMutationError: LocalizedError {
         case recordingNotFound
@@ -69,33 +78,67 @@ class AudioRecorder: ObservableObject {
     func start() {
         let audioSession = AVAudioSession.sharedInstance()
         do {
-            try audioSession.setCategory(.playAndRecord, mode: .default)
+            // .measurement 모드는 iOS의 자동 게인/에코 캔슬/노이즈 서프레션을 끈다.
+            // Whisper(파인튜닝)는 가공되지 않은 원시 음성을 가정하므로
+            // 일반 통화용 신호처리가 들어가면 음운 변별 정보가 깨진다.
+            try audioSession.setCategory(.playAndRecord, mode: .measurement, options: [.defaultToSpeaker])
+            try audioSession.setPreferredSampleRate(16000)
             try audioSession.setActive(true)
-            
+
             let url = getFileURL()
-            let settings = [
-                AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
-                AVSampleRateKey: 12000,
+            // Whisper(파인튜닝 포함)은 16 kHz mono 16-bit PCM에서 훈련/검증되었다.
+            // 압축(AAC) 없이 동일한 입력을 보장해야 음운 전사 품질이 유지된다.
+            let settings: [String: Any] = [
+                AVFormatIDKey: Int(kAudioFormatLinearPCM),
+                AVSampleRateKey: 16000,
                 AVNumberOfChannelsKey: 1,
-                AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
+                AVLinearPCMBitDepthKey: 16,
+                AVLinearPCMIsBigEndianKey: false,
+                AVLinearPCMIsFloatKey: false
             ]
-            recorder = try AVAudioRecorder(url: url, settings: settings)
-            recorder?.record()
-            startTime = Date()
+            let newRecorder = try AVAudioRecorder(url: url, settings: settings)
+            newRecorder.prepareToRecord()
+            recorder = newRecorder
+
+            // 워밍업 윈도우 동안 stop()/pause()/새 start()가 들어오면 record() 호출을
+            // 무효화해야 한다. DispatchWorkItem.cancel()은 실행 직전의 작업을 막지 못하므로
+            //   1) pendingStartToken과의 일치 여부로 cancel/replace 케이스 차단
+            //   2) recorder identity 비교로 stop() 직후 다른 인스턴스가 들어선 케이스 차단
+            // 두 가지를 함께 적용해야 빈 녹음 파일이 잘못 영구화되지 않는다.
+            let token = UUID()
+            pendingStartToken = token
+            let work = DispatchWorkItem { [weak self, weak newRecorder] in
+                guard let self else { return }
+                guard self.pendingStartToken == token else { return }
+                guard let newRecorder, self.recorder === newRecorder else { return }
+                newRecorder.record()
+                self.startTime = Date()
+                self.pendingStart = nil
+                self.pendingStartToken = nil
+            }
+            pendingStart = work
+            DispatchQueue.main.asyncAfter(deadline: .now() + Self.warmupDelay, execute: work)
         } catch {
             print("녹음 실패: \(error)")
         }
     }
     
     func pause() {
+        pendingStart?.cancel()
+        pendingStart = nil
+        pendingStartToken = nil
         recorder?.pause()
     }
-    
+
     func resume() {
         recorder?.record()
     }
-    
+
     func stop() {
+        pendingStart?.cancel()
+        pendingStart = nil
+        pendingStartToken = nil
+
         guard let recorder else { return }
 
         let shouldPersistRecording = recorder.isRecording || recorder.currentTime > 0
@@ -173,7 +216,7 @@ class AudioRecorder: ObservableObject {
             .joined(separator: " ")
     }
     
-    /// m4a 파일에서 실제 재생 길이 측정
+    /// 녹음 파일에서 실제 재생 길이 측정 (.wav PCM 등)
     private func getAccurateAudioDuration(from url: URL) -> TimeInterval {
         do {
             let player = try AVAudioPlayer(contentsOf: url)
@@ -187,7 +230,7 @@ class AudioRecorder: ObservableObject {
     private func getFileURL() -> URL {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyyMMdd_HHmmss"
-        let filename = "Recording_\(formatter.string(from: Date())).m4a"
+        let filename = "Recording_\(formatter.string(from: Date())).wav"
         let path = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         return path.appendingPathComponent(filename)
     }
