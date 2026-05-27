@@ -110,7 +110,7 @@ class NoiseMeter{
     func startLiveActivity() {
         print(#function)
         guard ActivityAuthorizationInfo().areActivitiesEnabled else {
-            print("LiveActivityManager: Live Activities are disabled or unavailable.")
+            print("LiveActivityManager: Live Activities are disabled or unavailable. Skipping start.")
             return
         }
 
@@ -132,6 +132,7 @@ class NoiseMeter{
         }
 
         guard self.activity != nil else {
+            print("LiveActivityManager: Activity is nil after start request. Skipping update timer.")
             return
         }
         
@@ -176,6 +177,7 @@ class NoiseMeter{
     func updateLiveActivity() async {
         print(#function)
         guard let activity else {
+            print("LiveActivityManager: Activity is nil. Skipping update.")
             return
         }
 
