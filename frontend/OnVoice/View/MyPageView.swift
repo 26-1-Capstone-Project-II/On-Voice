@@ -20,8 +20,8 @@ struct MyPageView: View {
 
     private let baseScreenWidth: CGFloat = 393
     private let baseContentHeight: CGFloat = 772
-    private let policyAndTermsURLString = "https://aengzi.notion.site/35f35dd637af804390bfede60e6f5427?source=copy_link"
-    private let inquiryOpenChatURLString = "https://open.kakao.com/o/s3KpTIwi"
+    private let policyAndTermsURL = URL(string: "https://aengzi.notion.site/35f35dd637af804390bfede60e6f5427?source=copy_link")!
+    private let inquiryOpenChatURL = URL(string: "https://open.kakao.com/o/s3KpTIwi")!
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "-"
     }
@@ -212,7 +212,7 @@ struct MyPageView: View {
             .buttonStyle(.plain)
 
             Button {
-                openExternalLink(policyAndTermsURLString)
+                openExternalLink(policyAndTermsURL)
             } label: {
                 MyPageMenuRow(
                     icon: "doc.text",
@@ -224,7 +224,7 @@ struct MyPageView: View {
             .buttonStyle(.plain)
 
             Button {
-                openExternalLink(inquiryOpenChatURLString)
+                openExternalLink(inquiryOpenChatURL)
             } label: {
                 MyPageMenuRow(
                     icon: "bubble.left.and.exclamationmark.bubble.right",
@@ -552,8 +552,7 @@ struct MyPageView: View {
         UIApplication.shared.open(url)
     }
 
-    private func openExternalLink(_ urlString: String) {
-        guard let url = URL(string: urlString) else { return }
+    private func openExternalLink(_ url: URL) {
         openURL(url)
     }
 }
