@@ -149,4 +149,27 @@ final class KoreanG2PTests: XCTestCase {
         // 시퀀스 끝 중화 대상이라 ㅂ 그대로 유지된다.
         XCTAssertEqual(KoreanG2P.apply("옆집").phoneticText, "엽찝")
     }
+
+    // MARK: - 우선순위 회귀 방지 (받침 자모별 연음/비음화)
+
+    func testLinkingWithFinalChieut() {
+        // 꽃이 → 꼬치 (받침 ㅊ 이 다음 음절 초성으로 그대로 이동, 구개음화 아님).
+        XCTAssertEqual(KoreanG2P.apply("꽃이").phoneticText, "꼬치")
+    }
+
+    func testLinkingWithFinalShiot() {
+        // 옷이 → 오시 (받침 ㅅ 이 다음 음절 초성으로 그대로 이동).
+        XCTAssertEqual(KoreanG2P.apply("옷이").phoneticText, "오시")
+    }
+
+    func testNasalizationWithDoubleShiot() {
+        // 있는 → 인는: 받침 ㅆ 을 평폐쇄음 ㄷ 으로 환산한 뒤 비음화 ㄷ→ㄴ.
+        // (비음화가 연음/경음화보다 적절한 순서로 적용되는지 확인)
+        XCTAssertEqual(KoreanG2P.apply("있는").phoneticText, "인는")
+    }
+
+    func testPalatalizationWithFinalDigeut() {
+        // 맏이 → 마지 (받침 ㄷ + ㅇ초성 + ㅣ 모음 → 구개음화).
+        XCTAssertEqual(KoreanG2P.apply("맏이").phoneticText, "마지")
+    }
 }

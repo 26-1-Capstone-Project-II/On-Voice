@@ -54,33 +54,12 @@ final class PronunciationScriptAnalysisService: PronunciationScriptAnalyzing {
         let cells = alignHangulOnly(expected: expectedAll, actual: actualAll)
 
         // 4) segment 별 cell 그룹화.
-        //    expected-only(gap) cell 은 인접한 actual cell 의 segment 에 부착한다.
-        //    핵심 케이스: 첫 cell 부터 gap 으로 시작하면 lastSegment 기본값(=0) 에
-        //    무조건 붙는 오프바이원 버그가 발생할 수 있어, "다음에 등장할 actual
-        //    cell 의 segment" 까지 보류했다가 한꺼번에 부착한다.
-        var groups: [Int: [AlignmentCell]] = [:]
-        var lastSegment: Int? = nil
-        var pendingGaps: [AlignmentCell] = []
-        for cell in cells {
-            if let actualIdx = cell.actualIndex {
-                let segIdx = syllableToSegment[actualIdx]
-                if !pendingGaps.isEmpty {
-                    groups[segIdx, default: []].append(contentsOf: pendingGaps)
-                    pendingGaps.removeAll()
-                }
-                groups[segIdx, default: []].append(cell)
-                lastSegment = segIdx
-            } else if let last = lastSegment {
-                groups[last, default: []].append(cell)
-            } else {
-                pendingGaps.append(cell)
-            }
-        }
-        // actual cell 이 한 번도 등장하지 않은 채로 cells 가 끝났다면
-        // (= 한글 hyp 음절이 하나도 없는 비정상 케이스), 첫 segment 에 강제로 부착하면
-        // 그 문장에 오탐이 주입된다. 무시하는 편이 안전 — 정상 경로에서는 phonetic
-        // 전사가 비어 있을 때 noSpeechDetected 로 분기되어 이 함수가 호출되지도 않는다.
-        pendingGaps.removeAll()
+        //    expected-only gap cell 은 직전/직후 actual cell 의 expectedIndex 거리를
+        //    비교해 더 가까운 쪽 segment 에 부착한다 (ref-distance 정책).
+        //    이전의 "lastSegment 에 무조건 부착" 정책은 연속 gap 이 segment 경계에
+        //    걸칠 때 모두 한쪽 segment 에 몰리는 문제가 있었다. 거리 기반 분배가
+        //    누락 음절을 두 segment 사이에 자연스럽게 나눈다.
+        let groups = groupCellsBySegment(cells: cells, syllableToSegment: syllableToSegment)
 
         // 5) 각 Whisper segment → PronunciationTranscriptSentence 재구성
         let sentences = phoneticScript.sentences.enumerated().map {
@@ -98,6 +77,106 @@ final class PronunciationScriptAnalysisService: PronunciationScriptAnalyzing {
         }
 
         return PronunciationErrorScript(sentences: sentences)
+    }
+
+    // MARK: - Segment grouping (ref-distance based)
+
+    /// cells 를 segment 별로 그룹화한다.
+    ///  - actual cell 은 syllableToSegment[actualIndex] 에 그대로 부착.
+    ///  - expected-only gap cell 은 cells 시퀀스에서 직전/직후 actual cell 의
+    ///    expectedIndex 와의 거리를 비교해 더 가까운 쪽 segment 에 부착.
+    ///  - cells 양 끝의 gap 은 한쪽만 actual 이 있으면 그쪽에 부착.
+    ///  - actual cell 이 한 번도 없으면 (=hyp 가 비어있는 비정상 케이스) 모두 무시.
+    ///
+    /// `internal` 로 노출되어 단위 테스트에서 직접 호출 가능 (어떤 cell 이 어느 segment 로
+    /// 가는지 직접 검증). 외부 호출자는 analyze() 만 사용한다.
+    func groupCellsBySegment(
+        cells: [AlignmentCell],
+        syllableToSegment: [Int]
+    ) -> [Int: [AlignmentCell]] {
+        // 각 cell 에 대한 segment 결정값. nil 이면 부착하지 않음.
+        var resolved: [Int?] = Array(repeating: nil, count: cells.count)
+
+        // actual cell 은 즉시 결정 가능.
+        for (i, cell) in cells.enumerated() {
+            if let actualIdx = cell.actualIndex {
+                resolved[i] = syllableToSegment[actualIdx]
+            }
+        }
+
+        // expected-only gap 은 양 옆 actual cell 의 expectedIndex 거리로 분배.
+        for i in 0..<cells.count where resolved[i] == nil {
+            let cell = cells[i]
+            guard let gapExpected = cell.expectedIndex else { continue }
+
+            let prev = nearestNeighborWithExpectedIndex(
+                in: cells,
+                from: i,
+                stride: -1,
+                resolved: resolved
+            )
+            let next = nearestNeighborWithExpectedIndex(
+                in: cells,
+                from: i,
+                stride: +1,
+                resolved: resolved
+            )
+
+            resolved[i] = pickSegment(
+                gapExpected: gapExpected,
+                prev: prev,
+                next: next
+            )
+        }
+
+        var groups: [Int: [AlignmentCell]] = [:]
+        for (i, segOpt) in resolved.enumerated() {
+            guard let seg = segOpt else { continue }
+            groups[seg, default: []].append(cells[i])
+        }
+        return groups
+    }
+
+    /// 한 방향으로 스캔해 (actualIndex != nil AND expectedIndex != nil AND resolved 된)
+    /// 가장 가까운 cell 의 (expectedIndex, segment) 쌍을 돌려준다.
+    private func nearestNeighborWithExpectedIndex(
+        in cells: [AlignmentCell],
+        from index: Int,
+        stride step: Int,
+        resolved: [Int?]
+    ) -> (expectedIndex: Int, segment: Int)? {
+        var j = index + step
+        while j >= 0 && j < cells.count {
+            if cells[j].actualIndex != nil,
+               let exp = cells[j].expectedIndex,
+               let seg = resolved[j] {
+                return (exp, seg)
+            }
+            j += step
+        }
+        return nil
+    }
+
+    /// gap 의 expectedIndex 와 prev/next 의 (expectedIndex, segment) 를 보고 분배.
+    /// 한쪽만 있으면 그쪽으로, 둘 다 있으면 거리 비교(동률은 prev 선호).
+    /// 둘 다 nil 이면 nil (=어디에도 부착 안 함).
+    private func pickSegment(
+        gapExpected: Int,
+        prev: (expectedIndex: Int, segment: Int)?,
+        next: (expectedIndex: Int, segment: Int)?
+    ) -> Int? {
+        switch (prev, next) {
+        case let (.some(p), .some(n)):
+            let distPrev = abs(gapExpected - p.expectedIndex)
+            let distNext = abs(n.expectedIndex - gapExpected)
+            return distPrev <= distNext ? p.segment : n.segment
+        case let (.some(p), nil):
+            return p.segment
+        case let (nil, .some(n)):
+            return n.segment
+        case (nil, nil):
+            return nil
+        }
     }
 
     // MARK: - Hangul-only alignment with index remapping

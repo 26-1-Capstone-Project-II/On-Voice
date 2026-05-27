@@ -20,7 +20,13 @@ import OSLog
 
 private let logger = Logger(subsystem: "com.onvoice", category: "speech-analysis")
 
-final class SpeechAnalysisService {
+/// SpeechAnalysisService 의 분석 entry point 를 추상화한 protocol.
+/// 단위 테스트(특히 RecordingAnalysisViewModel lifecycle) 에서 mock 으로 대체 가능하게 한다.
+protocol SpeechAnalyzing {
+    func analyze(url: URL, referenceText: String?) async -> AnalysisResult
+}
+
+final class SpeechAnalysisService: SpeechAnalyzing {
     private let phoneticService: WhisperPhoneticTranscriptionService
     private let intentService: AppleSpeechTranscriptionService
     private let scriptAnalyzer: PronunciationScriptAnalyzing

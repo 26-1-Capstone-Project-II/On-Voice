@@ -168,6 +168,24 @@ enum PronunciationErrorClassifier {
             return .finalTensification
         }
 
+        // 종성 연음화 (약한 시그니처 fallback):
+        //   - refFinal == 0 (받침이 옮겨가 비었음)
+        //   - hypFinal 이 한국어에서 자연스럽게 발음되는 받침 자모 (plausibleSpokenFinals)
+        //   - 다음 ref 초성이 ㅇ 아님 (ㅇ 이면 G2P 변환 자체가 안 일어난 케이스)
+        //
+        // strict 매칭(받침 자모와 다음 ref 초성이 정확히 일치) 은 위에서 잡았다.
+        // ASR 오인식으로 hyp 종성이 어긋난 경우에도 "받침이 옮겨갔어야 하는데
+        // 사용자가 안 옮긴" 패턴은 명확하므로 dropout 으로 흡수되지 않게 보호한다.
+        //
+        // 단 hyp 종성이 ㄲ/ㅋ/ㅍ/ㅆ/ㅈ/ㅊ/ㅌ/ㅎ 같은 비주류 받침이면 단순 ASR 오인식
+        // 가능성이 높아 fallback 에서 제외하고 dropout 으로 분류한다.
+        if refFinal == 0
+            && KoreanPhonemeRules.plausibleSpokenFinals.contains(hypFinal),
+           let next = nextExpected,
+           next.initialIndex != KoreanPhonemeRules.initialO {
+            return .finalLinking
+        }
+
         return .dropout
     }
 }
