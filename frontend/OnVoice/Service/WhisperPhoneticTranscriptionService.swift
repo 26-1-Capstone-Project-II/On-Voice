@@ -80,8 +80,11 @@ actor WhisperPhoneticTranscriptionService {
             )
             // Whisper의 segment 경계를 보존하면 원본 UI의 문단 구조를 유지할 수 있다.
             // 한 chunk가 통째로 들어오면 마침표가 없는 한국어 발화도 자연스러운 단락이 된다.
+            // sanitize 단계는 fine-tuned BPE 디코더가 가끔 흘리는 고아 자모/대체문자
+            // (□ "tofu" 박스로 보이는 글리프) 를 걸러 화면/분석 양쪽이 같은 한글만 본다.
             let segments = results
                 .flatMap { $0.segments.map(\.text) }
+                .map(Self.sanitizePhoneticOutput(_:))
                 .map { $0.trimmingCharacters(in: .whitespaces) }
                 .filter { !$0.isEmpty }
 
@@ -99,6 +102,55 @@ actor WhisperPhoneticTranscriptionService {
         } catch {
             logger.error("transcribe error: \(String(describing: error), privacy: .private)")
             return .failure(.transcribeFailed)
+        }
+    }
+
+    // MARK: - Output sanitation
+
+    /// Whisper 출력에서 한국어 글리프로 합쳐지지 못한 자모·대체문자·제어문자를
+    /// 걸러낸다. fine-tuned Whisper-tiny 의 BPE 디코더가 가끔 한 음절을 두 개의
+    /// modern jamo 토큰으로 흘리는데, 이게 NFC 로 합쳐지지 못하면 폰트가 못 그리는
+    /// "tofu" 박스(□) 로 표시된다. 이 단계에서 다음을 수행한다:
+    ///
+    ///   1) NFC 정규화 (인접한 modern jamo 가 음절로 합쳐질 수 있으면 합친다)
+    ///   2) 합쳐지지 못한 고아 자모(U+1100..U+11FF, U+3130..U+318F) 제거
+    ///   3) Unicode Replacement Character(U+FFFD) 제거
+    ///   4) 제어/포맷/private use scalar 제거 (단 \t, \n 은 보존)
+    ///
+    /// 한글 음절(U+AC00..U+D7A3) 과 ASCII / 일반 구두점은 그대로 통과.
+    /// 점수 산출은 한글 음절 수가 분모라 본 필터로 데이터 손실이 없다.
+    /// 또한 `internal` 로 노출되어 단위 테스트가 직접 호출 가능하다.
+    static func sanitizePhoneticOutput(_ text: String) -> String {
+        let normalized = text.precomposedStringWithCanonicalMapping
+        var scalars = String.UnicodeScalarView()
+        scalars.reserveCapacity(normalized.unicodeScalars.count)
+        for scalar in normalized.unicodeScalars where isAllowedPhoneticScalar(scalar) {
+            scalars.append(scalar)
+        }
+        return String(scalars)
+    }
+
+    private static func isAllowedPhoneticScalar(_ scalar: Unicode.Scalar) -> Bool {
+        let value = scalar.value
+
+        // 명시적 차단 — tofu/replacement/private use/surrogates
+        if value == 0xFFFD { return false }
+        if (0xD800...0xDFFF).contains(value) { return false }
+        if (0xE000...0xF8FF).contains(value) { return false }
+
+        // 고아 자모 차단 — NFC 후에도 남은 modern/compatibility jamo
+        if (0x1100...0x11FF).contains(value) { return false }
+        if (0x3130...0x318F).contains(value) { return false }
+        if (0xA960...0xA97F).contains(value) { return false }   // Hangul Jamo Extended-A
+        if (0xD7B0...0xD7FF).contains(value) { return false }   // Hangul Jamo Extended-B
+
+        // 일반 카테고리 — 제어/포맷 차단 (단 \t, \n 은 보존)
+        if value == 0x09 || value == 0x0A { return true }
+        switch scalar.properties.generalCategory {
+        case .control, .format, .surrogate, .privateUse, .unassigned, .lineSeparator, .paragraphSeparator:
+            return false
+        default:
+            return true
         }
     }
 
