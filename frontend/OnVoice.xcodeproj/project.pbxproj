@@ -592,6 +592,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = "밍글리";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "음성 녹음을 위해 마이크 접근 권한이 필요합니다.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "음성 내용을 분석하기 위해 음성 인식 권한이 필요합니다.";
+				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -626,6 +627,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = "밍글리";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "음성 녹음을 위해 마이크 접근 권한이 필요합니다.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "음성 내용을 분석하기 위해 음성 인식 권한이 필요합니다.";
+				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

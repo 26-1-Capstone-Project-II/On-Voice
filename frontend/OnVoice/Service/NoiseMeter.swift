@@ -109,6 +109,11 @@ class NoiseMeter{
     /// Live Activity를 실행하는 함수
     func startLiveActivity() {
         print(#function)
+        guard ActivityAuthorizationInfo().areActivitiesEnabled else {
+            print("LiveActivityManager: Live Activities are disabled or unavailable.")
+            return
+        }
+
         if self.activity == nil {
             let attributes = OnVoiceLiveActivityAttributes(name: "Mingly")
             let contentState = self.liveActivityContentState()
@@ -122,7 +127,12 @@ class NoiseMeter{
                 )
             } catch {
                 print("LiveActivityManager: Error in LiveActivityManager: \(error.localizedDescription)")
+                return
             }
+        }
+
+        guard self.activity != nil else {
+            return
         }
         
         updateTimer?.invalidate()
@@ -165,8 +175,12 @@ class NoiseMeter{
     /// Live Activity를 업데이트하는 함수
     func updateLiveActivity() async {
         print(#function)
+        guard let activity else {
+            return
+        }
+
         let contentState = self.liveActivityContentState()
-        await self.activity?.update(ActivityContent<OnVoiceLiveActivityAttributes.ContentState>(
+        await activity.update(ActivityContent<OnVoiceLiveActivityAttributes.ContentState>(
             state: contentState,
             staleDate: nil
         ))
