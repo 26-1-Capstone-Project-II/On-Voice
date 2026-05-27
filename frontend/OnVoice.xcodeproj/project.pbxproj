@@ -9,7 +9,12 @@
 /* Begin PBXBuildFile section */
 		0ACF9C672F7D03AF00D8C2D7 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = 0ACF9C662F7D03AF00D8C2D7 /* FirebaseAnalytics */; };
 		0BDAD4A83084000100A1B2C3 /* DotLottie in Frameworks */ = {isa = PBXBuildFile; productRef = 0BDAD4A73084000100A1B2C3 /* DotLottie */; };
+		0BDAD5003084000100A1B2C4 /* WhisperKit in Frameworks */ = {isa = PBXBuildFile; productRef = 0BDAD4FF3084000100A1B2C4 /* WhisperKit */; };
 		D1A0B1C32F8E000100ABCDEF /* RecordingRowSwipeBehaviorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A0B1C22F8E000100ABCDEF /* RecordingRowSwipeBehaviorTests.swift */; };
+		D1A0B2013000000000ABCDEF /* KoreanG2PTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A0B2003000000000ABCDEF /* KoreanG2PTests.swift */; };
+		D1A0B2033000000000ABCDEF /* JamoAlignerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A0B2023000000000ABCDEF /* JamoAlignerTests.swift */; };
+		D1A0B2053000000000ABCDEF /* PronunciationErrorClassifierTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A0B2043000000000ABCDEF /* PronunciationErrorClassifierTests.swift */; };
+		D1A0B2073000000000ABCDEF /* PronunciationScriptAnalysisServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A0B2063000000000ABCDEF /* PronunciationScriptAnalysisServiceTests.swift */; };
 		F0A100012F90000100ABCD01 /* DynamicIsland.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = F0A100062F90000100ABCD01 /* DynamicIsland.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		F0A100022F90000100ABCD01 /* DynamicIslandBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2FE5DE2E30D69500C90F26 /* DynamicIslandBundle.swift */; };
 		F0A100032F90000100ABCD01 /* DynamicIslandLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2FE5DF2E30D69500C90F26 /* DynamicIslandLiveActivity.swift */; };
@@ -69,6 +74,10 @@
 		CE2FE5E12E30D69500C90F26 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		CE2FE5E22E30D69500C90F26 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		D1A0B1C22F8E000100ABCDEF /* RecordingRowSwipeBehaviorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingRowSwipeBehaviorTests.swift; sourceTree = "<group>"; };
+		D1A0B2003000000000ABCDEF /* KoreanG2PTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KoreanG2PTests.swift; sourceTree = "<group>"; };
+		D1A0B2023000000000ABCDEF /* JamoAlignerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JamoAlignerTests.swift; sourceTree = "<group>"; };
+		D1A0B2043000000000ABCDEF /* PronunciationErrorClassifierTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PronunciationErrorClassifierTests.swift; sourceTree = "<group>"; };
+		D1A0B2063000000000ABCDEF /* PronunciationScriptAnalysisServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PronunciationScriptAnalysisServiceTests.swift; sourceTree = "<group>"; };
 		F0A100062F90000100ABCD01 /* DynamicIsland.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = DynamicIsland.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		F0A100072F90000100ABCD01 /* LiveActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = LiveActivityAttributes.swift; path = ../OnVoice/Model/LiveActivityAttributes.swift; sourceTree = "<group>"; };
 		F0A100142F90000100ABCD01 /* LiveActivityState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = LiveActivityState.swift; path = ../OnVoice/Model/LiveActivityState.swift; sourceTree = "<group>"; };
@@ -126,6 +135,7 @@
 			files = (
 				0BDAD4A83084000100A1B2C3 /* DotLottie in Frameworks */,
 				0ACF9C672F7D03AF00D8C2D7 /* FirebaseAnalytics in Frameworks */,
+				0BDAD5003084000100A1B2C4 /* WhisperKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -202,6 +212,10 @@
 			isa = PBXGroup;
 			children = (
 				D1A0B1C22F8E000100ABCDEF /* RecordingRowSwipeBehaviorTests.swift */,
+				D1A0B2003000000000ABCDEF /* KoreanG2PTests.swift */,
+				D1A0B2023000000000ABCDEF /* JamoAlignerTests.swift */,
+				D1A0B2043000000000ABCDEF /* PronunciationErrorClassifierTests.swift */,
+				D1A0B2063000000000ABCDEF /* PronunciationScriptAnalysisServiceTests.swift */,
 			);
 			path = OnVoiceTests;
 			sourceTree = "<group>";
@@ -230,6 +244,7 @@
 			packageProductDependencies = (
 				0BDAD4A73084000100A1B2C3 /* DotLottie */,
 				0ACF9C662F7D03AF00D8C2D7 /* FirebaseAnalytics */,
+				0BDAD4FF3084000100A1B2C4 /* WhisperKit */,
 			);
 			productName = OnVoice;
 			productReference = CE2FE4242E3085E600C90F26 /* OnVoice.app */;
@@ -332,6 +347,7 @@
 			packageReferences = (
 				0BDAD4A63084000100A1B2C3 /* XCRemoteSwiftPackageReference "dotlottie-ios" */,
 				0ACF9C652F7D03AF00D8C2D7 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+				0BDAD4FE3084000100A1B2C4 /* XCRemoteSwiftPackageReference "WhisperKit" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = CE2FE4252E3085E600C90F26 /* Products */;
@@ -391,6 +407,10 @@
 			buildActionMask = 2147483647;
 			files = (
 				D1A0B1C32F8E000100ABCDEF /* RecordingRowSwipeBehaviorTests.swift in Sources */,
+				D1A0B2013000000000ABCDEF /* KoreanG2PTests.swift in Sources */,
+				D1A0B2033000000000ABCDEF /* JamoAlignerTests.swift in Sources */,
+				D1A0B2053000000000ABCDEF /* PronunciationErrorClassifierTests.swift in Sources */,
+				D1A0B2073000000000ABCDEF /* PronunciationScriptAnalysisServiceTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -818,6 +838,14 @@
 				minimumVersion = 0.14.1;
 			};
 		};
+		0BDAD4FE3084000100A1B2C4 /* XCRemoteSwiftPackageReference "WhisperKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/argmaxinc/WhisperKit";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.9.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -830,6 +858,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 0BDAD4A63084000100A1B2C3 /* XCRemoteSwiftPackageReference "dotlottie-ios" */;
 			productName = DotLottie;
+		};
+		0BDAD4FF3084000100A1B2C4 /* WhisperKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0BDAD4FE3084000100A1B2C4 /* XCRemoteSwiftPackageReference "WhisperKit" */;
+			productName = WhisperKit;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
