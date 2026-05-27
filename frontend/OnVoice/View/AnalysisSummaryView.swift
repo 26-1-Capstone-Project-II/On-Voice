@@ -164,43 +164,9 @@ struct AnalysisSummaryView: View {
     }
 }
 
-private enum PronunciationScoreLevel {
-    case low
-    case middle
-    case high
-
-    init(score: Int) {
-        if score <= 35 {
-            self = .low
-        } else if score <= 70 {
-            self = .middle
-        } else {
-            self = .high
-        }
-    }
-
-    var color: Color {
-        switch self {
-        case .low:
-            return Color(hex: "#FF3838")
-        case .middle:
-            return Color(hex: "#FFF79E")
-        case .high:
-            return Color.main
-        }
-    }
-
-    var title: String {
-        switch self {
-        case .low:
-            return "연습이 조금 필요해요."
-        case .middle:
-            return "조금 더 또박또박 말해볼까요?"
-        case .high:
-            return "발음이 자연스럽고 안정적이예요!"
-        }
-    }
-}
+// PronunciationScoreLevel 은 Model/AnalysisSummary.swift 로 승격됨.
+// "내가 어려워하는 발음" 카드 데이터(PronunciationDifficultyItem) 는 sub-issue 2 에서
+// 모델의 PronunciationDifficultyResult 로 교체될 예정.
 
 private struct PronunciationDifficultyItem: Identifiable {
     let id: String

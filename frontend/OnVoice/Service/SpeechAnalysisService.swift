@@ -68,21 +68,39 @@ final class SpeechAnalysisService: SpeechAnalyzing {
             let limitation = resolveLimitation(intentText: resolvedIntent)
             logLimitation(limitation)
 
-            let analyzedScript = await scriptAnalyzer.analyze(
+            let artifacts = await scriptAnalyzer.analyzeArtifacts(
                 phoneticScript: rawScript,
                 intentText: resolvedIntent
             )
+
+            // 점수/난이도/코멘트를 한 번 더 정렬 결과(cells)로부터 산출한다.
+            // cells 가 비어 있다(=한글 분석 불가능) 면 점수 평가 자체가 의미 없으므로
+            // isPronunciationEvaluationAvailable=false 로 두어 화면이 fallback 을 쓰게 한다.
+            let scoreSummary = PronunciationScoreCalculator.compute(cells: artifacts.cells)
+            let difficultyItems = PronunciationDifficultyAggregator.aggregate(
+                cells: artifacts.cells,
+                expectedAll: artifacts.expectedAll
+            )
+            let summaryComment = PronunciationSummaryCommentGenerator.generate(
+                topItem: difficultyItems.first,
+                level: scoreSummary.level
+            )
+            let isEvaluationAvailable = !artifacts.cells.isEmpty && limitation == nil
 
             return AnalysisResult(
                 transcript: transcription.fullText,
                 standardText: resolvedIntent ?? "",
                 standardPronunciation: "",
                 sentences: [],
-                overallAccuracy: 0,
-                isPronunciationEvaluationAvailable: false,
-                scriptAnalysis: analyzedScript,
+                overallAccuracy: scoreSummary.accuracy,
+                isPronunciationEvaluationAvailable: isEvaluationAvailable,
+                scriptAnalysis: artifacts.script,
                 transcriptionFailure: nil,
-                limitation: limitation
+                limitation: limitation,
+                score: scoreSummary.score,
+                scoreLevel: scoreSummary.level,
+                summaryComment: summaryComment,
+                difficultyItems: difficultyItems
             )
 
         case let .failure(failure):

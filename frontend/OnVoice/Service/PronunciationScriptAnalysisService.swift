@@ -16,21 +16,64 @@
 import Foundation
 import SwiftUI
 
-protocol PronunciationScriptAnalyzing {
-    func analyze(
-        phoneticScript: PronunciationErrorScript,
-        intentText: String?
-    ) async -> PronunciationErrorScript
+/// 자모 정렬 결과를 담는 번들. script 외에 점수/난이도 산출이 필요로 하는
+/// 원본 자모 cell 시퀀스와 expected 음절 전체를 함께 노출한다.
+///
+/// expectedAll 은 `PronunciationErrorClassifier.classify` 가 nextExpected 를
+/// 조회할 때 필요하므로 cells 와 함께 짝지어 들고 다닌다.
+struct PronunciationAnalysisArtifacts {
+    let script: PronunciationErrorScript
+    let cells: [AlignmentCell]
+    let expectedAll: [HangulJamo.Syllable]
+
+    static let empty = PronunciationAnalysisArtifacts(
+        script: .empty,
+        cells: [],
+        expectedAll: []
+    )
 }
 
-final class PronunciationScriptAnalysisService: PronunciationScriptAnalyzing {
+/// 분석 entry point. 외부 호출자는 artifacts 를 받아 score/aggregator 등 다운스트림
+/// 모듈에 다시 전달한다. 단순 스크립트만 필요한 호출자는 protocol extension 의
+/// `analyze` 편의 메서드를 그대로 쓰면 된다.
+protocol PronunciationScriptAnalyzing {
+    func analyzeArtifacts(
+        phoneticScript: PronunciationErrorScript,
+        intentText: String?
+    ) async -> PronunciationAnalysisArtifacts
+}
+
+extension PronunciationScriptAnalyzing {
+    /// 기존 호출자(테스트 등) 호환을 위해 script 만 필요할 때 사용.
     func analyze(
         phoneticScript: PronunciationErrorScript,
         intentText: String?
     ) async -> PronunciationErrorScript {
-        guard !phoneticScript.sentences.isEmpty else { return phoneticScript }
+        await analyzeArtifacts(
+            phoneticScript: phoneticScript,
+            intentText: intentText
+        ).script
+    }
+}
+
+final class PronunciationScriptAnalysisService: PronunciationScriptAnalyzing {
+    func analyzeArtifacts(
+        phoneticScript: PronunciationErrorScript,
+        intentText: String?
+    ) async -> PronunciationAnalysisArtifacts {
+        guard !phoneticScript.sentences.isEmpty else {
+            return PronunciationAnalysisArtifacts(
+                script: phoneticScript,
+                cells: [],
+                expectedAll: []
+            )
+        }
         guard let intentText, !intentText.trimmingCharacters(in: .whitespaces).isEmpty else {
-            return phoneticScript
+            return PronunciationAnalysisArtifacts(
+                script: phoneticScript,
+                cells: [],
+                expectedAll: []
+            )
         }
 
         // 1) Apple text → G2P → expected 음절 시퀀스
@@ -76,7 +119,11 @@ final class PronunciationScriptAnalysisService: PronunciationScriptAnalyzing {
             )
         }
 
-        return PronunciationErrorScript(sentences: sentences)
+        return PronunciationAnalysisArtifacts(
+            script: PronunciationErrorScript(sentences: sentences),
+            cells: cells,
+            expectedAll: expectedAll
+        )
     }
 
     // MARK: - Segment grouping (ref-distance based)

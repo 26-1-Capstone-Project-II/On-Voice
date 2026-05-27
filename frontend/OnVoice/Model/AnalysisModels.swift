@@ -49,6 +49,17 @@ struct AnalysisResult {
     let transcriptionFailure: TranscriptionFailure?
     /// 전사는 성공했지만 발음 비교가 비활성화된 사유. nil 이면 정상 분석 모드.
     let limitation: AnalysisLimitation?
+    /// 발음 분석 리포트 화면(피그마 5-1) 의 도넛 차트에 표시되는 0-100 점수.
+    /// 분석 불가 시 0. UI 는 isPronunciationEvaluationAvailable 로 fallback 분기.
+    let score: Int
+    /// 점수 등급(low/middle/high). UI 색상/제목 매핑에 사용.
+    let scoreLevel: PronunciationScoreLevel
+    /// 점수 카드 본문 코멘트. 1위 카테고리에 맞춰 자동 생성.
+    /// 분석 불가 / 오류 없음 케이스는 등급 기반 fallback.
+    let summaryComment: String
+    /// "내가 어려워하는 발음" 카드 순위(최대 3개).
+    /// 빈 배열이면 fallback UI 표시.
+    let difficultyItems: [PronunciationDifficultyResult]
 
     init(
         transcript: String,
@@ -59,7 +70,11 @@ struct AnalysisResult {
         isPronunciationEvaluationAvailable: Bool,
         scriptAnalysis: PronunciationErrorScript = .empty,
         transcriptionFailure: TranscriptionFailure? = nil,
-        limitation: AnalysisLimitation? = nil
+        limitation: AnalysisLimitation? = nil,
+        score: Int = 0,
+        scoreLevel: PronunciationScoreLevel = .low,
+        summaryComment: String = "",
+        difficultyItems: [PronunciationDifficultyResult] = []
     ) {
         self.transcript = transcript
         self.standardText = standardText
@@ -70,6 +85,10 @@ struct AnalysisResult {
         self.scriptAnalysis = scriptAnalysis
         self.transcriptionFailure = transcriptionFailure
         self.limitation = limitation
+        self.score = score
+        self.scoreLevel = scoreLevel
+        self.summaryComment = summaryComment
+        self.difficultyItems = difficultyItems
     }
 
     var errorSentences: [AnalysisSentence] {
