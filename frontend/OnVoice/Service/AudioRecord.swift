@@ -47,6 +47,7 @@ class AudioRecorder: ObservableObject {
     @Published var recordings: [Recording] = []
     
     private var recorder: AVAudioRecorder?
+    private let recordingsDirectoryURL: URL
     private var startTime: Date?
     private var pendingStart: DispatchWorkItem?
     // 워밍업 워크아이템이 실제 record()를 부르기 전 토큰을 비교해, 워밍업 도중
@@ -57,6 +58,15 @@ class AudioRecorder: ObservableObject {
     // 마이크 입력 파이프라인이 안정화되기 전 구간(초기 클릭, AGC 릴리즈 등)이
     // 모델에 들어가지 않도록 record() 호출 전에 비워두는 슬립 시간.
     private static let warmupDelay: TimeInterval = 0.15
+    private static let recordingFileExtensions: Set<String> = ["wav"]
+
+    init(
+        recordingsDirectoryURL: URL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+    ) {
+        self.recordingsDirectoryURL = recordingsDirectoryURL
+        createRecordingsDirectoryIfNeeded()
+        loadPersistedRecordings()
+    }
 
     enum RecordingMutationError: LocalizedError {
         case recordingNotFound
@@ -215,6 +225,30 @@ class AudioRecorder: ObservableObject {
             .filter { !$0.isEmpty }
             .joined(separator: " ")
     }
+
+    private func loadPersistedRecordings() {
+        do {
+            let fileURLs = try FileManager.default.contentsOfDirectory(
+                at: recordingsDirectoryURL,
+                includingPropertiesForKeys: [.creationDateKey, .contentModificationDateKey],
+                options: [.skipsHiddenFiles]
+            )
+
+            recordings = fileURLs
+                .filter { Self.recordingFileExtensions.contains($0.pathExtension.lowercased()) }
+                .map { url in
+                    Recording(
+                        fileURL: url,
+                        createdAt: persistedCreatedAt(for: url),
+                        duration: getAccurateAudioDuration(from: url)
+                    )
+                }
+                .sorted { $0.createdAt > $1.createdAt }
+        } catch {
+            print("저장된 녹음 목록을 불러오지 못했어요: \(error)")
+            recordings = []
+        }
+    }
     
     /// 녹음 파일에서 실제 재생 길이 측정 (.wav PCM 등)
     private func getAccurateAudioDuration(from url: URL) -> TimeInterval {
@@ -231,8 +265,44 @@ class AudioRecorder: ObservableObject {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyyMMdd_HHmmss"
         let filename = "Recording_\(formatter.string(from: Date())).wav"
-        let path = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        return path.appendingPathComponent(filename)
+        createRecordingsDirectoryIfNeeded()
+        return recordingsDirectoryURL.appendingPathComponent(filename)
+    }
+
+    private func createRecordingsDirectoryIfNeeded() {
+        do {
+            try FileManager.default.createDirectory(
+                at: recordingsDirectoryURL,
+                withIntermediateDirectories: true
+            )
+        } catch {
+            print("녹음 저장 폴더를 준비하지 못했어요: \(error)")
+        }
+    }
+
+    private func persistedCreatedAt(for url: URL) -> Date {
+        if let dateFromGeneratedName = Self.generatedRecordingDate(from: url) {
+            return dateFromGeneratedName
+        }
+
+        do {
+            let resourceValues = try url.resourceValues(forKeys: [.creationDateKey, .contentModificationDateKey])
+            return resourceValues.creationDate ?? resourceValues.contentModificationDate ?? Date.distantPast
+        } catch {
+            return Date.distantPast
+        }
+    }
+
+    private static func generatedRecordingDate(from url: URL) -> Date? {
+        let filename = url.deletingPathExtension().lastPathComponent
+        guard filename.wholeMatch(of: /^Recording_\d{8}_\d{6}$/) != nil else {
+            return nil
+        }
+
+        let rawDate = String(filename.dropFirst("Recording_".count))
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyyMMdd_HHmmss"
+        return formatter.date(from: rawDate)
     }
 
     private func uniqueRecordingURL(for recording: Recording, sanitizedTitle: String) -> URL {

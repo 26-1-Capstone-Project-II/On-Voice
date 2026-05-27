@@ -67,6 +67,32 @@ final class AudioRecorderMutationTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: recording.fileURL.path))
     }
 
+    func testInitializesWithPersistedWavRecordings() throws {
+        let olderURL = try makePersistedFile(named: "Recording_20260414_090000", extension: "wav")
+        let newerURL = try makePersistedFile(named: "Recording_20260415_090000", extension: "wav")
+        _ = try makePersistedFile(named: "audio", extension: "m4a")
+
+        let recorder = AudioRecorder(recordingsDirectoryURL: tempDirectoryURL)
+
+        XCTAssertEqual(recorder.recordings.map(\.fileURL), [newerURL, olderURL])
+        XCTAssertEqual(recorder.recordings.map(\.title), [
+            "Recording_20260415_090000",
+            "Recording_20260414_090000"
+        ])
+    }
+
+    func testInitializesWithRenamedPersistedWavRecordingUsingFileCreationDate() throws {
+        let creationDate = Date(timeIntervalSince1970: 1_800)
+        let fileURL = try makePersistedFile(named: "회의 메모", extension: "wav")
+        try FileManager.default.setAttributes([.creationDate: creationDate], ofItemAtPath: fileURL.path)
+
+        let recorder = AudioRecorder(recordingsDirectoryURL: tempDirectoryURL)
+
+        XCTAssertEqual(recorder.recordings.count, 1)
+        XCTAssertEqual(recorder.recordings[0].fileURL, fileURL)
+        XCTAssertEqual(recorder.recordings[0].createdAt, creationDate)
+    }
+
     private func makeRecording(named name: String) throws -> Recording {
         let fileURL = tempDirectoryURL
             .appendingPathComponent(name)
@@ -79,5 +105,14 @@ final class AudioRecorderMutationTests: XCTestCase {
             createdAt: Date(timeIntervalSince1970: 0),
             duration: 42
         )
+    }
+
+    private func makePersistedFile(named name: String, extension fileExtension: String) throws -> URL {
+        let fileURL = tempDirectoryURL
+            .appendingPathComponent(name)
+            .appendingPathExtension(fileExtension)
+        let created = FileManager.default.createFile(atPath: fileURL.path, contents: Data())
+        XCTAssertTrue(created)
+        return fileURL
     }
 }
