@@ -87,7 +87,10 @@ final class PronunciationScriptAnalysisService: PronunciationScriptAnalyzing {
     ///    expectedIndex 와의 거리를 비교해 더 가까운 쪽 segment 에 부착.
     ///  - cells 양 끝의 gap 은 한쪽만 actual 이 있으면 그쪽에 부착.
     ///  - actual cell 이 한 번도 없으면 (=hyp 가 비어있는 비정상 케이스) 모두 무시.
-    private func groupCellsBySegment(
+    ///
+    /// `internal` 로 노출되어 단위 테스트에서 직접 호출 가능 (어떤 cell 이 어느 segment 로
+    /// 가는지 직접 검증). 외부 호출자는 analyze() 만 사용한다.
+    func groupCellsBySegment(
         cells: [AlignmentCell],
         syllableToSegment: [Int]
     ) -> [Int: [AlignmentCell]] {
@@ -106,47 +109,24 @@ final class PronunciationScriptAnalysisService: PronunciationScriptAnalyzing {
             let cell = cells[i]
             guard let gapExpected = cell.expectedIndex else { continue }
 
-            // 직전 actual cell 찾기
-            var prevExp: Int? = nil
-            var prevSeg: Int? = nil
-            for j in stride(from: i - 1, through: 0, by: -1) {
-                if cells[j].actualIndex != nil,
-                   let exp = cells[j].expectedIndex,
-                   let seg = resolved[j] {
-                    prevExp = exp
-                    prevSeg = seg
-                    break
-                }
-            }
-            // 직후 actual cell 찾기
-            var nextExp: Int? = nil
-            var nextSeg: Int? = nil
-            if i + 1 < cells.count {
-                for j in (i + 1)..<cells.count {
-                    if cells[j].actualIndex != nil,
-                       let exp = cells[j].expectedIndex,
-                       let seg = resolved[j] {
-                        nextExp = exp
-                        nextSeg = seg
-                        break
-                    }
-                }
-            }
+            let prev = nearestNeighborWithExpectedIndex(
+                in: cells,
+                from: i,
+                stride: -1,
+                resolved: resolved
+            )
+            let next = nearestNeighborWithExpectedIndex(
+                in: cells,
+                from: i,
+                stride: +1,
+                resolved: resolved
+            )
 
-            switch (prevSeg, nextSeg) {
-            case let (.some(p), .some(n)):
-                // 양쪽 다 있으면 거리 비교. 동률이면 직전 segment(=p) 선호.
-                let distPrev = abs(gapExpected - (prevExp ?? gapExpected))
-                let distNext = abs((nextExp ?? gapExpected) - gapExpected)
-                resolved[i] = distPrev <= distNext ? p : n
-            case let (.some(p), nil):
-                resolved[i] = p
-            case let (nil, .some(n)):
-                resolved[i] = n
-            case (nil, nil):
-                // actual cell 이 시퀀스 전체에 하나도 없음. 무시.
-                resolved[i] = nil
-            }
+            resolved[i] = pickSegment(
+                gapExpected: gapExpected,
+                prev: prev,
+                next: next
+            )
         }
 
         var groups: [Int: [AlignmentCell]] = [:]
@@ -155,6 +135,48 @@ final class PronunciationScriptAnalysisService: PronunciationScriptAnalyzing {
             groups[seg, default: []].append(cells[i])
         }
         return groups
+    }
+
+    /// 한 방향으로 스캔해 (actualIndex != nil AND expectedIndex != nil AND resolved 된)
+    /// 가장 가까운 cell 의 (expectedIndex, segment) 쌍을 돌려준다.
+    private func nearestNeighborWithExpectedIndex(
+        in cells: [AlignmentCell],
+        from index: Int,
+        stride step: Int,
+        resolved: [Int?]
+    ) -> (expectedIndex: Int, segment: Int)? {
+        var j = index + step
+        while j >= 0 && j < cells.count {
+            if cells[j].actualIndex != nil,
+               let exp = cells[j].expectedIndex,
+               let seg = resolved[j] {
+                return (exp, seg)
+            }
+            j += step
+        }
+        return nil
+    }
+
+    /// gap 의 expectedIndex 와 prev/next 의 (expectedIndex, segment) 를 보고 분배.
+    /// 한쪽만 있으면 그쪽으로, 둘 다 있으면 거리 비교(동률은 prev 선호).
+    /// 둘 다 nil 이면 nil (=어디에도 부착 안 함).
+    private func pickSegment(
+        gapExpected: Int,
+        prev: (expectedIndex: Int, segment: Int)?,
+        next: (expectedIndex: Int, segment: Int)?
+    ) -> Int? {
+        switch (prev, next) {
+        case let (.some(p), .some(n)):
+            let distPrev = abs(gapExpected - p.expectedIndex)
+            let distNext = abs(n.expectedIndex - gapExpected)
+            return distPrev <= distNext ? p.segment : n.segment
+        case let (.some(p), nil):
+            return p.segment
+        case let (nil, .some(n)):
+            return n.segment
+        case (nil, nil):
+            return nil
+        }
     }
 
     // MARK: - Hangul-only alignment with index remapping

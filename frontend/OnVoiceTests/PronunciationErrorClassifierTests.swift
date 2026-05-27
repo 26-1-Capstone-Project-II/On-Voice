@@ -200,14 +200,23 @@ final class PronunciationErrorClassifierTests: XCTestCase {
     }
 
     func testFinalLinkingWeakSignatureWhenHypFinalAsrMisrecognized() {
-        // ref 종성 = 0, hyp 종성 = ㅁ, 다음 ref 초성 = ㄴ (jongToChoIndex[ㅁ]=ㅁ ≠ ㄴ)
-        // strict 매칭은 실패하지만 "받침을 옮겼어야 하는데 사용자가 안 옮긴" 패턴은
-        // 분명하므로 약한 시그니처 fallback 으로 finalLinking 으로 분류된다.
-        // ASR 오인식으로 hyp 종성이 어긋난 케이스가 dropout 으로 흡수되지 않게 한다.
+        // ref 종성 = 0, hyp 종성 = ㅁ (plausibleSpokenFinals 에 포함),
+        // 다음 ref 초성 = ㄴ. strict 매칭(ㅁ→ㄴ)은 실패하지만 fallback 으로 finalLinking.
         let c = cell(expected: "어", actual: "엄")
         let next = syl("나")
         let result = PronunciationErrorClassifier.classify(cell: c, nextExpected: next)
         XCTAssertEqual(result, [.finalLinking])
+    }
+
+    func testFinalLinkingFallbackRejectsImplausibleHypFinal() {
+        // ref 종성 = 0, hyp 종성 = ㅋ (24, plausibleSpokenFinals 에 미포함).
+        // 한국어 받침으로 ㅋ 은 거의 발음되지 않아 ASR 오인식 가능성이 높다.
+        // fallback 에서 제외되어 dropout 으로 분류돼야 한다.
+        let c = cell(expected: "어", actual: "엌")  // ㅇ ㅓ ㅋ
+        let next = syl("나")
+        let result = PronunciationErrorClassifier.classify(cell: c, nextExpected: next)
+        XCTAssertEqual(result, [.dropout],
+            "비주류 받침(ㅋ)이 finalLinking 으로 흡수되면 오탐 — fallback 게이트 회귀")
     }
 
     // MARK: - 비-한글 cell

@@ -34,7 +34,7 @@ final class RecordingAnalysisViewModel: ObservableObject {
 
     let recording: Recording
 
-    private let analysisService: SpeechAnalysisService
+    private let analysisService: SpeechAnalyzing
     private var analysisTask: Task<AnalysisResult, Never>?
     /// invalidate() 호출마다 증가하는 세대 토큰. 옛 task 가 늦게 끝나
     /// 결과를 들고 와도 세대가 바뀌었다면 무시한다.
@@ -42,7 +42,7 @@ final class RecordingAnalysisViewModel: ObservableObject {
 
     init(
         recording: Recording,
-        analysisService: SpeechAnalysisService = SpeechAnalysisService()
+        analysisService: SpeechAnalyzing = SpeechAnalysisService()
     ) {
         self.recording = recording
         self.analysisService = analysisService

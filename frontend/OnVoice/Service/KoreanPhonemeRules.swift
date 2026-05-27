@@ -77,6 +77,22 @@ enum KoreanPhonemeRules {
     static let finalT  = 7   // ㄷ
     static let finalTh = 25  // ㅌ
 
+    /// 한국어에서 자연스럽게 받침으로 발음되는 자모 집합.
+    /// 비음(ㄴ/ㅁ/ㅇ) + 유음(ㄹ) + 평폐쇄음(ㄱ/ㄷ/ㅂ). ASR 이 ㄲ/ㅋ/ㅍ/ㅆ/ㅈ/ㅊ/ㅌ/ㅎ
+    /// 같은 비주류 받침을 인식하는 건 드물고 단순 오인식일 가능성이 높아 제외한다.
+    /// finalLinking fallback 의 hyp 측 게이트로 사용 — 받침으로 자주 잡히지 않는
+    /// 자모가 hyp 종성으로 들어왔다면 "사용자가 연음을 안 한 패턴" 보다 "ASR 오인식"
+    /// 일 가능성이 높아 dropout 으로 흘려보낸다.
+    static let plausibleSpokenFinals: Set<Int> = [
+        1,       // ㄱ
+        4,       // ㄴ
+        7,       // ㄷ
+        8,       // ㄹ
+        16,      // ㅁ
+        17,      // ㅂ
+        21       // ㅇ
+    ]
+
     /// 어떤 받침이든 평폐쇄음 그룹(ㄱ/ㄷ/ㅂ) 으로 환산.
     /// classifier 가 ref/hyp 양측을 같은 그룹으로 정렬해 비음화 같은 패턴 매칭에 사용.
     static func plainStopOf(_ jong: Int) -> Int {
