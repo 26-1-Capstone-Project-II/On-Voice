@@ -30,6 +30,16 @@ struct AnalysisSummaryView: View {
         PronunciationScoreLevel(score: score)
     }
 
+    /// 점수 카드 본문 코멘트. 분석이 가능하면 1위 카테고리 기반으로 생성된
+    /// summaryComment 를, 분석 불가(권한 거부/무음/로딩) 시에는 score=54 fallback 과
+    /// 짝을 이루는 정적 안내 문구를 사용한다.
+    private var summaryComment: String {
+        guard let analysis = viewModel.analysis, analysis.isPronunciationEvaluationAvailable else {
+            return "받침 발음을 가장 어려워하고 있어요.\n목소리에 힘을 주고, 단어를 끝까지 소리낸다는\n방식으로 발음을 연습해보면 좋을 것 같아요."
+        }
+        return analysis.summaryComment
+    }
+
     /// 분석 결과의 10종 raw 카테고리에서 빈도 상위 3개를 그대로 노출.
     /// 분석 전(viewModel.analysis == nil) 이거나 오류가 한 건도 없을 때는 빈 배열을
     /// 돌려주고, difficultySection 자체가 숨겨진다.
@@ -98,7 +108,7 @@ struct AnalysisSummaryView: View {
                         .font(.Pretendard.SemiBold.size18)
                         .foregroundColor(.white)
 
-                    Text("받침 발음을 가장 어려워하고 있어요.\n목소리에 힘을 주고, 단어를 끝까지 소리낸다는\n방식으로 발음을 연습해보면 좋을 것 같아요.")
+                    Text(summaryComment)
                         .font(.Pretendard.Medium.size16)
                         .foregroundColor(.white)
                         .lineSpacing(4)

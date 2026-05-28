@@ -288,10 +288,10 @@ enum PronunciationScoreLevelResult: String {
 - [x] 점수/난이도 산출 알고리즘 (`PronunciationScoreCalculator`, `PronunciationDifficultyAggregator`, `PronunciationSummaryCommentGenerator`)
 - [x] `AnalysisResult` 에 `score`, `scoreLevel`, `summaryComment`, `difficultyItems` 필드 추가
 - [x] `PronunciationScriptAnalysisService` 가 cells/expectedAll 까지 포함한 `PronunciationAnalysisArtifacts` 를 반환
+- [x] `PronunciationDifficultyItem.samples` 하드코딩 제거 → `analysis.difficultyItems` 사용 (sub-issue 2)
+- [x] 점수 카드 설명 문구를 `analysis.summaryComment` 로 교체 — 분석 불가 시 score=54 와 짝을 이루는 정적 fallback 유지 (sub-issue 2)
 
 미완:
-- [ ] `PronunciationDifficultyItem.samples` 하드코딩 제거 → `analysis.difficultyItems` 사용 (sub-issue 2)
-- [ ] 점수 카드 설명 문구 (`AnalysisSummaryView` 내 하드코딩) 를 `analysis.summaryComment` 로 교체 (sub-issue 2)
 - [ ] 카테고리별 사람 아이콘 매핑 — 현재 모두 `error_img_1` fallback (sub-issue 3)
 - [ ] 분석 실패/진행 중/분석 불가 상태 UI 정리 (현재 Whisper 로드 실패는 `print` 후 빈 결과 반환)
 - [ ] 백엔드 API 연동 여부 결정 (현재는 모든 처리가 온디바이스)
