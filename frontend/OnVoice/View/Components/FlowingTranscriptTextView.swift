@@ -81,7 +81,11 @@ struct FlowingTranscriptTextView: UIViewRepresentable {
         coordinator.renderedSentenceIDs = sentenceIDs
         coordinator.renderedSelectionID = selectedSentenceID
 
-        // 선택 중에는 선택 문장을 위로 끌어올릴 수 있도록 하단 여백 확보.
+        // 선택 중에는 선택 문장을 상단까지 끌어올릴 수 있도록 하단 여백을 확보한다.
+        // 최악 케이스(마지막 문장 선택)에서 그 문장이 top 까지 오르려면 거의 한 화면
+        // 분량의 추가 스크롤 공간이 필요하므로 bounds.height 가 필요한 최소량이다.
+        // 해제 시 0 으로 복원해 빈 공간이 남지 않게 한다. 실제 스크롤 목표는
+        // scrollToSelection 에서 contentSize 기준으로 clamp 된다.
         textView.contentInset.bottom = selectedSentenceID == nil ? 0 : textView.bounds.height
 
         if isNewSelection {
@@ -164,6 +168,10 @@ struct FlowingTranscriptTextView: UIViewRepresentable {
                 return
             }
 
+            // location(in:) 은 UITextView(=UIScrollView) 의 bounds 좌표계 값이라
+            // bounds.origin(== contentOffset) 이 이미 반영된 "콘텐츠 좌표" 다.
+            // 따라서 contentOffset 을 다시 더하면 스크롤 시 이중 계산되어 오탐이 난다.
+            // textContainerInset 만 빼서 text container 좌표로 변환하면 된다(Apple 표준 레시피).
             let location = gesture.location(in: textView)
             let point = CGPoint(
                 x: location.x - textView.textContainerInset.left,

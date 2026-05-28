@@ -113,6 +113,10 @@ extension PronunciationErrorScript {
     /// 무관하게 cell 을 segment 별로 그룹화하므로, 문장 분할이 더 세분화될수록
     /// errorDetail 도 문장 단위로 더 정밀해진다.
     static func makePlainScript(from segments: [String]) -> PronunciationErrorScript {
+        // 각 문장 끝의 " " 는 렌더링 전용 구분자다. FlowingTranscriptTextView 가
+        // 모든 문장을 한 NSAttributedString 으로 이어 붙일 때 문장 사이가 붙지 않게
+        // 한다(인라인 흐름 유지). 분석 단계는 비-한글(공백)을 무시하므로 점수/정렬에는
+        // 영향이 없다. 텍스트를 외부로 복사/저장할 일이 생기면 호출부에서 trim 한다.
         let sentences = segments
             .flatMap { splitIntoSentences($0) }
             .map { PronunciationTranscriptSentence(segments: [.normal($0 + " ")]) }
@@ -135,8 +139,12 @@ extension PronunciationErrorScript {
     ///  - 토큰 끝만 보므로 소수점(5.5)·약어 내부 마침표는 경계로 잡히지 않는다(안전).
     ///  - "까"는 "아까/이따까" 처럼 종결이 아닌 흔한 단어와 겹쳐 제외했다.
     ///    형식 의문(~습니까)은 못 나누지만, 정중체 의문 "~까요"는 요로 잡힌다.
-    ///  - 반말 종결(어/아/지/네 등)은 연결어미와 혼동되기 쉬워 의도적으로 제외 →
-    ///    드물게 한 덩어리로 남을 수 있다. 과분할보다 안전한 쪽을 택한 것.
+    ///  - 반말 종결(어/아/지/네 등)은 연결어미·일반어("그렇지 않아", "네 알겠어")와
+    ///    혼동되기 쉬워 의도적으로 제외 → 반말 발화는 한 덩어리로 남을 수 있다.
+    ///
+    /// 정밀도 우선(과분할 < 누락)의 의도적 절충이다. 더 높은 recall 이 필요하면
+    /// Apple ASR `addsPunctuation` 결과의 문장 경계를 자모 정렬로 phonetic 에
+    /// 매핑하는 방식이 견고하나, 분석 파이프라인 변경 폭이 커 후속 과제로 둔다.
     static func splitIntoSentences(_ text: String) -> [String] {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return [] }
