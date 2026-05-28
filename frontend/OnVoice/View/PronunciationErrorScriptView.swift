@@ -49,14 +49,12 @@ struct PronunciationErrorScriptView: View {
                 }
 
                 ZStack(alignment: .bottom) {
-                    ScrollViewReader { proxy in
-                        ScrollView(showsIndicators: false) {
-                            transcriptView(scrollProxy: proxy)
-                                .padding(.horizontal, Layout.horizontalPadding)
-                                .padding(.top, Layout.transcriptTopPadding)
-                                .padding(.bottom, Layout.transcriptBottomPadding)
-                        }
-                    }
+                    FlowingTranscriptTextView(
+                        sentences: script.sentences,
+                        selectedSentenceID: selectedSentenceID,
+                        onTapSentence: handleSentenceTap,
+                        onTapWhileSelected: dismissSelectedSentence
+                    )
 
                     if script.isEmpty {
                         if let transcriptionFailure {
@@ -211,37 +209,11 @@ struct PronunciationErrorScriptView: View {
         .background(Color.bg)
     }
 
-    private func transcriptView(scrollProxy: ScrollViewProxy) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            ForEach(script.sentences) { sentence in
-                HighlightedText(
-                    segments: sentence.segments,
-                    font: .Pretendard.Medium.size20,
-                    lineSpacing: 4
-                )
-                .opacity(transcriptOpacity(for: sentence))
-                .fixedSize(horizontal: false, vertical: true)
-                .id(sentence.id)
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    if selectedSentenceID != nil {
-                        dismissSelectedSentence()
-                        return
-                    }
-
-                    guard let errorDetail = sentence.errorDetail else { return }
-                    selectSentence(errorDetail)
-                    scrollSelectedSentenceToTop(sentence.id, scrollProxy: scrollProxy)
-                }
-            }
-
-            if selectedSentenceID != nil {
-                // Forces enough scrollable content so a selected sentence can align to the top
-                // even when the transcript itself is shorter than the visible area.
-                Color.clear
-                    .frame(height: UIScreen.main.bounds.height)
-            }
-        }
+    /// FlowingTranscriptTextView 에서 (선택 없는 상태로) 문장을 탭했을 때.
+    /// 선택 중 탭(해제)은 onTapWhileSelected → dismissSelectedSentence 로 처리된다.
+    private func handleSentenceTap(_ sentence: PronunciationTranscriptSentence) {
+        guard let errorDetail = sentence.errorDetail else { return }
+        selectSentence(errorDetail)
     }
 
     private func errorPracticeCard(_ sentence: PronunciationErrorSentence) -> some View {
@@ -373,11 +345,6 @@ struct PronunciationErrorScriptView: View {
         nextAttemptIndex += 1
     }
 
-    private func transcriptOpacity(for sentence: PronunciationTranscriptSentence) -> Double {
-        guard let selectedSentenceID else { return 1 }
-        return sentence.errorDetail?.id == selectedSentenceID ? 1 : 0.5
-    }
-
     private func selectSentence(_ sentence: PronunciationErrorSentence) {
         withAnimation(.spring(response: 0.28, dampingFraction: 0.88)) {
             selectedSentenceID = sentence.id
@@ -406,21 +373,10 @@ struct PronunciationErrorScriptView: View {
         }
     }
 
-    private func scrollSelectedSentenceToTop(_ id: UUID, scrollProxy: ScrollViewProxy) {
-        DispatchQueue.main.asyncAfter(deadline: .now() + Layout.scrollToSelectedSentenceDelay) {
-            withAnimation(.spring(response: 0.32, dampingFraction: 0.88)) {
-                scrollProxy.scrollTo(id, anchor: .top)
-            }
-        }
-    }
-
     private enum Layout {
         static let horizontalPadding: CGFloat = 24
         static let navigationHorizontalPadding: CGFloat = 20
-        static let transcriptTopPadding: CGFloat = 10
-        static let transcriptBottomPadding: CGFloat = 34
         static let practiceCardBottomPadding: CGFloat = 8
-        static let scrollToSelectedSentenceDelay: DispatchTimeInterval = .milliseconds(160)
     }
 }
 
@@ -471,9 +427,11 @@ private struct VoiceWaveformView: View {
         PronunciationErrorScriptView(
             script: PronunciationErrorScript.makePlainScript(
                 from: [
-                    "오느른 키움 히어로즈랑 고처게서 경기를 하는데",
-                    "아까 사회 초까지만 해도 쓰리런 치고 솔로포 치고 장난 아니언는데",
-                    "점수 오점 먼저 낻따고 투수가 막 던져서 지금 오대오 동저미야."
+                    // 한 Whisper segment 안에 여러 문장이 들어와도 종결 부호 기준으로
+                    // 분할되어 문장별로 흐르며 선택 가능해진다(이슈 #106).
+                    "오느른 키움 히어로즈랑 고처게서 경기를 하는데 지금 오대오 동저미야. " +
+                    "오늘 선바른 최민서기라 그래도 미더는데 사회마네 내려가써. " +
+                    "그래도 재미이써."
                 ]
             )
         )

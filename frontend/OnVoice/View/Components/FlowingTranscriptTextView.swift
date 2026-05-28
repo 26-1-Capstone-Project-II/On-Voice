@@ -1,0 +1,234 @@
+//
+//  FlowingTranscriptTextView.swift
+//  OnVoice
+//
+//  오류 발음 스크립트의 "이어지는 흐름 + 문장별 탭" 을 동시에 만족하는 뷰.
+//
+//  SwiftUI Text 연결(`+`)로는 인라인 흐름은 되지만 span(문장) 단위 탭 콜백을
+//  줄 수 없다. 그래서 UITextView 의 layoutManager 로 탭 좌표 → 글리프 → 문자
+//  인덱스 → 문장을 역추적해 문장 단위 선택을 구현한다(이슈 #106).
+//
+//  - 모든 문장을 하나의 NSAttributedString 으로 이어 붙여 자연스러운 줄바꿈 유지
+//  - 문장별 NSRange 를 보관해 탭 위치를 문장으로 매핑
+//  - 선택 시 다른 문장은 alpha 0.5 로 dim, 선택 문장은 상단 근처로 스크롤
+//
+
+import SwiftUI
+import UIKit
+
+struct FlowingTranscriptTextView: UIViewRepresentable {
+    let sentences: [PronunciationTranscriptSentence]
+    /// 현재 선택된 문장의 errorDetail.id (PronunciationErrorScriptView 와 동일 규약).
+    let selectedSentenceID: UUID?
+    /// 선택이 없을 때 문장을 탭하면 호출. 선택 여부/errorDetail 판단은 부모가 한다.
+    let onTapSentence: (PronunciationTranscriptSentence) -> Void
+    /// 이미 선택된 상태에서 아무 곳이나 탭하면 호출(해제).
+    let onTapWhileSelected: () -> Void
+
+    private enum Metrics {
+        static let font = UIFont(name: "Pretendard-Medium", size: 20)
+            ?? .systemFont(ofSize: 20, weight: .medium)
+        static let lineSpacing: CGFloat = 4
+        static let inset = UIEdgeInsets(top: 10, left: 24, bottom: 34, right: 24)
+        /// 선택 문장을 상단으로 끌어올릴 때 남길 위쪽 여백.
+        static let selectionTopGap: CGFloat = 8
+    }
+
+    func makeUIView(context: Context) -> UITextView {
+        let textView = UITextView()
+        textView.isEditable = false
+        textView.isSelectable = false
+        textView.isScrollEnabled = true
+        textView.backgroundColor = .clear
+        textView.showsVerticalScrollIndicator = false
+        textView.alwaysBounceVertical = true
+        textView.textContainerInset = Metrics.inset
+        textView.textContainer.lineFragmentPadding = 0
+
+        let tap = UITapGestureRecognizer(
+            target: context.coordinator,
+            action: #selector(Coordinator.handleTap(_:))
+        )
+        textView.addGestureRecognizer(tap)
+
+        context.coordinator.textView = textView
+        return textView
+    }
+
+    func updateUIView(_ textView: UITextView, context: Context) {
+        let coordinator = context.coordinator
+        coordinator.parent = self
+
+        // 렌더링에 영향을 주는 입력(문장 목록·선택)이 바뀌었을 때만 재구성한다.
+        // 부모의 무관한 상태 변경(녹음 토글, 시도 목록 등)으로 updateUIView 가 자주
+        // 불려도 attributedText 재설정/오프셋 복원을 하지 않아 스크롤 떨림을 막는다.
+        let sentenceIDs = sentences.map(\.id)
+        let selectionChanged = coordinator.renderedSelectionID != selectedSentenceID
+        let sentencesChanged = coordinator.renderedSentenceIDs != sentenceIDs
+        guard !coordinator.hasRendered || selectionChanged || sentencesChanged else { return }
+
+        // "새 선택" 은 이전에 렌더링된 적이 있고, 이번에 선택값이 새로 생긴 경우만.
+        let isNewSelection = coordinator.hasRendered
+            && selectionChanged
+            && selectedSentenceID != nil
+
+        let savedOffset = textView.contentOffset
+        let build = coordinator.buildAttributedText()
+        textView.attributedText = build.attributed
+        coordinator.sentenceRanges = build.ranges
+
+        coordinator.hasRendered = true
+        coordinator.renderedSentenceIDs = sentenceIDs
+        coordinator.renderedSelectionID = selectedSentenceID
+
+        // 선택 중에는 선택 문장을 상단까지 끌어올릴 수 있도록 하단 여백을 확보한다.
+        // 최악 케이스(마지막 문장 선택)에서 그 문장이 top 까지 오르려면 거의 한 화면
+        // 분량의 추가 스크롤 공간이 필요하므로 bounds.height 가 필요한 최소량이다.
+        // 해제 시 0 으로 복원해 빈 공간이 남지 않게 한다. 실제 스크롤 목표는
+        // scrollToSelection 에서 contentSize 기준으로 clamp 된다.
+        textView.contentInset.bottom = selectedSentenceID == nil ? 0 : textView.bounds.height
+
+        if isNewSelection {
+            coordinator.scrollToSelection(topGap: Metrics.selectionTopGap)
+        } else {
+            // attributedText 재설정으로 리셋된 오프셋을 사용자가 보던 위치로 복원.
+            textView.setContentOffset(savedOffset, animated: false)
+        }
+    }
+
+    func makeCoordinator() -> Coordinator { Coordinator(self) }
+
+    // MARK: - Coordinator
+
+    final class Coordinator: NSObject {
+        var parent: FlowingTranscriptTextView
+        weak var textView: UITextView?
+        var sentenceRanges: [SentenceRange] = []
+
+        // 마지막으로 렌더링한 입력 스냅샷. updateUIView 가 불필요하게 재구성하지
+        // 않도록 비교용으로 보관한다.
+        var hasRendered = false
+        var renderedSentenceIDs: [UUID] = []
+        var renderedSelectionID: UUID?
+
+        struct SentenceRange {
+            let sentence: PronunciationTranscriptSentence
+            let range: NSRange
+        }
+
+        init(_ parent: FlowingTranscriptTextView) {
+            self.parent = parent
+        }
+
+        // MARK: Attributed string
+
+        func buildAttributedText() -> (attributed: NSAttributedString, ranges: [SentenceRange]) {
+            let result = NSMutableAttributedString()
+            var ranges: [SentenceRange] = []
+
+            let paragraph = NSMutableParagraphStyle()
+            paragraph.lineSpacing = Metrics.lineSpacing
+
+            let hasSelection = parent.selectedSentenceID != nil
+
+            for sentence in parent.sentences {
+                let start = result.length
+                let isSelected = sentence.errorDetail?.id == parent.selectedSentenceID
+                let dimmed = hasSelection && !isSelected
+
+                for segment in sentence.segments {
+                    var color = UIColor(segment.color)
+                    if dimmed { color = color.withAlphaComponent(0.5) }
+                    result.append(NSAttributedString(
+                        string: segment.text,
+                        attributes: [
+                            .font: Metrics.font,
+                            .foregroundColor: color,
+                            .paragraphStyle: paragraph
+                        ]
+                    ))
+                }
+
+                ranges.append(SentenceRange(
+                    sentence: sentence,
+                    range: NSRange(location: start, length: result.length - start)
+                ))
+            }
+            return (result, ranges)
+        }
+
+        // MARK: Tap → sentence
+
+        @objc func handleTap(_ gesture: UITapGestureRecognizer) {
+            guard let textView else { return }
+
+            // 선택된 상태에서는 어디를 탭하든 해제.
+            if parent.selectedSentenceID != nil {
+                parent.onTapWhileSelected()
+                return
+            }
+
+            // location(in:) 은 UITextView(=UIScrollView) 의 bounds 좌표계 값이라
+            // bounds.origin(== contentOffset) 이 이미 반영된 "콘텐츠 좌표" 다.
+            // 따라서 contentOffset 을 다시 더하면 스크롤 시 이중 계산되어 오탐이 난다.
+            // textContainerInset 만 빼서 text container 좌표로 변환하면 된다(Apple 표준 레시피).
+            let location = gesture.location(in: textView)
+            let point = CGPoint(
+                x: location.x - textView.textContainerInset.left,
+                y: location.y - textView.textContainerInset.top
+            )
+            let layoutManager = textView.layoutManager
+            let container = textView.textContainer
+
+            // 빈 영역(글자 없는 곳) 오탭 방지: 탭이 실제 글리프 box 안인지 확인.
+            let glyphIndex = layoutManager.glyphIndex(for: point, in: container)
+            let glyphRect = layoutManager.boundingRect(
+                forGlyphRange: NSRange(location: glyphIndex, length: 1),
+                in: container
+            )
+            guard glyphRect.contains(point) else { return }
+
+            let charIndex = layoutManager.characterIndexForGlyph(at: glyphIndex)
+            guard let match = sentenceRanges.first(where: {
+                NSLocationInRange(charIndex, $0.range)
+            }) else { return }
+
+            parent.onTapSentence(match.sentence)
+        }
+
+        // MARK: Scroll to selection
+
+        func scrollToSelection(topGap: CGFloat) {
+            guard let textView,
+                  let id = parent.selectedSentenceID,
+                  let match = sentenceRanges.first(where: {
+                      $0.sentence.errorDetail?.id == id
+                  }) else { return }
+
+            let layoutManager = textView.layoutManager
+            layoutManager.ensureLayout(for: textView.textContainer)
+
+            let glyphRange = layoutManager.glyphRange(
+                forCharacterRange: match.range,
+                actualCharacterRange: nil
+            )
+            let rect = layoutManager.boundingRect(
+                forGlyphRange: glyphRange,
+                in: textView.textContainer
+            )
+            let targetY = rect.minY + textView.textContainerInset.top - topGap
+
+            // attributedText 재설정 직후라 contentSize 가 아직 갱신 전일 수 있어
+            // 다음 runloop 에서 layout 을 강제 반영한 뒤 스크롤한다. 목표 오프셋은
+            // 스크롤 가능한 최대치로 clamp 해 과도한 스크롤(빈 공간 노출)을 막는다.
+            DispatchQueue.main.async {
+                textView.layoutIfNeeded()
+                let maxOffsetY = max(0, textView.contentSize.height
+                    + textView.contentInset.bottom
+                    - textView.bounds.height)
+                let clampedY = min(max(0, targetY), maxOffsetY)
+                textView.setContentOffset(CGPoint(x: 0, y: clampedY), animated: true)
+            }
+        }
+    }
+}
