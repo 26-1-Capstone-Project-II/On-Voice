@@ -120,60 +120,58 @@ extension PronunciationErrorScript {
         return sentences.isEmpty ? .empty : PronunciationErrorScript(sentences: sentences)
     }
 
-    /// 종결 부호(.?!) 기준으로 문장을 분할한다. 반환 문자열은 trim 된 상태이며
-    /// 종결 부호는 앞 문장에 포함된다(연결 시 호출자가 공백을 덧붙인다).
+    /// 텍스트를 문장 단위로 분할한다. 반환 문자열은 trim 된 상태이며 종결 신호는
+    /// 앞 문장에 포함된다(연결 시 호출자가 공백을 덧붙인다).
     ///
-    /// 예외 처리:
-    ///  - 소수점: 마침표 양옆이 숫자면(예: 5.5) 종결로 보지 않는다.
-    ///  - 연속 종결 부호: "...", "?!" 등은 하나의 경계로 묶어 빈/부호만 있는
-    ///    조각이 생기지 않게 한다.
+    /// 분할 신호는 공백으로 나눈 토큰의 "끝"을 본다:
+    ///  - 종결 부호(. ? !)로 끝나는 토큰 → 문장 경계
+    ///  - 한국어 종결어미 음절(요/죠/다/야)로 끝나는 토큰 → 문장 경계
+    ///
+    /// Whisper phonetic 전사는 구두점이 거의 없어 종결 부호만으로는 한 덩어리로
+    /// 남는다(이슈 #106 회귀). 그래서 부호가 없는 한국어 음성도 문장으로 나뉘도록
+    /// 종결어미 휴리스틱을 함께 쓴다.
+    ///
+    /// 예외/한계:
+    ///  - 토큰 끝만 보므로 소수점(5.5)·약어 내부 마침표는 경계로 잡히지 않는다(안전).
+    ///  - "까"는 "아까/이따까" 처럼 종결이 아닌 흔한 단어와 겹쳐 제외했다.
+    ///    형식 의문(~습니까)은 못 나누지만, 정중체 의문 "~까요"는 요로 잡힌다.
+    ///  - 반말 종결(어/아/지/네 등)은 연결어미와 혼동되기 쉬워 의도적으로 제외 →
+    ///    드물게 한 덩어리로 남을 수 있다. 과분할보다 안전한 쪽을 택한 것.
     static func splitIntoSentences(_ text: String) -> [String] {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return [] }
 
-        let terminators: Set<Character> = [".", "?", "!"]
-        let chars = Array(trimmed)
+        let tokens = trimmed
+            .split(separator: " ", omittingEmptySubsequences: true)
+            .map(String.init)
+
         var sentences: [String] = []
-        var current = ""
-        var i = 0
+        var current: [String] = []
 
-        while i < chars.count {
-            let ch = chars[i]
-            current.append(ch)
-
-            guard terminators.contains(ch) else {
-                i += 1
-                continue
+        for (index, token) in tokens.enumerated() {
+            current.append(token)
+            let isLast = index == tokens.count - 1
+            if !isLast, isSentenceEnd(token) {
+                sentences.append(current.joined(separator: " "))
+                current = []
             }
-
-            // 소수점(숫자.숫자)은 문장 경계가 아니다.
-            if ch == ".", isBetweenDigits(chars, at: i) {
-                i += 1
-                continue
-            }
-
-            // 연속 종결 부호("...", "?!")는 한 경계로 흡수한다.
-            var j = i + 1
-            while j < chars.count, terminators.contains(chars[j]) {
-                current.append(chars[j])
-                j += 1
-            }
-
-            let chunk = current.trimmingCharacters(in: .whitespaces)
-            if !chunk.isEmpty { sentences.append(chunk) }
-            current = ""
-            i = j
         }
 
-        let tail = current.trimmingCharacters(in: .whitespaces)
-        if !tail.isEmpty { sentences.append(tail) }
+        if !current.isEmpty {
+            sentences.append(current.joined(separator: " "))
+        }
 
         return sentences
     }
 
-    /// chars[index] 의 양옆이 모두 숫자인지(소수점 판정용).
-    private static func isBetweenDigits(_ chars: [Character], at index: Int) -> Bool {
-        guard index > 0, index + 1 < chars.count else { return false }
-        return chars[index - 1].isNumber && chars[index + 1].isNumber
+    /// 한국어 종결어미 음절(휴리스틱). 정밀도가 높은 것만 포함하고, 연결어미·일반
+    /// 단어와 겹치기 쉬운 음절(까: 아까, 어/아/지/네: 반말)은 과분할 방지를 위해 제외한다.
+    private static let sentenceFinalSyllables: Set<Character> = ["요", "죠", "다", "야"]
+
+    /// 토큰이 문장 경계로 끝나는지. 끝 문자가 종결 부호이거나 종결어미 음절이면 true.
+    private static func isSentenceEnd(_ token: String) -> Bool {
+        guard let last = token.last else { return false }
+        if last == "." || last == "?" || last == "!" { return true }
+        return sentenceFinalSyllables.contains(last)
     }
 }
