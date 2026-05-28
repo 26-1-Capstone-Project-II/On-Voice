@@ -12,7 +12,9 @@ struct LibraryView: View {
     let onLogout: () -> Void
     @State private var isShowingSituationRecognition = false
     @State private var isShowingMyPage = false
-    @State private var isShowingLibraryOptionsAlert = false
+    @State private var isShowingBulkDeleteAlert = false
+    @State private var isSelectionMode = false
+    @State private var selectedRecordingIDs: Set<Recording.ID> = []
     @State private var selectedRecording: Recording?
     @State private var openedRowID: Recording.ID?
     @State private var recordingToRename: Recording?
@@ -24,6 +26,16 @@ struct LibraryView: View {
 
     private var sections: [RecordingLibrarySection] {
         RecordingListOrganizer.librarySections(from: recorder.recordings)
+    }
+
+    private var libraryRecordings: [Recording] {
+        sections.flatMap { section in
+            section.items.map(\.recording)
+        }
+    }
+
+    private var selectedRecordings: [Recording] {
+        libraryRecordings.filter { selectedRecordingIDs.contains($0.id) }
     }
 
     var body: some View {
@@ -41,7 +53,8 @@ struct LibraryView: View {
                             isShowingMyPage = true
                         },
                         onTitleTrailingButtonTap: {
-                            isShowingLibraryOptionsAlert = true
+                            closeOpenedRowIfNeeded()
+                            handleLibraryOptionsTap()
                         }
                     )
 
@@ -72,19 +85,30 @@ struct LibraryView: View {
             }
             .onChange(of: selectedTab) { _ in
                 closeOpenedRowIfNeeded()
+                exitSelectionMode()
             }
             .onChange(of: isShowingSituationRecognition) { isPresented in
                 if isPresented {
                     closeOpenedRowIfNeeded()
+                    exitSelectionMode()
                 }
             }
             .onChange(of: selectedRecording) { _ in
                 closeOpenedRowIfNeeded()
             }
-            .alert("준비 중", isPresented: $isShowingLibraryOptionsAlert) {
-                Button("확인", role: .cancel) {}
+            .onChange(of: recorder.recordings) { _ in
+                reconcileSelectedRecordings()
+            }
+            .alert("선택한 녹음", isPresented: $isShowingBulkDeleteAlert) {
+                Button("취소", role: .cancel) {
+                    exitSelectionMode()
+                }
+
+                Button("삭제", role: .destructive) {
+                    commitBulkDelete()
+                }
             } message: {
-                Text("라이브러리 추가 옵션은 다음 단계에서 연결할 예정입니다.")
+                Text("선택한 \(selectedRecordingIDs.count)개의 녹음을 삭제할까요?")
             }
             .alert("녹음 이름 수정", isPresented: renameAlertIsPresented) {
                 TextField("녹음 이름", text: $pendingRecordingTitle)
@@ -188,8 +212,14 @@ struct LibraryView: View {
             title: displayTitle,
             subtitle: "\(item.recording.formattedDate) • \(item.recording.formattedDuration)",
             openedRowID: $openedRowID,
+            isSelectionMode: isSelectionMode,
+            isSelected: selectedRecordingIDs.contains(item.recording.id),
             onTap: {
-                selectedRecording = item.recording
+                if isSelectionMode {
+                    toggleSelection(for: item.recording)
+                } else {
+                    selectedRecording = item.recording
+                }
             },
             onEdit: {
                 beginRenaming(item.recording, suggestedTitle: displayTitle)
@@ -198,8 +228,21 @@ struct LibraryView: View {
                 clearRenameState()
                 recordingToDelete = item.recording
                 deletePromptTitle = displayTitle
+            },
+            onSelectionToggle: {
+                toggleSelection(for: item.recording)
             }
         )
+    }
+
+    private func handleLibraryOptionsTap() {
+        if !isSelectionMode {
+            enterSelectionMode()
+        } else if selectedRecordingIDs.isEmpty {
+            exitSelectionMode()
+        } else {
+            isShowingBulkDeleteAlert = true
+        }
     }
 
     private func closeOpenedRowIfNeeded() {
@@ -245,6 +288,7 @@ struct LibraryView: View {
     }
 
     private func beginRenaming(_ recording: Recording, suggestedTitle: String) {
+        exitSelectionMode()
         recordingToDelete = nil
         deletePromptTitle = ""
         recordingToRename = recording
@@ -294,6 +338,57 @@ struct LibraryView: View {
         } catch {
             recordingToDelete = nil
             deletePromptTitle = ""
+            presentMutationError(error)
+        }
+    }
+
+    private func enterSelectionMode() {
+        guard !libraryRecordings.isEmpty else { return }
+
+        clearRenameState()
+        recordingToDelete = nil
+        deletePromptTitle = ""
+        selectedRecordingIDs.removeAll()
+        isSelectionMode = true
+    }
+
+    private func exitSelectionMode() {
+        isSelectionMode = false
+        selectedRecordingIDs.removeAll()
+    }
+
+    private func toggleSelection(for recording: Recording) {
+        if selectedRecordingIDs.contains(recording.id) {
+            selectedRecordingIDs.remove(recording.id)
+        } else {
+            selectedRecordingIDs.insert(recording.id)
+        }
+    }
+
+    private func reconcileSelectedRecordings() {
+        let currentIDs = Set(libraryRecordings.map(\.id))
+        selectedRecordingIDs = selectedRecordingIDs.intersection(currentIDs)
+
+        if currentIDs.isEmpty {
+            exitSelectionMode()
+        }
+    }
+
+    private func commitBulkDelete() {
+        let recordingsToDelete = selectedRecordings
+
+        do {
+            for recording in recordingsToDelete {
+                try recorder.deleteRecording(recording)
+            }
+
+            if let selectedRecording, recordingsToDelete.contains(where: { $0.id == selectedRecording.id }) {
+                self.selectedRecording = nil
+            }
+
+            exitSelectionMode()
+        } catch {
+            exitSelectionMode()
             presentMutationError(error)
         }
     }
