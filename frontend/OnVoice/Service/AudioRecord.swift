@@ -29,7 +29,14 @@ struct Recording: Identifiable, Hashable {
     var formattedDate: String {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "ko_KR")
-        formatter.dateFormat = "yyyy년 M월 d일 a h시 m분"
+        formatter.dateFormat = "yyyy년 M월 d일"
+        return formatter.string(from: createdAt)
+    }
+
+    var formattedTime: String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "ko_KR")
+        formatter.dateFormat = "a h시 m분"
         return formatter.string(from: createdAt)
     }
     
@@ -43,6 +50,7 @@ struct Recording: Identifiable, Hashable {
 
 class AudioRecorder: ObservableObject {
     static let shared = AudioRecorder()
+    static let maxRecordingTitleLength = 16
 
     @Published var recordings: [Recording] = []
     
@@ -183,7 +191,7 @@ class AudioRecorder: ObservableObject {
     @discardableResult
     func renameRecording(_ recording: Recording, to newTitle: String) throws -> Recording {
         let sanitizedTitle = Self.sanitizedRecordingTitle(from: newTitle)
-        guard !sanitizedTitle.isEmpty else {
+        guard !sanitizedTitle.isEmpty, sanitizedTitle.count <= Self.maxRecordingTitleLength else {
             throw RecordingMutationError.invalidTitle
         }
 
@@ -224,6 +232,10 @@ class AudioRecorder: ObservableObject {
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
             .joined(separator: " ")
+    }
+
+    static func limitedRecordingTitle(_ title: String) -> String {
+        String(title.prefix(maxRecordingTitleLength))
     }
 
     private func loadPersistedRecordings() {

@@ -65,7 +65,7 @@ struct HomeView: View {
                                             RecordingRowView(
                                                 id: item.recording.id,
                                                 title: displayTitle,
-                                                subtitle: "\(item.recording.formattedDate) • \(item.recording.formattedDuration)",
+                                                subtitle: "\(item.recording.formattedTime) • \(item.recording.formattedDuration)",
                                                 openedRowID: $openedRowID,
                                                 onTap: {
                                                     selectedRecording = item.recording
@@ -129,7 +129,7 @@ struct HomeView: View {
                 closeOpenedRowIfNeeded()
             }
             .alert("녹음 이름 수정", isPresented: renameAlertIsPresented) {
-                TextField("녹음 이름", text: $pendingRecordingTitle)
+                TextField("녹음 이름", text: limitedPendingRecordingTitle)
 
                 Button("취소", role: .cancel) {
                     clearRenameState()
@@ -139,7 +139,7 @@ struct HomeView: View {
                     commitRename()
                 }
             } message: {
-                Text("녹음 파일 이름을 바꾸면 홈 화면 리스트 제목도 함께 변경됩니다.")
+                Text("녹음 이름은 최대 16자까지 입력할 수 있어요.")
             }
             .alert("녹음 삭제", isPresented: deleteAlertIsPresented, presenting: recordingToDelete) { recording in
                 Button("취소", role: .cancel) {
@@ -205,12 +205,19 @@ struct HomeView: View {
         )
     }
 
+    private var limitedPendingRecordingTitle: Binding<String> {
+        Binding(
+            get: { pendingRecordingTitle },
+            set: { pendingRecordingTitle = AudioRecorder.limitedRecordingTitle($0) }
+        )
+    }
+
     private func beginRenaming(_ recording: Recording, suggestedTitle: String) {
         recordingToDelete = nil
         deletePromptTitle = ""
         recordingToRename = recording
-        originalPendingRecordingTitle = suggestedTitle
-        pendingRecordingTitle = suggestedTitle
+        originalPendingRecordingTitle = AudioRecorder.limitedRecordingTitle(suggestedTitle)
+        pendingRecordingTitle = originalPendingRecordingTitle
     }
 
     private func clearRenameState() {

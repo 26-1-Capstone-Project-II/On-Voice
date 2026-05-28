@@ -232,7 +232,7 @@ struct RecordingRowView: View {
     RecordingRowView(
         id: URL(fileURLWithPath: "/tmp/preview.wav"),
         title: "새로운 대화 기록 (4)",
-        subtitle: "2026년 9월 2일 오후 6시 42분 • 49초",
+        subtitle: "오후 6시 42분 • 49초",
         openedRowID: .constant(nil),
         onTap: {},
         onEdit: {},

@@ -31,6 +31,25 @@ final class AudioRecorderMutationTests: XCTestCase {
         }
     }
 
+    func testRenameRecordingRejectsTitleLongerThanLimit() throws {
+        let recorder = AudioRecorder()
+        let recording = try makeRecording(named: "기존 제목")
+        recorder.recordings = [recording]
+
+        XCTAssertThrowsError(try recorder.renameRecording(recording, to: "12345678901234567")) { error in
+            guard case AudioRecorder.RecordingMutationError.invalidTitle = error else {
+                return XCTFail("Expected invalidTitle, got \(error)")
+            }
+        }
+    }
+
+    func testLimitedRecordingTitleKeepsOnlySixteenCharacters() {
+        XCTAssertEqual(
+            AudioRecorder.limitedRecordingTitle("12345678901234567"),
+            "1234567890123456"
+        )
+    }
+
     func testRenameRecordingReturnsOriginalWhenSanitizedTitleMatchesCurrentTitle() throws {
         let recorder = AudioRecorder()
         let recording = try makeRecording(named: "회의 메모")
