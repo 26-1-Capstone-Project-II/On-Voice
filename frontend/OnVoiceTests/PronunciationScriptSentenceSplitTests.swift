@@ -105,6 +105,37 @@ final class PronunciationScriptSentenceSplitTests: XCTestCase {
         XCTAssertEqual(result, ["밥을 먹었어 집에 갔어"])
     }
 
+    func testFinalSyllableInsideTokenDoesNotSplit() {
+        // 종결어미 음절이 토큰 "끝"이 아니라 내부/앞에 있으면 분할되지 않아야 한다.
+        // 요리(요 시작), 다리미(다 시작), 야구장(야 시작), 죠리퐁(죠 시작).
+        let result = PronunciationErrorScript.splitIntoSentences(
+            "요리사가 다리미로 야구장 죠리퐁 샀다"
+        )
+        XCTAssertEqual(result, ["요리사가 다리미로 야구장 죠리퐁 샀다"])
+    }
+
+    func testNumberUnitWithEndingSplitsOnlyAtEnding() {
+        // 숫자+단위가 섞여도 종결어미로 끝나는 토큰에서만 분할.
+        let result = PronunciationErrorScript.splitIntoSentences(
+            "가격은 3천원이에요 수량은 5개입니다"
+        )
+        XCTAssertEqual(result, ["가격은 3천원이에요", "수량은 5개입니다"])
+    }
+
+    func testCollapsesMixedWhitespace() {
+        // 연속 공백/탭/줄바꿈이 섞인 전사도 토큰 분리가 정상 동작.
+        let result = PronunciationErrorScript.splitIntoSentences(
+            "오늘은 맑아요\t그래서  좋아요\n끝"
+        )
+        XCTAssertEqual(result, ["오늘은 맑아요", "그래서 좋아요", "끝"])
+    }
+
+    func testTokenWithPunctuationAndEndingSplitsOnce() {
+        // 한 토큰에 종결어미+구두점이 함께 있어도(좋아요.) 한 번만 경계 처리.
+        let result = PronunciationErrorScript.splitIntoSentences("정말 좋아요. 다음 문장")
+        XCTAssertEqual(result, ["정말 좋아요.", "다음 문장"])
+    }
+
     // MARK: - makePlainScript 연계
 
     func testMakePlainScriptSplitsSingleSegmentIntoSentences() {

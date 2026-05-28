@@ -141,8 +141,9 @@ extension PronunciationErrorScript {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return [] }
 
+        // 공백/탭/줄바꿈 등 모든 공백류로 토큰을 나눈다(연속 공백은 무시).
         let tokens = trimmed
-            .split(separator: " ", omittingEmptySubsequences: true)
+            .split(whereSeparator: { $0.isWhitespace })
             .map(String.init)
 
         var sentences: [String] = []

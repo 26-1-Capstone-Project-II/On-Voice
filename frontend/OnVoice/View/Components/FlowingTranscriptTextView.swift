@@ -59,20 +59,35 @@ struct FlowingTranscriptTextView: UIViewRepresentable {
         let coordinator = context.coordinator
         coordinator.parent = self
 
+        // 렌더링에 영향을 주는 입력(문장 목록·선택)이 바뀌었을 때만 재구성한다.
+        // 부모의 무관한 상태 변경(녹음 토글, 시도 목록 등)으로 updateUIView 가 자주
+        // 불려도 attributedText 재설정/오프셋 복원을 하지 않아 스크롤 떨림을 막는다.
+        let sentenceIDs = sentences.map(\.id)
+        let selectionChanged = coordinator.renderedSelectionID != selectedSentenceID
+        let sentencesChanged = coordinator.renderedSentenceIDs != sentenceIDs
+        guard !coordinator.hasRendered || selectionChanged || sentencesChanged else { return }
+
+        // "새 선택" 은 이전에 렌더링된 적이 있고, 이번에 선택값이 새로 생긴 경우만.
+        let isNewSelection = coordinator.hasRendered
+            && selectionChanged
+            && selectedSentenceID != nil
+
         let savedOffset = textView.contentOffset
         let build = coordinator.buildAttributedText()
         textView.attributedText = build.attributed
         coordinator.sentenceRanges = build.ranges
 
+        coordinator.hasRendered = true
+        coordinator.renderedSentenceIDs = sentenceIDs
+        coordinator.renderedSelectionID = selectedSentenceID
+
         // 선택 중에는 선택 문장을 위로 끌어올릴 수 있도록 하단 여백 확보.
         textView.contentInset.bottom = selectedSentenceID == nil ? 0 : textView.bounds.height
 
-        if selectedSentenceID == nil {
-            coordinator.resetScrollTracking()
-            textView.setContentOffset(savedOffset, animated: false)
-        } else if coordinator.shouldScrollToNewSelection() {
+        if isNewSelection {
             coordinator.scrollToSelection(topGap: Metrics.selectionTopGap)
         } else {
+            // attributedText 재설정으로 리셋된 오프셋을 사용자가 보던 위치로 복원.
             textView.setContentOffset(savedOffset, animated: false)
         }
     }
@@ -85,7 +100,12 @@ struct FlowingTranscriptTextView: UIViewRepresentable {
         var parent: FlowingTranscriptTextView
         weak var textView: UITextView?
         var sentenceRanges: [SentenceRange] = []
-        private var lastScrolledSelectionID: UUID?
+
+        // 마지막으로 렌더링한 입력 스냅샷. updateUIView 가 불필요하게 재구성하지
+        // 않도록 비교용으로 보관한다.
+        var hasRendered = false
+        var renderedSentenceIDs: [UUID] = []
+        var renderedSelectionID: UUID?
 
         struct SentenceRange {
             let sentence: PronunciationTranscriptSentence
@@ -170,24 +190,12 @@ struct FlowingTranscriptTextView: UIViewRepresentable {
 
         // MARK: Scroll to selection
 
-        func resetScrollTracking() {
-            lastScrolledSelectionID = nil
-        }
-
-        /// 선택이 새 값으로 바뀌었는지(중복 스크롤 방지).
-        func shouldScrollToNewSelection() -> Bool {
-            guard let id = parent.selectedSentenceID else { return false }
-            return id != lastScrolledSelectionID
-        }
-
         func scrollToSelection(topGap: CGFloat) {
             guard let textView,
                   let id = parent.selectedSentenceID,
                   let match = sentenceRanges.first(where: {
                       $0.sentence.errorDetail?.id == id
                   }) else { return }
-
-            lastScrolledSelectionID = id
 
             let layoutManager = textView.layoutManager
             layoutManager.ensureLayout(for: textView.textContainer)
