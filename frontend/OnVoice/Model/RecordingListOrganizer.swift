@@ -195,3 +195,16 @@ enum RecordingListOrganizer {
         return "\(year)년 \(month)월"
     }
 }
+
+enum RecordingSelectionBehavior {
+    static func reconciledSelectedIDs(
+        _ selectedIDs: Set<Recording.ID>,
+        availableIDs: Set<Recording.ID>
+    ) -> Set<Recording.ID> {
+        selectedIDs.intersection(availableIDs)
+    }
+
+    static func shouldExitSelectionMode(availableIDs: Set<Recording.ID>) -> Bool {
+        availableIDs.isEmpty
+    }
+}

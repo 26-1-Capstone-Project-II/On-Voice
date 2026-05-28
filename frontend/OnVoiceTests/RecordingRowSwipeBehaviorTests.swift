@@ -312,6 +312,31 @@ final class RecordingRowSwipeBehaviorTests: XCTestCase {
 
         XCTAssertEqual(sections.map(\.id), ["previous-7-days", "previous-30-days", "month-2026-2"])
     }
+
+    func testRecordingSelectionBehaviorDropsUnavailableSelectedIDs() {
+        let existingID = URL(fileURLWithPath: "/tmp/existing.wav")
+        let deletedID = URL(fileURLWithPath: "/tmp/deleted.wav")
+        let unrelatedID = URL(fileURLWithPath: "/tmp/unrelated.wav")
+
+        let reconciledIDs = RecordingSelectionBehavior.reconciledSelectedIDs(
+            [existingID, deletedID],
+            availableIDs: [existingID, unrelatedID]
+        )
+
+        XCTAssertEqual(reconciledIDs, [existingID])
+    }
+
+    func testRecordingSelectionBehaviorExitsOnlyWhenNoAvailableIDsRemain() {
+        XCTAssertTrue(
+            RecordingSelectionBehavior.shouldExitSelectionMode(availableIDs: [])
+        )
+
+        XCTAssertFalse(
+            RecordingSelectionBehavior.shouldExitSelectionMode(
+                availableIDs: [URL(fileURLWithPath: "/tmp/existing.wav")]
+            )
+        )
+    }
 }
 
 final class LiveActivityStateTests: XCTestCase {

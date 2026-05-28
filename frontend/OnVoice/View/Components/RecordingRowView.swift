@@ -40,9 +40,12 @@ struct RecordingRowView: View {
     let title: String
     let subtitle: String
     @Binding var openedRowID: Recording.ID?
+    var isSelectionMode: Bool = false
+    var isSelected: Bool = false
     let onTap: () -> Void
     let onEdit: () -> Void
     let onDelete: () -> Void
+    var onSelectionToggle: (() -> Void)? = nil
 
     @GestureState(
         resetTransaction: Transaction(
@@ -55,8 +58,24 @@ struct RecordingRowView: View {
 
     var body: some View {
         ZStack(alignment: .trailing) {
-            actionButtons
+            if !isSelectionMode {
+                actionButtons
+            }
 
+            interactiveCardContent
+        }
+        .frame(height: 68)
+        .contentShape(Rectangle())
+    }
+
+    @ViewBuilder
+    private var interactiveCardContent: some View {
+        if isSelectionMode {
+            cardContent
+                .onTapGesture {
+                    onSelectionToggle?()
+                }
+        } else {
             cardContent
                 .offset(x: currentOffset)
                 .gesture(dragGesture)
@@ -70,8 +89,6 @@ struct RecordingRowView: View {
                     }
                 }
         }
-        .frame(height: 68)
-        .contentShape(Rectangle())
     }
 
     private var currentOffset: CGFloat {
@@ -96,9 +113,7 @@ struct RecordingRowView: View {
 
     private var cardContent: some View {
         HStack(spacing: 10) {
-            Image(systemName: "mic.circle.fill")
-                .font(.system(size: 16))
-                .foregroundStyle(Color.absent)
+            leadingIcon
 
             VStack(alignment: .leading, spacing: 6) {
                 Text(title)
@@ -110,14 +125,26 @@ struct RecordingRowView: View {
 
             Spacer(minLength: 10)
 
-            Image(systemName: "chevron.right")
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundStyle(Color.gray1)
+            if isSelectionMode {
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundStyle(isSelected ? Color.point : Color.gray4)
+            } else {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(Color.gray1)
+            }
         }
         .padding(.horizontal, 16)
         .frame(maxWidth: .infinity, minHeight: 68, alignment: .leading)
         .background(Color.gray7)
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+    }
+
+    private var leadingIcon: some View {
+        Image(systemName: "mic.circle.fill")
+            .font(.system(size: 16))
+            .foregroundStyle(Color.absent)
     }
 
     private var actionButtons: some View {
