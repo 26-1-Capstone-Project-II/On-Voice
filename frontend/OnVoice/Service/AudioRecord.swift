@@ -191,20 +191,21 @@ class AudioRecorder: ObservableObject {
     @discardableResult
     func renameRecording(_ recording: Recording, to newTitle: String) throws -> Recording {
         let sanitizedTitle = Self.sanitizedRecordingTitle(from: newTitle)
-        guard !sanitizedTitle.isEmpty, sanitizedTitle.count <= Self.maxRecordingTitleLength else {
+        guard !sanitizedTitle.isEmpty else {
             throw RecordingMutationError.invalidTitle
         }
+        let limitedTitle = Self.limitedRecordingTitle(sanitizedTitle)
 
         guard let index = recordings.firstIndex(where: { $0.id == recording.id }) else {
             throw RecordingMutationError.recordingNotFound
         }
 
         let currentNormalizedTitle = Self.sanitizedRecordingTitle(from: recording.title)
-        if sanitizedTitle == currentNormalizedTitle {
+        if limitedTitle == currentNormalizedTitle {
             return recording
         }
 
-        let destinationURL = uniqueRecordingURL(for: recording, sanitizedTitle: sanitizedTitle)
+        let destinationURL = uniqueRecordingURL(for: recording, sanitizedTitle: limitedTitle)
         guard destinationURL != recording.fileURL else { return recording }
 
         do {

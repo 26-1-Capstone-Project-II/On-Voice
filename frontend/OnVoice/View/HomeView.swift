@@ -216,8 +216,8 @@ struct HomeView: View {
         recordingToDelete = nil
         deletePromptTitle = ""
         recordingToRename = recording
-        originalPendingRecordingTitle = AudioRecorder.limitedRecordingTitle(suggestedTitle)
-        pendingRecordingTitle = originalPendingRecordingTitle
+        originalPendingRecordingTitle = suggestedTitle
+        pendingRecordingTitle = AudioRecorder.limitedRecordingTitle(suggestedTitle)
     }
 
     private func clearRenameState() {
