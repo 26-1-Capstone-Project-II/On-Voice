@@ -167,6 +167,11 @@ extension PronunciationErrorScript {
 
     /// 한국어 종결어미 음절(휴리스틱). 정밀도가 높은 것만 포함하고, 연결어미·일반
     /// 단어와 겹치기 쉬운 음절(까: 아까, 어/아/지/네: 반말)은 과분할 방지를 위해 제외한다.
+    ///
+    /// 원소는 모두 단일 grapheme cluster(= Swift `Character`) 다. 한글 완성형 음절
+    /// "요/죠/다/야" 는 각각 한 Character 이므로 `Set<Character>` 가 정확하다.
+    /// `isSentenceEnd` 가 `token.last`(Character) 와 비교하므로 String 집합이 아니라
+    /// Character 집합이어야 맞다. NFC/NFD 표기차는 Character 비교가 canonical 이라 무관.
     private static let sentenceFinalSyllables: Set<Character> = ["요", "죠", "다", "야"]
 
     /// 토큰이 문장 경계로 끝나는지. 끝 문자가 종결 부호이거나 종결어미 음절이면 true.

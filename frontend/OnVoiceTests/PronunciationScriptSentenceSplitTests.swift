@@ -136,6 +136,26 @@ final class PronunciationScriptSentenceSplitTests: XCTestCase {
         XCTAssertEqual(result, ["정말 좋아요.", "다음 문장"])
     }
 
+    // MARK: - 구어체 종결/연결 케이스 (리뷰 보강)
+
+    func testSplitsColloquialPoliteEndings() {
+        // "그래요"(요), "아니죠"(죠) 같은 구어체 정중 종결에서 분할.
+        let result = PronunciationErrorScript.splitIntoSentences("그래요 아니죠 맞아요")
+        XCTAssertEqual(result, ["그래요", "아니죠", "맞아요"])
+    }
+
+    func testConnectiveSeoDoesNotSplit() {
+        // 연결어미 ~서/~해서(서로 끝남)는 문장 경계가 아니다.
+        let result = PronunciationErrorScript.splitIntoSentences("비가 와서 우산을 챙겼어요")
+        XCTAssertEqual(result, ["비가 와서 우산을 챙겼어요"])
+    }
+
+    func testConnectiveDagoMidSentenceDoesNotSplit() {
+        // "~다고"(고로 끝남)가 문장 중간에 있어도 분할되지 않는다.
+        let result = PronunciationErrorScript.splitIntoSentences("먹는다고 들었어요 정말요")
+        XCTAssertEqual(result, ["먹는다고 들었어요", "정말요"])
+    }
+
     // MARK: - makePlainScript 연계
 
     func testMakePlainScriptSplitsSingleSegmentIntoSentences() {

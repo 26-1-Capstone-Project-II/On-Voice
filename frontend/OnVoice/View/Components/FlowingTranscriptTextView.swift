@@ -208,10 +208,18 @@ struct FlowingTranscriptTextView: UIViewRepresentable {
                 forGlyphRange: glyphRange,
                 in: textView.textContainer
             )
-            let targetY = max(0, rect.minY + textView.textContainerInset.top - topGap)
+            let targetY = rect.minY + textView.textContainerInset.top - topGap
 
+            // attributedText 재설정 직후라 contentSize 가 아직 갱신 전일 수 있어
+            // 다음 runloop 에서 layout 을 강제 반영한 뒤 스크롤한다. 목표 오프셋은
+            // 스크롤 가능한 최대치로 clamp 해 과도한 스크롤(빈 공간 노출)을 막는다.
             DispatchQueue.main.async {
-                textView.setContentOffset(CGPoint(x: 0, y: targetY), animated: true)
+                textView.layoutIfNeeded()
+                let maxOffsetY = max(0, textView.contentSize.height
+                    + textView.contentInset.bottom
+                    - textView.bounds.height)
+                let clampedY = min(max(0, targetY), maxOffsetY)
+                textView.setContentOffset(CGPoint(x: 0, y: clampedY), animated: true)
             }
         }
     }
