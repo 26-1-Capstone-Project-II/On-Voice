@@ -29,7 +29,14 @@ struct Recording: Identifiable, Hashable {
     var formattedDate: String {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "ko_KR")
-        formatter.dateFormat = "yyyy년 M월 d일 a h시 m분"
+        formatter.dateFormat = "yyyy년 M월 d일"
+        return formatter.string(from: createdAt)
+    }
+
+    var formattedTime: String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "ko_KR")
+        formatter.dateFormat = "a h시 m분"
         return formatter.string(from: createdAt)
     }
     
@@ -43,6 +50,7 @@ struct Recording: Identifiable, Hashable {
 
 class AudioRecorder: ObservableObject {
     static let shared = AudioRecorder()
+    static let maxRecordingTitleLength = 16
 
     @Published var recordings: [Recording] = []
     
@@ -186,17 +194,18 @@ class AudioRecorder: ObservableObject {
         guard !sanitizedTitle.isEmpty else {
             throw RecordingMutationError.invalidTitle
         }
+        let limitedTitle = Self.limitedRecordingTitle(sanitizedTitle)
 
         guard let index = recordings.firstIndex(where: { $0.id == recording.id }) else {
             throw RecordingMutationError.recordingNotFound
         }
 
         let currentNormalizedTitle = Self.sanitizedRecordingTitle(from: recording.title)
-        if sanitizedTitle == currentNormalizedTitle {
+        if limitedTitle == currentNormalizedTitle {
             return recording
         }
 
-        let destinationURL = uniqueRecordingURL(for: recording, sanitizedTitle: sanitizedTitle)
+        let destinationURL = uniqueRecordingURL(for: recording, sanitizedTitle: limitedTitle)
         guard destinationURL != recording.fileURL else { return recording }
 
         do {
@@ -224,6 +233,10 @@ class AudioRecorder: ObservableObject {
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
             .joined(separator: " ")
+    }
+
+    static func limitedRecordingTitle(_ title: String) -> String {
+        String(title.prefix(maxRecordingTitleLength))
     }
 
     private func loadPersistedRecordings() {

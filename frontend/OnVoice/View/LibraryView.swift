@@ -112,7 +112,7 @@ struct LibraryView: View {
                 Text("선택한 \(selectedRecordingIDs.count)개의 녹음을 삭제할까요?")
             }
             .alert("녹음 이름 수정", isPresented: renameAlertIsPresented) {
-                TextField("녹음 이름", text: $pendingRecordingTitle)
+                TextField("녹음 이름", text: limitedPendingRecordingTitle)
 
                 Button("취소", role: .cancel) {
                     clearRenameState()
@@ -122,7 +122,7 @@ struct LibraryView: View {
                     commitRename()
                 }
             } message: {
-                Text("녹음 파일 이름을 바꾸면 라이브러리 리스트 제목도 함께 변경됩니다.")
+                Text("녹음 이름은 최대 16자까지 입력할 수 있어요.")
             }
             .alert("녹음 삭제", isPresented: deleteAlertIsPresented, presenting: recordingToDelete) { recording in
                 Button("취소", role: .cancel) {
@@ -288,13 +288,20 @@ struct LibraryView: View {
         )
     }
 
+    private var limitedPendingRecordingTitle: Binding<String> {
+        Binding(
+            get: { pendingRecordingTitle },
+            set: { pendingRecordingTitle = AudioRecorder.limitedRecordingTitle($0) }
+        )
+    }
+
     private func beginRenaming(_ recording: Recording, suggestedTitle: String) {
         exitSelectionMode()
         recordingToDelete = nil
         deletePromptTitle = ""
         recordingToRename = recording
         originalPendingRecordingTitle = suggestedTitle
-        pendingRecordingTitle = suggestedTitle
+        pendingRecordingTitle = AudioRecorder.limitedRecordingTitle(suggestedTitle)
     }
 
     private func clearRenameState() {

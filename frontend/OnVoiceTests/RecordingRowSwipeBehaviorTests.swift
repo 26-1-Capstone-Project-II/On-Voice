@@ -201,6 +201,17 @@ final class RecordingRowSwipeBehaviorTests: XCTestCase {
         XCTAssertEqual(RecordingListOrganizer.displayTitle(for: defaultTitleItem), "새로운 대화 기록 (1)")
     }
 
+    func testRecordingDateAndTimeFormatsAreSeparated() {
+        let createdAt = Calendar.current.date(
+            from: DateComponents(year: 2026, month: 4, day: 14, hour: 18, minute: 42)
+        )!
+        let recording = makeRecording(named: "Recording_20260414_184200", createdAt: createdAt)
+
+        XCTAssertEqual(recording.formattedDate, "2026년 4월 14일")
+        XCTAssertEqual(recording.formattedTime, "오후 6시 42분")
+        XCTAssertEqual(recording.formattedDuration, "0분 49초")
+    }
+
     func testMonthSectionTitleIncludesYearOnlyForPastYears() {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(identifier: "Asia/Seoul")!
