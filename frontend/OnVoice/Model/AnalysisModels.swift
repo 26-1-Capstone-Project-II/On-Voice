@@ -112,6 +112,43 @@ struct AnalysisResult {
     var isComparisonAvailable: Bool {
         isTranscriptionAvailable && limitation == nil && !scriptAnalysis.isEmpty
     }
+
+    /// 점수/발음 평가가 불가능할 때 그 "사유" 를 하나로 뭉개지 않고 구분한다.
+    ///
+    /// 기존엔 score=0 + isPronunciationEvaluationAvailable=false 가 전사 실패 /
+    /// 권한 거부 / 한글 입력 없음을 모두 같은 fallback 으로 흘려보냈다. 이 derived
+    /// 상태는 transcriptionFailure → limitation → 평가 가능 여부 순으로 우선순위를
+    /// 매겨 UI/로그가 케이스별로 다른 처리를 할 수 있게 한다.
+    ///
+    /// 우선순위 근거: 전사가 실패하면 그 외 모든 단계가 무의미하므로 최우선,
+    /// 다음으로 비교 비활성(limitation), 마지막으로 "전사·비교는 됐지만 평가할
+    /// 한글 음절/정렬 결과가 없는" noEvaluableContent 순이다.
+    var evaluationState: PronunciationEvaluationState {
+        if let transcriptionFailure {
+            return .transcriptionFailed(transcriptionFailure)
+        }
+        if let limitation {
+            return .comparisonUnavailable(limitation)
+        }
+        if isPronunciationEvaluationAvailable {
+            return .available
+        }
+        return .noEvaluableContent
+    }
+}
+
+/// 발음 점수/평가의 가용 상태와 그 불가 사유를 구분한다.
+/// score=0 fallback 이 "실패" 와 "분석 불가" 를 뭉개지 않도록 UI/로그가
+/// 케이스별 메시지를 선택할 수 있게 한다.
+enum PronunciationEvaluationState: Equatable {
+    /// 점수/난이도가 실제 분석 결과로 채워진 정상 상태.
+    case available
+    /// Whisper 전사 자체가 실패. 사용자에게 "다시 녹음" 류 안내.
+    case transcriptionFailed(TranscriptionFailure)
+    /// 전사는 됐으나 발음 비교가 비활성(권한 거부/의도 텍스트 없음 등).
+    case comparisonUnavailable(AnalysisLimitation)
+    /// 전사·비교는 진행됐으나 평가할 한글 음절/정렬 결과가 없음(예: 외국어/숫자만 발화).
+    case noEvaluableContent
 }
 
 struct PracticeEvaluationResult {

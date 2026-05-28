@@ -39,13 +39,16 @@ enum PronunciationScoreCalculator {
     )
 
     static func compute(cells: [AlignmentCell]) -> PronunciationScoreSummary {
+        // 분모는 한글 expected 음절만. 호출자는 alignHangulOnly 결과를 넘기므로
+        // 보통 비-한글 cell 이 없지만, 공백/구두점 cell 이 섞여 들어와도 분모가
+        // 흔들리지 않도록 isHangul 을 명시적으로 가드한다.
         let expectedCount = cells.reduce(into: 0) { acc, cell in
-            if cell.expected != nil { acc += 1 }
+            if cell.expected?.isHangul == true { acc += 1 }
         }
         guard expectedCount > 0 else { return unavailable }
 
         let correctCount = cells.reduce(into: 0) { acc, cell in
-            if cell.expected != nil, !cell.hasError { acc += 1 }
+            if cell.expected?.isHangul == true, !cell.hasError { acc += 1 }
         }
 
         let accuracy = Double(correctCount) / Double(expectedCount)

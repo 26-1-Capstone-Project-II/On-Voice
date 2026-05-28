@@ -165,4 +165,40 @@ final class PronunciationDifficultyAggregatorTests: XCTestCase {
         XCTAssertEqual(items.first?.id, PronunciationErrorCategory.vowelError.rawValue)
         XCTAssertEqual(items.first?.title, PronunciationErrorCategory.vowelError.rawValue)
     }
+
+    // MARK: - 다중 카테고리 집계 정책 (개선 2)
+
+    func testSingleCellWithMultipleJamoDiffsCountsEachCategory() {
+        // 한 cell 의 자모가 여러 슬롯에서 다르면 classify 가 여러 카테고리를 돌려준다.
+        // 정책: 그 모든 카테고리를 각각 +1 집계한다(중복 제거하지 않음).
+        // "강"(ㄱㅏㅇ) vs "건"(ㄱㅓㄴ): 중성(ㅏ→ㅓ)·종성(ㅇ→ㄴ) 두 슬롯이 다름.
+        //   → vowelError + 종성 카테고리 = 서로 다른 2개 카테고리, 각 errorCount 1.
+        let cells = [substitutionCell(expected: "강", actual: "건")]
+        let items = PronunciationDifficultyAggregator.aggregate(
+            cells: cells,
+            expectedAll: [syl("강")]
+        )
+        XCTAssertEqual(items.count, 2,
+            "한 cell 의 자모 슬롯별 오류가 각각 다른 카테고리로 집계되어야 함")
+        XCTAssertEqual(items.reduce(0) { $0 + $1.errorCount }, 2,
+            "다중 카테고리 cell 의 총 집계는 슬롯 오류 수와 같아야 함(슬롯당 1)")
+        XCTAssertTrue(items.contains { $0.category == .vowelError },
+            "중성 차이가 모음 오류로 집계되지 않음")
+    }
+
+    func testSameCategoryAcrossCellsAccumulates() {
+        // 서로 다른 cell 에서 같은 카테고리(모음 오류)가 반복되면 errorCount 누적.
+        let cells = [
+            substitutionCell(expected: "가", actual: "거", expectedIndex: 0, actualIndex: 0),
+            substitutionCell(expected: "나", actual: "너", expectedIndex: 1, actualIndex: 1),
+            substitutionCell(expected: "다", actual: "더", expectedIndex: 2, actualIndex: 2)
+        ]
+        let items = PronunciationDifficultyAggregator.aggregate(
+            cells: cells,
+            expectedAll: [syl("가"), syl("나"), syl("다")]
+        )
+        XCTAssertEqual(items.count, 1)
+        XCTAssertEqual(items[0].category, .vowelError)
+        XCTAssertEqual(items[0].errorCount, 3)
+    }
 }

@@ -15,7 +15,8 @@ final class AnalysisResultAvailabilityTests: XCTestCase {
     private func makeResult(
         transcriptionFailure: TranscriptionFailure? = nil,
         limitation: AnalysisLimitation? = nil,
-        scriptAnalysis: PronunciationErrorScript = .empty
+        scriptAnalysis: PronunciationErrorScript = .empty,
+        isPronunciationEvaluationAvailable: Bool = false
     ) -> AnalysisResult {
         AnalysisResult(
             transcript: "",
@@ -23,7 +24,7 @@ final class AnalysisResultAvailabilityTests: XCTestCase {
             standardPronunciation: "",
             sentences: [],
             overallAccuracy: 0,
-            isPronunciationEvaluationAvailable: false,
+            isPronunciationEvaluationAvailable: isPronunciationEvaluationAvailable,
             scriptAnalysis: scriptAnalysis,
             transcriptionFailure: transcriptionFailure,
             limitation: limitation
@@ -84,5 +85,49 @@ final class AnalysisResultAvailabilityTests: XCTestCase {
             scriptAnalysis: makeNonEmptyScript()
         )
         XCTAssertFalse(result.isComparisonAvailable)
+    }
+
+    // MARK: - evaluationState (불가 사유 구분)
+
+    func testEvaluationStateAvailable() {
+        let result = makeResult(
+            scriptAnalysis: makeNonEmptyScript(),
+            isPronunciationEvaluationAvailable: true
+        )
+        XCTAssertEqual(result.evaluationState, .available)
+    }
+
+    func testEvaluationStateTranscriptionFailedTakesPriority() {
+        // 전사 실패는 limitation/평가 가능 여부보다 우선한다.
+        let result = makeResult(
+            transcriptionFailure: .modelMissing,
+            limitation: .intentTextEmpty,
+            isPronunciationEvaluationAvailable: true
+        )
+        XCTAssertEqual(result.evaluationState, .transcriptionFailed(.modelMissing))
+    }
+
+    func testEvaluationStateComparisonUnavailableForLimitation() {
+        let result = makeResult(limitation: .speechAuthorizationDenied)
+        XCTAssertEqual(
+            result.evaluationState,
+            .comparisonUnavailable(.speechAuthorizationDenied)
+        )
+    }
+
+    func testEvaluationStateNoEvaluableContent() {
+        // 전사 성공·limitation 없음인데 평가 불가(한글 입력 없음/정렬 결과 없음).
+        let result = makeResult(isPronunciationEvaluationAvailable: false)
+        XCTAssertEqual(result.evaluationState, .noEvaluableContent)
+    }
+
+    func testEvaluationStateDistinguishesAllUnavailableReasons() {
+        // score=0 fallback 으로 뭉개지던 세 불가 사유가 서로 다른 상태로 구분되는지.
+        let failed = makeResult(transcriptionFailure: .transcribeFailed).evaluationState
+        let denied = makeResult(limitation: .speechAuthorizationDenied).evaluationState
+        let noContent = makeResult(isPronunciationEvaluationAvailable: false).evaluationState
+        XCTAssertNotEqual(failed, denied)
+        XCTAssertNotEqual(denied, noContent)
+        XCTAssertNotEqual(failed, noContent)
     }
 }

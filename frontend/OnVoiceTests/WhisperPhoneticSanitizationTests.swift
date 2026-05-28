@@ -93,4 +93,51 @@ final class WhisperPhoneticSanitizationTests: XCTestCase {
         let out = WhisperPhoneticTranscriptionService.sanitizePhoneticOutput(input)
         XCTAssertEqual(out, "")
     }
+
+    // MARK: - 손실 방지 (개선 4) — 정상 ASR 출력은 절대 깎이지 않아야 한다
+
+    func testDoesNotStripLatinDigitMixedSpeech() {
+        // 영문·숫자 혼합 발화(예: "GPT4 모델 5점") 가 그대로 보존되는지.
+        let input = "GPT4 모델 5점 받았어요"
+        let out = WhisperPhoneticTranscriptionService.sanitizePhoneticOutput(input)
+        XCTAssertEqual(out, input)
+    }
+
+    func testPreservesCommonSymbols() {
+        // 퍼센트/물결/말줄임표/가운뎃점 등 일반 구두점·기호는 보존.
+        let input = "정확도 95% 정도… 거의 다 맞췄어~"
+        let out = WhisperPhoneticTranscriptionService.sanitizePhoneticOutput(input)
+        XCTAssertEqual(out, input)
+    }
+
+    func testPreservesEmoji() {
+        // 이모지는 제어/포맷/사설영역이 아니므로 보존(과도한 제거 방지).
+        // ASR 결과가 손실되지 않는다는 정책을 고정한다.
+        let input = "잘했어요 👍 발음 좋아요 🎉"
+        let out = WhisperPhoneticTranscriptionService.sanitizePhoneticOutput(input)
+        XCTAssertEqual(out, input)
+    }
+
+    func testPreservesMixedWhitespaceLayout() {
+        // 공백/탭/줄바꿈이 섞인 레이아웃을 망가뜨리지 않는다(제어문자만 골라 제거).
+        let input = "첫째 줄\n둘째\t줄  세 칸"
+        let out = WhisperPhoneticTranscriptionService.sanitizePhoneticOutput(input)
+        XCTAssertEqual(out, input)
+    }
+
+    func testKeepsHalfwidthAndFullwidthDigits() {
+        // 반각(5:5) + 전각(５) 숫자 모두 보존. 전각도 decimalNumber 라 통과.
+        let input = "오대오 5:5 동점 ５"
+        let out = WhisperPhoneticTranscriptionService.sanitizePhoneticOutput(input)
+        XCTAssertEqual(out, input)
+    }
+
+    func testOnlyDropsTargetedCharsInLongSentence() {
+        // 긴 정상 문장 중간에 고아 자모 하나만 끼었을 때, 그 한 글자만 빠지고
+        // 나머지 음절은 전부 보존되는지(과도한 절단이 없는지).
+        let input = "오늘은 키움 히어로즈랑 고척에서\u{3148} 경기를 한다"
+        let expected = "오늘은 키움 히어로즈랑 고척에서 경기를 한다"
+        let out = WhisperPhoneticTranscriptionService.sanitizePhoneticOutput(input)
+        XCTAssertEqual(out, expected)
+    }
 }
