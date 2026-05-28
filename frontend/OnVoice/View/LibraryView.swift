@@ -101,6 +101,7 @@ struct LibraryView: View {
             }
             .alert("선택한 녹음", isPresented: $isShowingBulkDeleteAlert) {
                 Button("취소", role: .cancel) {
+                    isShowingBulkDeleteAlert = false
                     exitSelectionMode()
                 }
 
@@ -346,6 +347,7 @@ struct LibraryView: View {
         guard !libraryRecordings.isEmpty else { return }
 
         clearRenameState()
+        selectedRecording = nil
         recordingToDelete = nil
         deletePromptTitle = ""
         selectedRecordingIDs.removeAll()
@@ -367,28 +369,40 @@ struct LibraryView: View {
 
     private func reconcileSelectedRecordings() {
         let currentIDs = Set(libraryRecordings.map(\.id))
-        selectedRecordingIDs = selectedRecordingIDs.intersection(currentIDs)
+        selectedRecordingIDs = RecordingSelectionBehavior.reconciledSelectedIDs(
+            selectedRecordingIDs,
+            availableIDs: currentIDs
+        )
 
-        if currentIDs.isEmpty {
+        if RecordingSelectionBehavior.shouldExitSelectionMode(availableIDs: currentIDs) {
             exitSelectionMode()
         }
     }
 
     private func commitBulkDelete() {
         let recordingsToDelete = selectedRecordings
+        var remainingSelectedIDs = selectedRecordingIDs
 
         do {
             for recording in recordingsToDelete {
                 try recorder.deleteRecording(recording)
+                remainingSelectedIDs.remove(recording.id)
+
+                if selectedRecording?.id == recording.id {
+                    selectedRecording = nil
+                }
             }
 
-            if let selectedRecording, recordingsToDelete.contains(where: { $0.id == selectedRecording.id }) {
-                self.selectedRecording = nil
-            }
-
+            isShowingBulkDeleteAlert = false
             exitSelectionMode()
         } catch {
-            exitSelectionMode()
+            let currentIDs = Set(libraryRecordings.map(\.id))
+            selectedRecordingIDs = RecordingSelectionBehavior.reconciledSelectedIDs(
+                remainingSelectedIDs,
+                availableIDs: currentIDs
+            )
+            isShowingBulkDeleteAlert = false
+            isSelectionMode = !selectedRecordingIDs.isEmpty
             presentMutationError(error)
         }
     }

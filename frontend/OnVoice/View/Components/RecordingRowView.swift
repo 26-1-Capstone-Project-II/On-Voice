@@ -62,13 +62,25 @@ struct RecordingRowView: View {
                 actionButtons
             }
 
+            interactiveCardContent
+        }
+        .frame(height: 68)
+        .contentShape(Rectangle())
+    }
+
+    @ViewBuilder
+    private var interactiveCardContent: some View {
+        if isSelectionMode {
             cardContent
-                .offset(x: isSelectionMode ? 0 : currentOffset)
-                .gesture(isSelectionMode ? nil : dragGesture)
                 .onTapGesture {
-                    if isSelectionMode {
-                        onSelectionToggle?()
-                    } else if isOpened {
+                    onSelectionToggle?()
+                }
+        } else {
+            cardContent
+                .offset(x: currentOffset)
+                .gesture(dragGesture)
+                .onTapGesture {
+                    if isOpened {
                         withAnimation(RecordingRowSwipeBehavior.snapAnimation) {
                             openedRowID = nil
                         }
@@ -77,8 +89,6 @@ struct RecordingRowView: View {
                     }
                 }
         }
-        .frame(height: 68)
-        .contentShape(Rectangle())
     }
 
     private var currentOffset: CGFloat {
