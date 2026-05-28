@@ -30,8 +30,21 @@ struct AnalysisSummaryView: View {
         PronunciationScoreLevel(score: score)
     }
 
-    private var difficultyItems: [PronunciationDifficultyItem] {
-        PronunciationDifficultyItem.samples
+    /// 점수 카드 본문 코멘트. 분석이 가능하면 1위 카테고리 기반으로 생성된
+    /// summaryComment 를, 분석 불가(권한 거부/무음/로딩) 시에는 score=54 fallback 과
+    /// 짝을 이루는 정적 안내 문구를 사용한다.
+    private var summaryComment: String {
+        guard let analysis = viewModel.analysis, analysis.isPronunciationEvaluationAvailable else {
+            return "받침 발음을 가장 어려워하고 있어요.\n목소리에 힘을 주고, 단어를 끝까지 소리낸다는\n방식으로 발음을 연습해보면 좋을 것 같아요."
+        }
+        return analysis.summaryComment
+    }
+
+    /// 분석 결과의 10종 raw 카테고리에서 빈도 상위 3개를 그대로 노출.
+    /// 분석 전(viewModel.analysis == nil) 이거나 오류가 한 건도 없을 때는 빈 배열을
+    /// 돌려주고, difficultySection 자체가 숨겨진다.
+    private var difficultyItems: [PronunciationDifficultyResult] {
+        viewModel.analysis?.difficultyItems ?? []
     }
 
     var body: some View {
@@ -95,7 +108,7 @@ struct AnalysisSummaryView: View {
                         .font(.Pretendard.SemiBold.size18)
                         .foregroundColor(.white)
 
-                    Text("받침 발음을 가장 어려워하고 있어요.\n목소리에 힘을 주고, 단어를 끝까지 소리낸다는\n방식으로 발음을 연습해보면 좋을 것 같아요.")
+                    Text(summaryComment)
                         .font(.Pretendard.Medium.size16)
                         .foregroundColor(.white)
                         .lineSpacing(4)
@@ -112,20 +125,23 @@ struct AnalysisSummaryView: View {
         }
     }
 
+    @ViewBuilder
     private var difficultySection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("내가 어려워하는 발음")
-                .font(.Pretendard.SemiBold.size16)
-                .foregroundColor(.white)
+        if !difficultyItems.isEmpty {
+            VStack(alignment: .leading, spacing: 16) {
+                Text("내가 어려워하는 발음")
+                    .font(.Pretendard.SemiBold.size16)
+                    .foregroundColor(.white)
 
-            LazyVStack(spacing: 16) {
-                ForEach(difficultyItems) { item in
-                    PronunciationDifficultyRow(
-                        item: item,
-                        isExpanded: expandedItemID == item.id
-                    ) {
-                        withAnimation(.spring(response: 0.28, dampingFraction: 0.9)) {
-                            expandedItemID = expandedItemID == item.id ? nil : item.id
+                LazyVStack(spacing: 16) {
+                    ForEach(difficultyItems) { item in
+                        PronunciationDifficultyRow(
+                            item: item,
+                            isExpanded: expandedItemID == item.id
+                        ) {
+                            withAnimation(.spring(response: 0.28, dampingFraction: 0.9)) {
+                                expandedItemID = expandedItemID == item.id ? nil : item.id
+                            }
                         }
                     }
                 }
@@ -164,87 +180,10 @@ struct AnalysisSummaryView: View {
     }
 }
 
-private enum PronunciationScoreLevel {
-    case low
-    case middle
-    case high
-
-    init(score: Int) {
-        if score <= 35 {
-            self = .low
-        } else if score <= 70 {
-            self = .middle
-        } else {
-            self = .high
-        }
-    }
-
-    var color: Color {
-        switch self {
-        case .low:
-            return Color(hex: "#FF3838")
-        case .middle:
-            return Color(hex: "#FFF79E")
-        case .high:
-            return Color.main
-        }
-    }
-
-    var title: String {
-        switch self {
-        case .low:
-            return "연습이 조금 필요해요."
-        case .middle:
-            return "조금 더 또박또박 말해볼까요?"
-        case .high:
-            return "발음이 자연스럽고 안정적이예요!"
-        }
-    }
-}
-
-private struct PronunciationDifficultyItem: Identifiable {
-    let id: String
-    let rank: Int
-    let title: String
-    let subtitle: String
-    let practiceTitle: String
-    let guideText: String
-    let accentColor: Color
-    let imageName: String
-
-    static let samples: [PronunciationDifficultyItem] = [
-        PronunciationDifficultyItem(
-            id: "final-consonant",
-            rank: 1,
-            title: "종성 오류",
-            subtitle: "받침 소리가 부정확해요",
-            practiceTitle: "ㅁ, ㅂ, ㅍ, ㅃ 받침의 발음",
-            guideText: "마지막에 입을 닫고 멈추는 것이 중요해요.\n입술 또는 혀를 붙이고 끊어주세요.",
-            accentColor: Color(hex: "#FFA0A0"),
-            imageName: "error_img_1"
-        ),
-        PronunciationDifficultyItem(
-            id: "fortis-lenis-aspirated",
-            rank: 2,
-            title: "된소리/평음/격음 혼동",
-            subtitle: "ㄱ/ㄲ/ㅋ 발음 구분이 어려워요",
-            practiceTitle: "ㄱ, ㄲ, ㅋ 소리의 힘 조절",
-            guideText: "소리를 시작할 때 목과 입안의 긴장감을 다르게 느껴보세요.\n짧은 단어부터 천천히 비교해보면 좋아요.",
-            accentColor: Color(hex: "#FFF79E"),
-            imageName: "error_img_1"
-        ),
-        PronunciationDifficultyItem(
-            id: "syllable-simplification",
-            rank: 3,
-            title: "음절 구조 단순화",
-            subtitle: "발음하지 않는 음절이 있어요",
-            practiceTitle: "빠뜨린 음절 다시 짚기",
-            guideText: "단어를 한 글자씩 나누어 읽고, 마지막에 자연스럽게 이어 말해보세요.\n박자를 맞추면 누락되는 소리를 줄일 수 있어요.",
-            accentColor: Color(hex: "#B2B8FF"),
-            imageName: "error_img_1"
-        )
-    ]
-}
+// PronunciationScoreLevel 과 "내가 어려워하는 발음" 카드 데이터는 모두
+// Model/AnalysisSummary.swift 의 PronunciationDifficultyResult 로 통합됨.
+// 카드 데이터는 SpeechAnalysisService 가 PronunciationDifficultyAggregator 로
+// 산출해 AnalysisResult.difficultyItems 에 채운다.
 
 private struct PronunciationDonutChart: View {
     let score: Int
@@ -288,7 +227,7 @@ private struct PronunciationDonutChart: View {
 }
 
 private struct PronunciationDifficultyRow: View {
-    let item: PronunciationDifficultyItem
+    let item: PronunciationDifficultyResult
     let isExpanded: Bool
     let toggle: () -> Void
 

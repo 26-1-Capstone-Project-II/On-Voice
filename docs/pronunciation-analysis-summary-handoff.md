@@ -84,9 +84,31 @@ private var difficultyItems: [PronunciationDifficultyItem] {
 
 각 항목은 탭하면 펼쳐지고, `error_img_1` 이미지와 가이드 문구가 표시된다.
 
-## 현재 분석 서비스 상태 (2026-05 갱신)
+## 현재 분석 서비스 상태 (2026-05-27 갱신)
 
-`SpeechAnalysisService.analyze(url:referenceText:)` 는 **온디바이스 Whisper 음운 전사**까지는 실제로 수행한다. 다만 점수/난이도 산출은 아직 미구현이므로 `isPronunciationEvaluationAvailable: false` 를 그대로 반환한다.
+`SpeechAnalysisService.analyze(url:referenceText:)` 는 **온디바이스 Whisper 음운 전사 → Apple ASR + G2P 자모 정렬 → 점수/난이도 산출** 까지 모두 수행한다. 한글 expected 음절이 1개 이상 존재하면 `isPronunciationEvaluationAvailable: true` 로 결과를 돌려준다. 한글 입력이 없거나 권한이 거부된 경우엔 false 로 두고 화면 fallback 을 쓰게 한다.
+
+### 점수 산출 파이프라인 (2026-05-27 추가)
+
+```
+SpeechAnalysisService.analyze
+ ├─ phoneticService.transcribe(url:)          // Whisper phonetic
+ ├─ intentService.transcribe(url:)            // Apple ASR intent text
+ ├─ scriptAnalyzer.analyzeArtifacts(...)      // 자모 정렬 + script + cells
+ ├─ PronunciationScoreCalculator.compute      // 한글 expected 분모 → 0-100
+ ├─ PronunciationDifficultyAggregator.aggregate  // 10종 raw 카테고리 → top 3
+ └─ PronunciationSummaryCommentGenerator.generate // 1위 카테고리 → 코멘트
+```
+
+- 점수 분모: `cells` 중 `expected != nil` 인 한글 음절 수 (alignHangulOnly 결과라 한글만)
+- 점수 분자: 분모 중 `cell.hasError == false` 인 cell (dropout/substitution 모두 오류)
+- 카테고리 집계: `PronunciationErrorClassifier.classify` 를 cell 마다 호출, 빈도 합산 후 사전순 안정 정렬, 상위 3개
+- 요약 코멘트: 1위 카테고리에 매핑된 문구. 분류 결과가 없으면 등급(low/middle/high) 기반 fallback
+- 사람 아이콘: 카테고리별 디자인 자산이 확정될 때까지 모두 `error_img_1` fallback. 매핑은 별도 후속 이슈에서 진행.
+
+## 이전 분석 서비스 상태 (2026-05 초기 갱신)
+
+> 아래 블록은 점수 산출이 미구현이던 시점의 상태. 변경 사항 추적용으로 남겨둔다.
 
 ```swift
 final class SpeechAnalysisService {
@@ -263,12 +285,14 @@ enum PronunciationScoreLevelResult: String {
 - [x] `SpeechAnalysisService` 가 온디바이스 Whisper 음운 전사를 수행하고 `scriptAnalysis` 를 채움
 - [x] `AnalysisResult.scriptAnalysis` 필드 추가
 - [x] 상세 화면으로 `scriptAnalysis` 데이터를 전달 (`AnalysisSummaryView` → `PronunciationErrorScriptView`)
+- [x] 점수/난이도 산출 알고리즘 (`PronunciationScoreCalculator`, `PronunciationDifficultyAggregator`, `PronunciationSummaryCommentGenerator`)
+- [x] `AnalysisResult` 에 `score`, `scoreLevel`, `summaryComment`, `difficultyItems` 필드 추가
+- [x] `PronunciationScriptAnalysisService` 가 cells/expectedAll 까지 포함한 `PronunciationAnalysisArtifacts` 를 반환
+- [x] `PronunciationDifficultyItem.samples` 하드코딩 제거 → `analysis.difficultyItems` 사용 (sub-issue 2)
+- [x] 점수 카드 설명 문구를 `analysis.summaryComment` 로 교체 — 분석 불가 시 score=54 와 짝을 이루는 정적 fallback 유지 (sub-issue 2)
 
 미완:
-- [ ] 점수/난이도 산출 알고리즘 — 현재 `isPronunciationEvaluationAvailable: false` 라 점수 카드 fallback 54점이 그대로 보임
-- [ ] `AnalysisResult` 에 `score`, `scoreLevel`, `summaryTitle`, `summaryComment`, `difficultyItems` 등 요약 전용 필드 추가
-- [ ] `PronunciationDifficultyItem.samples` 하드코딩 제거 → 분석 결과 기반으로 교체
-- [ ] 점수 카드 설명 문구 (`AnalysisSummaryView` 내 하드코딩) 를 분석 결과로 교체
+- [ ] 카테고리별 사람 아이콘 매핑 — 현재 모두 `error_img_1` fallback (sub-issue 3)
 - [ ] 분석 실패/진행 중/분석 불가 상태 UI 정리 (현재 Whisper 로드 실패는 `print` 후 빈 결과 반환)
 - [ ] 백엔드 API 연동 여부 결정 (현재는 모든 처리가 온디바이스)
 
