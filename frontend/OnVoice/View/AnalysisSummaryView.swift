@@ -47,28 +47,33 @@ struct AnalysisSummaryView: View {
         viewModel.analysis?.difficultyItems ?? []
     }
 
+    /// 분석 결과가 아직 도착하지 않은 로딩 상태. 이때 scoreSection/summaryComment 는
+    /// fallback(54점·고정 코멘트)을 돌려주므로, 로딩 화면 뒤에 이 하드코딩 UI 가
+    /// 비치지 않도록 본문 대신 loadingView 만 노출한다.
+    private var isAnalyzing: Bool {
+        viewModel.isLoading && viewModel.analysis == nil
+    }
+
     var body: some View {
         ZStack {
             Color.bg.ignoresSafeArea()
 
-            VStack(spacing: 0) {
-                ScrollView(showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 28) {
-                        scoreSection
-                        difficultySection
+            if isAnalyzing {
+                loadingView
+            } else {
+                VStack(spacing: 0) {
+                    ScrollView(showsIndicators: false) {
+                        VStack(alignment: .leading, spacing: 28) {
+                            scoreSection
+                            difficultySection
+                        }
+                        .padding(.horizontal, 24)
+                        .padding(.top, 22)
+                        .padding(.bottom, 96)
                     }
-                    .padding(.horizontal, 24)
-                    .padding(.top, 22)
-                    .padding(.bottom, 96)
+
+                    bottomButton
                 }
-
-                bottomButton
-            }
-
-            if viewModel.isLoading && viewModel.analysis == nil {
-                ProgressView("분석 중...")
-                    .progressViewStyle(.circular)
-                    .foregroundStyle(.white)
             }
         }
         .navigationTitle("")
@@ -88,6 +93,25 @@ struct AnalysisSummaryView: View {
             await viewModel.loadIfNeeded()
         }
         .toolbar(.hidden, for: .tabBar)
+    }
+
+    private var loadingView: some View {
+        VStack(spacing: 16) {
+            ProgressView()
+                .progressViewStyle(.circular)
+                .tint(.white)
+
+            VStack(spacing: 8) {
+                Text("발음을 분석하고 있어요")
+                    .font(.Pretendard.SemiBold.size18)
+                    .foregroundColor(.white)
+
+                Text("잠시만 기다려 주세요")
+                    .font(.Pretendard.Medium.size14)
+                    .foregroundColor(.gray3)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var scoreSection: some View {
