@@ -30,14 +30,15 @@ struct AnalysisSummaryView: View {
         PronunciationScoreLevel(score: score)
     }
 
-    /// 점수 카드 본문 코멘트. 분석이 가능하면 1위 카테고리 기반으로 생성된
-    /// summaryComment 를, 분석 불가(권한 거부/무음/로딩) 시에는 score=54 fallback 과
-    /// 짝을 이루는 정적 안내 문구를 사용한다.
+    /// 점수 카드 본문 코멘트. 분석 결과의 summaryComment(generator 가 1위 카테고리
+    /// 또는 등급 fallback 으로 채운 값)를 우선 사용하고, 전사 실패 등으로 비어 있을
+    /// 때만 화면이 직접 등급 기반 fallback 을 호출한다. 과거 여기 박혀 있던 "받침..."
+    /// 하드코딩 문구는 제거하고 PronunciationSummaryCommentGenerator 로 일원화했다.
     private var summaryComment: String {
-        guard let analysis = viewModel.analysis, analysis.isPronunciationEvaluationAvailable else {
-            return "받침 발음을 가장 어려워하고 있어요.\n목소리에 힘을 주고, 단어를 끝까지 소리낸다는\n방식으로 발음을 연습해보면 좋을 것 같아요."
+        if let comment = viewModel.analysis?.summaryComment, !comment.isEmpty {
+            return comment
         }
-        return analysis.summaryComment
+        return PronunciationSummaryCommentGenerator.fallback(for: scoreLevel)
     }
 
     /// 분석 결과의 10종 raw 카테고리에서 빈도 상위 3개를 그대로 노출.
