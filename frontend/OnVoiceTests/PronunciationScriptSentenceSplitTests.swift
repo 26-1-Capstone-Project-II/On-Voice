@@ -156,6 +156,39 @@ final class PronunciationScriptSentenceSplitTests: XCTestCase {
         XCTAssertEqual(result, ["먹는다고 들었어요", "정말요"])
     }
 
+    // MARK: - 단음절 종결어미 과분할 방지 (오류 스크립트 과분할 이슈)
+
+    func testStandaloneDaAdverbDoesNotSplit() {
+        // 부사 "다"(=모두)는 종결어미가 아니므로 분할되면 안 된다.
+        // "책을 다 읽지 못해서 ... 읽으려구요" 는 grammatically 한 문장이어야 한다.
+        let result = PronunciationErrorScript.splitIntoSentences(
+            "어제 새로 산 책을 다 읽지 못해서 거기서 조금 읽으려구요"
+        )
+        XCTAssertEqual(
+            result,
+            ["어제 새로 산 책을 다 읽지 못해서 거기서 조금 읽으려구요"]
+        )
+    }
+
+    func testStandaloneDaDoesNotSplitButMultiSyllableDaStillDoes() {
+        // standalone "다"(no split) 와 2음절 종결 "읽었다"(split) 가 한 문장에 공존.
+        let result = PronunciationErrorScript.splitIntoSentences("책을 다 읽었다 그리고 잤다")
+        XCTAssertEqual(result, ["책을 다 읽었다", "그리고 잤다"])
+    }
+
+    func testStandaloneYaInterjectionDoesNotSplit() {
+        // 단음절 "야"(감탄사)는 종결어미가 아니므로 분할되면 안 된다.
+        let result = PronunciationErrorScript.splitIntoSentences("야 이리 와 봐")
+        XCTAssertEqual(result, ["야 이리 와 봐"])
+    }
+
+    func testStandaloneFinalSyllableInMidstreamSummary() {
+        // 화면 회귀: "우리 모두 다 같이 연습합시다" 가 standalone "다" 에서
+        // 쪼개지지 않고 한 문장으로 유지되어야 한다.
+        let result = PronunciationErrorScript.splitIntoSentences("우리 모두 다 같이 연습합시다")
+        XCTAssertEqual(result, ["우리 모두 다 같이 연습합시다"])
+    }
+
     // MARK: - makePlainScript 연계
 
     func testMakePlainScriptSplitsSingleSegmentIntoSentences() {
