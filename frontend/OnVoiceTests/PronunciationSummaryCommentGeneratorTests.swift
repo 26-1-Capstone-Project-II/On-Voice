@@ -28,20 +28,26 @@ final class PronunciationSummaryCommentGeneratorTests: XCTestCase {
 
     // MARK: - 카테고리 기반
 
-    func testReturnsFinalConsonantCommentForFinalCategories() {
-        // 종성 4종은 모두 동일 코멘트로 합쳐서 받침 가이드 노출.
+    func testFinalCategoriesReturnDistinctComments() {
+        // 종성 4종은 각각 고유한 받침 안내 코멘트를 가져야 한다.
+        // (과거엔 4종이 하나의 공통 "받침" 코멘트로 합쳐져 있었음 — #116에서 분리)
         let finals: [PronunciationErrorCategory] = [
             .finalTensification, .finalPalatalization,
             .finalNasalization, .finalLinking
         ]
+        var seen: Set<String> = []
         for category in finals {
             let comment = PronunciationSummaryCommentGenerator.generate(
                 topItem: difficulty(category),
                 level: .middle
             )
             XCTAssertTrue(comment.contains("받침"),
-                "카테고리 \(category) → 받침 코멘트가 매핑되지 않음")
+                "카테고리 \(category) → 받침 안내가 빠짐")
+            XCTAssertFalse(seen.contains(comment),
+                "카테고리 \(category) 코멘트가 다른 종성 카테고리와 중복됨")
+            seen.insert(comment)
         }
+        XCTAssertEqual(seen.count, finals.count, "종성 4종 코멘트가 서로 구별되지 않음")
     }
 
     func testReturnsVowelComment() {
@@ -84,6 +90,30 @@ final class PronunciationSummaryCommentGeneratorTests: XCTestCase {
         let comment = PronunciationSummaryCommentGenerator.generate(topItem: nil, level: .high)
         XCTAssertTrue(comment.contains("자연스럽") || comment.contains("안정적"),
             "high 등급 fallback 이 칭찬 코멘트가 아님")
+    }
+
+    // MARK: - 비어있지 않음 보장
+
+    func testEveryCategoryReturnsNonEmptyComment() {
+        // 10종 카테고리 어느 것도 빈 코멘트를 돌려주면 안 된다(매핑 누락 회귀 감지).
+        for category in PronunciationErrorCategory.allCases {
+            let comment = PronunciationSummaryCommentGenerator.generate(
+                topItem: difficulty(category),
+                level: .middle
+            )
+            XCTAssertFalse(
+                comment.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                "카테고리 \(category) 코멘트가 비어 있음")
+        }
+    }
+
+    func testEveryLevelFallbackIsNonEmpty() {
+        for level in PronunciationScoreLevel.allCases {
+            let comment = PronunciationSummaryCommentGenerator.fallback(for: level)
+            XCTAssertFalse(
+                comment.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                "등급 \(level) fallback 이 비어 있음")
+        }
     }
 
     // MARK: - 우선순위
