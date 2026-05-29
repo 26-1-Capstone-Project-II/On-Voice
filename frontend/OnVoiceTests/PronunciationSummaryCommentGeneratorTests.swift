@@ -92,6 +92,30 @@ final class PronunciationSummaryCommentGeneratorTests: XCTestCase {
             "high 등급 fallback 이 칭찬 코멘트가 아님")
     }
 
+    // MARK: - 비어있지 않음 보장
+
+    func testEveryCategoryReturnsNonEmptyComment() {
+        // 10종 카테고리 어느 것도 빈 코멘트를 돌려주면 안 된다(매핑 누락 회귀 감지).
+        for category in PronunciationErrorCategory.allCases {
+            let comment = PronunciationSummaryCommentGenerator.generate(
+                topItem: difficulty(category),
+                level: .middle
+            )
+            XCTAssertFalse(
+                comment.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                "카테고리 \(category) 코멘트가 비어 있음")
+        }
+    }
+
+    func testEveryLevelFallbackIsNonEmpty() {
+        for level in PronunciationScoreLevel.allCases {
+            let comment = PronunciationSummaryCommentGenerator.fallback(for: level)
+            XCTAssertFalse(
+                comment.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                "등급 \(level) fallback 이 비어 있음")
+        }
+    }
+
     // MARK: - 우선순위
 
     func testTopItemTakesPrecedenceOverLevel() {
