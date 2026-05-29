@@ -36,8 +36,15 @@ final class ErrorSentencePracticeViewModel: ObservableObject {
     /// SpeechAnalyzer 와 동일: 워밍업 슬립 도중 stop/새 start/reset 이 끼면 record() 무효화.
     private var pendingStartToken: UUID?
     /// 아직 교정하지 못한 평가 대상(원래 오류 음절의 expected 인덱스). 시도를 거치며 줄어든다.
-    /// nil = 아직 첫 재분석 전(다음 재분석에서 원래 오류 집합으로 초기화). reset() 에서 nil 로 되돌린다.
+    ///
+    /// 생명주기: 선택된 한 문장의 재연습 세션 동안에만 의미를 가진다. nil = 아직 첫 재분석 전
+    /// (다음 재분석에서 원래 오류 집합으로 초기화). 시도마다 교정분(correctedExpectedIndices)을
+    /// 빼서 줄이고, 비면 isFullSuccess=true 가 되어 난이도 버튼으로 전환된다. 문장 전환/해제 시
+    /// reset() 에서 nil 로 되돌린다 — 다른 문장/세션으로 이어지지 않는다.
     private var remainingTargets: Set<Int>?
+    /// 재분석 무효화 토큰. reset()(문장 전환/해제) 마다 증가시켜, 진행 중이던 옛 재분석 Task 가
+    /// 늦게 끝나도 결과를 다른 문장 상태에 잘못 적용하지 않게 한다(RecordingAnalysisViewModel 패턴).
+    private var analysisGeneration = 0
 
     private static let warmupDelay: TimeInterval = 0.15
 
@@ -117,10 +124,15 @@ final class ErrorSentencePracticeViewModel: ObservableObject {
 
         isAnalyzing = true
         analysisFailed = false
-        defer { isAnalyzing = false }
+        // 이 재분석 cycle 의 세대. reset() 이 끼어들어 세대가 바뀌면 결과를 적용하지 않는다.
+        let generation = analysisGeneration
+        defer { if generation == analysisGeneration { isAnalyzing = false } }
 
         let result = await WhisperPhoneticTranscriptionService.shared.transcribe(url: url)
         try? FileManager.default.removeItem(at: url)
+
+        // 전사를 기다리는 동안 문장 전환/해제(reset)가 일어났으면 stale 이므로 중단.
+        guard generation == analysisGeneration else { return }
 
         switch result {
         case let .success(transcription):
@@ -136,6 +148,9 @@ final class ErrorSentencePracticeViewModel: ObservableObject {
                 phoneticScript: Self.singleSegmentScript(originalAttemptText),
                 intentText: referenceText
             )
+
+            // analyzeArtifacts await 동안에도 reset 이 끼어들 수 있어, 상태 적용 직전 한 번 더 확인.
+            guard generation == analysisGeneration else { return }
 
             let originalErrors = RepracticeColorizer.errorExpectedIndices(
                 cells: originalArtifacts.cells
@@ -162,6 +177,8 @@ final class ErrorSentencePracticeViewModel: ObservableObject {
     /// 난이도 피드백(difficultyBySentence)은 문장에 묶여 있어 비우지 않는다.
     func reset() {
         pendingStartToken = nil
+        // 진행 중이던 재분석 Task 의 결과가 새 문장 상태에 적용되지 않도록 세대를 올린다.
+        analysisGeneration &+= 1
         if recorder?.isRecording == true { recorder?.stop() }
         recorder = nil
         isRecording = false
