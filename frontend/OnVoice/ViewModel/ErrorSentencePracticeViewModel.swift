@@ -35,6 +35,9 @@ final class ErrorSentencePracticeViewModel: ObservableObject {
     private var recorder: AVAudioRecorder?
     /// SpeechAnalyzer 와 동일: 워밍업 슬립 도중 stop/새 start/reset 이 끼면 record() 무효화.
     private var pendingStartToken: UUID?
+    /// 아직 교정하지 못한 평가 대상(원래 오류 음절의 expected 인덱스). 시도를 거치며 줄어든다.
+    /// nil = 아직 첫 재분석 전(다음 재분석에서 원래 오류 집합으로 초기화). reset() 에서 nil 로 되돌린다.
+    private var remainingTargets: Set<Int>?
 
     private static let warmupDelay: TimeInterval = 0.15
 
@@ -137,11 +140,15 @@ final class ErrorSentencePracticeViewModel: ObservableObject {
             let originalErrors = RepracticeColorizer.errorExpectedIndices(
                 cells: originalArtifacts.cells
             )
+            // 첫 재분석이면 원래 오류 전체가 평가 대상. 이후 시도는 누적 교정분만큼 줄어든 집합을 쓴다.
+            let remaining = remainingTargets ?? originalErrors
             let outcome = RepracticeColorizer.colorize(
                 newCells: newArtifacts.cells,
                 newHypText: newHypText,
-                originalErrorExpectedIndices: originalErrors
+                originalErrorExpectedIndices: originalErrors,
+                remainingExpectedIndices: remaining
             )
+            remainingTargets = remaining.subtracting(outcome.correctedExpectedIndices)
 
             attempts.append(PronunciationPracticeAttempt(segments: outcome.segments))
             isFullSuccess = outcome.isFullSuccess
@@ -162,6 +169,7 @@ final class ErrorSentencePracticeViewModel: ObservableObject {
         analysisFailed = false
         attempts = []
         isFullSuccess = false
+        remainingTargets = nil
     }
 
     // MARK: - Helpers

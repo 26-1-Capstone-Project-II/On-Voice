@@ -18,7 +18,10 @@ import Foundation
 enum RepracticeColorizer {
     struct Outcome: Equatable {
         let segments: [PronunciationTextSegment]
-        /// 빨강(틀림)·누락 음절이 하나도 없으면 true → 난이도 버튼 노출 트리거.
+        /// 이번 시도에서 새로 맞춘(=평가 대상에서 빠지는) expected 음절 인덱스.
+        /// 호출부가 remaining 집합을 줄여 다음 시도에서 같은 음절을 다시 평가하지 않게 한다.
+        let correctedExpectedIndices: Set<Int>
+        /// 평가 대상(remaining)이 모두 교정돼 더 평가할 게 없으면 true → 난이도 버튼 노출 트리거.
         let isFullSuccess: Bool
     }
 
@@ -35,42 +38,54 @@ enum RepracticeColorizer {
     }
 
     /// 새 attempt 의 hyp 텍스트를 음절 단위로 색칠한다.
+    ///
+    /// 평가는 **아직 교정되지 않은 원래 오류 음절(remaining)** 에만 적용한다. 원래 맞았던
+    /// 음절이나 이전 시도에서 이미 맞춘 음절은 평가에서 제외해(빨강/성공판정에 영향 없음)
+    /// 파인튜닝 모델의 오인식 때문에 전체 성공이 무한정 지연되는 것을 막는다(이슈 #117 후속).
+    ///
     /// - newCells: 새 attempt를 referenceText 로 정렬한 결과.
     /// - newHypText: 새 attempt 의 phonetic 전사(단일 세그먼트). actualIndex 는 이 문자열의
     ///   char 인덱스와 1:1 이다(분석 파이프라인의 buildSentence 와 동일 규약).
-    /// - originalErrorExpectedIndices: 원본 attempt 에서 틀렸던 expected 음절 인덱스 집합.
+    /// - originalErrorExpectedIndices: 원본 attempt 에서 틀렸던 expected 음절 인덱스 전체(파랑 표시 기준).
+    /// - remainingExpectedIndices: 아직 교정 못한 평가 대상(빨강/성공 판정 기준). 원래 오류의 부분집합.
     static func colorize(
         newCells: [AlignmentCell],
         newHypText: String,
-        originalErrorExpectedIndices: Set<Int>
+        originalErrorExpectedIndices: Set<Int>,
+        remainingExpectedIndices: Set<Int>
     ) -> Outcome {
         let chars = Array(newHypText)
         var status = Array(repeating: PronunciationSegmentStatus.normal, count: chars.count)
-        var hasRedOrDropped = false
+        var corrected = Set<Int>()
 
         for cell in newCells {
             let isHangulCell = (cell.expected?.isHangul ?? false) || (cell.actual?.isHangul ?? false)
-            guard isHangulCell else { continue }
+            guard isHangulCell, let expectedIndex = cell.expectedIndex else { continue }
 
-            if let actualIndex = cell.actualIndex,
-               (0..<chars.count).contains(actualIndex),
-               HangulJamo.decompose(chars[actualIndex]).isHangul {
-                if cell.hasError {
-                    status[actualIndex] = .error
-                    hasRedOrDropped = true
-                } else if let expectedIndex = cell.expectedIndex,
-                          originalErrorExpectedIndices.contains(expectedIndex) {
-                    status[actualIndex] = .success
-                }
-            } else if cell.expected?.isHangul == true, cell.actualIndex == nil {
-                // hyp 에 색칠할 자리가 없는 누락 음절. 성공 판정에서만 제외 신호로 쓴다.
-                hasRedOrDropped = true
+            guard let actualIndex = cell.actualIndex,
+                  (0..<chars.count).contains(actualIndex),
+                  HangulJamo.decompose(chars[actualIndex]).isHangul else {
+                // 색칠할 hyp 자리가 없는 누락 음절. 성공 판정은 remaining/corrected 차집합으로 한다.
+                continue
             }
+
+            if remainingExpectedIndices.contains(expectedIndex), cell.hasError {
+                // 아직 교정 안 된 평가 대상이 여전히 틀림 → 빨강.
+                status[actualIndex] = .error
+            } else if originalErrorExpectedIndices.contains(expectedIndex), !cell.hasError {
+                // 원래 틀렸던 음절을 맞춤 → 파랑(이미 교정해 잠긴 음절도 다시 보이면 파랑 유지).
+                status[actualIndex] = .success
+                if remainingExpectedIndices.contains(expectedIndex) {
+                    corrected.insert(expectedIndex)
+                }
+            }
+            // 그 외(원래도 맞았던 음절 등)는 평가 제외 → 일반색(틀려도 빨강 아님).
         }
 
         return Outcome(
             segments: renderSegments(chars: chars, status: status),
-            isFullSuccess: !hasRedOrDropped
+            correctedExpectedIndices: corrected,
+            isFullSuccess: remainingExpectedIndices.subtracting(corrected).isEmpty
         )
     }
 
