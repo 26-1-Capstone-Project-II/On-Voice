@@ -145,6 +145,8 @@ extension PronunciationErrorScript {
     ///
     /// 예외/한계:
     ///  - 토큰 끝만 보므로 소수점(5.5)·약어 내부 마침표는 경계로 잡히지 않는다(안전).
+    ///  - 단음절 토큰(다=부사 "모두", 야=감탄사 등)은 독립어 공산이 커 제외한다
+    ///    (근거·구현은 `isSentenceEnd`).
     ///  - "까"는 "아까/이따까" 처럼 종결이 아닌 흔한 단어와 겹쳐 제외했다.
     ///    형식 의문(~습니까)은 못 나누지만, 정중체 의문 "~까요"는 요로 잡힌다.
     ///  - 반말 종결(어/아/지/네 등)은 연결어미·일반어("그렇지 않아", "네 알겠어")와
@@ -191,9 +193,18 @@ extension PronunciationErrorScript {
     private static let sentenceFinalSyllables: Set<Character> = ["요", "죠", "다", "야"]
 
     /// 토큰이 문장 경계로 끝나는지. 끝 문자가 종결 부호이거나 종결어미 음절이면 true.
+    ///
+    /// 종결어미 휴리스틱은 2음절 이상 토큰에만 적용한다. 단음절 토큰(다/야/요/죠)은
+    /// 종결어미가 아니라 부사("모두 다")·감탄사("야")·독립어일 공산이 커 과분할을
+    /// 유발하기 때문이다. 실제 종결형(좋다·입니다·해요·맞죠)은 모두 2음절 이상이라
+    /// 보존된다. 종결 부호(. ? !)는 명시적 경계이므로 음절 수와 무관하게 분할한다.
+    ///
+    /// `token.count` 는 grapheme cluster 수다. 한글은 조합형(NFD) 자모 시퀀스도 한
+    /// Character 로 묶이므로(UAX #29 Hangul 규칙) 음절 수와 정확히 일치한다. NFC/NFD 무관.
     private static func isSentenceEnd(_ token: String) -> Bool {
         guard let last = token.last else { return false }
         if last == "." || last == "?" || last == "!" { return true }
-        return sentenceFinalSyllables.contains(last)
+        guard sentenceFinalSyllables.contains(last) else { return false }
+        return token.count >= 2
     }
 }
