@@ -189,6 +189,25 @@ final class PronunciationScriptSentenceSplitTests: XCTestCase {
         XCTAssertEqual(result, ["우리 모두 다 같이 연습합시다"])
     }
 
+    func testStandaloneYoDemonstrativeDoesNotSplit() {
+        // 단음절 "요"(지시어 "요 앞"=this)는 종결어미가 아니므로 분할되면 안 된다.
+        // 2음절 종결 "있어요"는 마지막 토큰이라 분할 없이 한 문장으로 유지.
+        let result = PronunciationErrorScript.splitIntoSentences("요 앞에 가게 있어요")
+        XCTAssertEqual(result, ["요 앞에 가게 있어요"])
+    }
+
+    func testMultiSyllableYoStillSplits() {
+        // 2음절 이상 정중 종결 "알아요"는 단음절 제외 규칙의 영향을 받지 않고 분할.
+        let result = PronunciationErrorScript.splitIntoSentences("그건 나도 알아요 너는 모르지")
+        XCTAssertEqual(result, ["그건 나도 알아요", "너는 모르지"])
+    }
+
+    func testMultiSyllableJyoStillSplits() {
+        // 2음절 이상 "맞죠"는 단음절 제외 규칙과 무관하게 분할되어야 한다.
+        let result = PronunciationErrorScript.splitIntoSentences("그 말이 맞죠 정말 그래요")
+        XCTAssertEqual(result, ["그 말이 맞죠", "정말 그래요"])
+    }
+
     // MARK: - makePlainScript 연계
 
     func testMakePlainScriptSplitsSingleSegmentIntoSentences() {
