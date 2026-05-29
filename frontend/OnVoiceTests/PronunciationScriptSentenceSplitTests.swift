@@ -208,6 +208,29 @@ final class PronunciationScriptSentenceSplitTests: XCTestCase {
         XCTAssertEqual(result, ["그 말이 맞죠", "정말 그래요"])
     }
 
+    func testSingleSyllableWithPunctuationStillSplits() {
+        // 단음절이라도 명시적 종결 부호가 있으면 경계로 본다(부호 분기가 음절 수 게이트보다 우선).
+        let result = PronunciationErrorScript.splitIntoSentences("다. 다음 문장")
+        XCTAssertEqual(result, ["다.", "다음 문장"])
+    }
+
+    // MARK: - token.count == 음절 수 보장 (조합형/NFD 회귀)
+
+    func testDecomposedSingleSyllableDoesNotSplit() {
+        // 조합형(NFD) 단음절 "다"도 grapheme cluster 1개로 세어져 단음절로 취급 → 미분할.
+        let nfd = "모두 다 같이 가자".decomposedStringWithCanonicalMapping
+        let result = PronunciationErrorScript.splitIntoSentences(nfd)
+        XCTAssertEqual(result.count, 1)
+    }
+
+    func testDecomposedTwoSyllableEndingStillSplits() {
+        // 조합형(NFD) "간다"(2음절)도 grapheme cluster 2개로 세어져 분할되어야 한다.
+        // token.count 가 byte/scalar 수가 아니라 음절(=Character) 수임을 고정.
+        let nfd = "집에 간다 그리고 잔다".decomposedStringWithCanonicalMapping
+        let result = PronunciationErrorScript.splitIntoSentences(nfd)
+        XCTAssertEqual(result.count, 2)
+    }
+
     // MARK: - makePlainScript 연계
 
     func testMakePlainScriptSplitsSingleSegmentIntoSentences() {
