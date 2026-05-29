@@ -17,13 +17,24 @@ struct MyPageView: View {
     @State private var hasConfirmedWithdrawalWarning = false
     @State private var showsPhotoPicker = false
     @State private var selectedPhotoItem: PhotosPickerItem?
+    @State private var externalLinkAlertMessage = ""
+    @State private var showsExternalLinkAlert = false
 
     private let baseScreenWidth: CGFloat = 393
     private let baseContentHeight: CGFloat = 772
-    private let policyAndTermsURL = URL(string: "https://aengzi.notion.site/35f35dd637af804390bfede60e6f5427?source=copy_link")!
-    private let inquiryOpenChatURL = URL(string: "https://open.kakao.com/o/s3KpTIwi")!
+    private let policyAndTermsURLString = "https://aengzi.notion.site/35f35dd637af804390bfede60e6f5427?source=copy_link"
+    private let inquiryOpenChatURLString = "https://open.kakao.com/o/s3KpTIwi"
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "-"
+    }
+    private var appSettingsURL: URL? {
+        URL(string: UIApplication.openSettingsURLString)
+    }
+    private var policyAndTermsURL: URL? {
+        URL(string: policyAndTermsURLString)
+    }
+    private var inquiryOpenChatURL: URL? {
+        URL(string: inquiryOpenChatURLString)
     }
 
     var body: some View {
@@ -81,6 +92,11 @@ struct MyPageView: View {
         .animation(.easeInOut(duration: 0.2), value: showsLogoutSheet)
         .animation(.easeInOut(duration: 0.2), value: showsWithdrawalSheet)
         .photosPicker(isPresented: $showsPhotoPicker, selection: $selectedPhotoItem, matching: .images)
+        .alert("링크를 열 수 없어요", isPresented: $showsExternalLinkAlert) {
+            Button("확인", role: .cancel) {}
+        } message: {
+            Text(externalLinkAlertMessage)
+        }
         .onChange(of: selectedPhotoItem) { newValue in
             guard let newValue else { return }
 
@@ -212,7 +228,10 @@ struct MyPageView: View {
             .buttonStyle(.plain)
 
             Button {
-                openExternalLink(policyAndTermsURL)
+                openExternalLink(
+                    policyAndTermsURL,
+                    failureMessage: "개인정보 처리 방침 및 이용약관 링크를 열지 못했어요."
+                )
             } label: {
                 MyPageMenuRow(
                     icon: "doc.text",
@@ -224,7 +243,10 @@ struct MyPageView: View {
             .buttonStyle(.plain)
 
             Button {
-                openExternalLink(inquiryOpenChatURL)
+                openExternalLink(
+                    inquiryOpenChatURL,
+                    failureMessage: "문의하기 링크를 열지 못했어요."
+                )
             } label: {
                 MyPageMenuRow(
                     icon: "bubble.left.and.exclamationmark.bubble.right",
@@ -549,12 +571,28 @@ struct MyPageView: View {
 
 
     private func openAppSettings() {
-        guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
-        UIApplication.shared.open(url)
+        openExternalLink(
+            appSettingsURL,
+            failureMessage: "설정 앱을 열지 못했어요."
+        )
     }
 
-    private func openExternalLink(_ url: URL) {
-        openURL(url)
+    private func openExternalLink(_ url: URL?, failureMessage: String) {
+        guard let url else {
+            presentExternalLinkFailure(message: failureMessage)
+            return
+        }
+
+        openURL(url) { accepted in
+            if !accepted {
+                presentExternalLinkFailure(message: failureMessage)
+            }
+        }
+    }
+
+    private func presentExternalLinkFailure(message: String) {
+        externalLinkAlertMessage = message
+        showsExternalLinkAlert = true
     }
 
 }
