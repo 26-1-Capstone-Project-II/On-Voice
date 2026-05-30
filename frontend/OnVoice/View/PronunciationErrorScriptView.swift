@@ -16,9 +16,7 @@ struct PronunciationErrorScriptView: View {
     let onFinish: (() -> Void)?
 
     @State private var selectedSentenceID: UUID?
-    @State private var isRecording = false
-    @State private var attempts: [PronunciationPracticeAttempt] = []
-    @State private var nextAttemptIndex = 0
+    @StateObject private var practice = ErrorSentencePracticeViewModel()
 
     init(
         script: PronunciationErrorScript = .empty,
@@ -227,7 +225,7 @@ struct PronunciationErrorScriptView: View {
                         font: .Pretendard.Medium.size16,
                         lineSpacing: 0
                     )
-                    .opacity(attempts.isEmpty ? 1 : 0.5)
+                    .opacity(practice.attempts.isEmpty ? 1 : 0.5)
 
                     Text("올바른 발음")
                         .font(.Pretendard.Medium.size14)
@@ -252,21 +250,39 @@ struct PronunciationErrorScriptView: View {
                     font: .Pretendard.SemiBold.size18,
                     lineSpacing: 0
                 )
-                .opacity(attempts.isEmpty ? 1 : 0.5)
+                .opacity(practice.attempts.isEmpty ? 1 : 0.5)
 
-                ForEach(attempts) { attempt in
+                ForEach(practice.attempts) { attempt in
                     HighlightedText(
                         segments: attempt.segments,
                         font: .Pretendard.SemiBold.size18,
                         lineSpacing: 0
                     )
-                    .opacity(attempt.id == attempts.last?.id ? 1 : 0.5)
+                    .opacity(attempt.id == practice.attempts.last?.id ? 1 : 0.5)
                 }
             }
             .padding(.horizontal, 18)
 
+            practiceControls(sentence)
+        }
+        .background(Color.gray10)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+
+    /// 카드 하단 컨트롤. 문장 전체를 성공했거나 이미 난이도를 고른 문장이면 난이도 버튼을,
+    /// 그 외에는 "발음 연습하기" 버튼(+ 녹음 중 웨이브폼)을 보여준다.
+    @ViewBuilder
+    private func practiceControls(_ sentence: PronunciationErrorSentence) -> some View {
+        let selected = practice.selectedDifficulty(for: sentence.id)
+
+        if practice.isFullSuccess || selected != nil {
+            difficultyButtons(sentence: sentence, selected: selected)
+                .padding(.horizontal, 12)
+                .padding(.bottom, 12)
+                .transition(.opacity)
+        } else {
             HStack(alignment: .bottom) {
-                if isRecording {
+                if practice.isRecording {
                     VoiceWaveformView()
                         .frame(width: 58, height: 38)
                         .padding(.leading, 14)
@@ -275,13 +291,67 @@ struct PronunciationErrorScriptView: View {
 
                 Spacer()
 
-                practiceButton
+                practiceButton(sentence)
             }
             .padding(.horizontal, 12)
             .padding(.bottom, 12)
         }
-        .background(Color.gray10)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+
+    private func difficultyButtons(
+        sentence: PronunciationErrorSentence,
+        selected: PracticeDifficulty?
+    ) -> some View {
+        HStack(spacing: 12) {
+            difficultyButton(
+                title: "쉬웠어요",
+                systemImage: "checkmark.seal",
+                accent: Color.main,
+                isSelected: selected == .easy,
+                isLocked: selected != nil
+            ) {
+                selectDifficulty(.easy, for: sentence.id)
+            }
+
+            difficultyButton(
+                title: "어려웠어요",
+                systemImage: "exclamationmark.circle",
+                accent: Color(hex: "#FF3867"),
+                isSelected: selected == .hard,
+                isLocked: selected != nil
+            ) {
+                selectDifficulty(.hard, for: sentence.id)
+            }
+        }
+    }
+
+    private func difficultyButton(
+        title: String,
+        systemImage: String,
+        accent: Color,
+        isSelected: Bool,
+        isLocked: Bool,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 16, weight: .medium))
+                Text(title)
+                    .font(.Pretendard.Medium.size16)
+            }
+            .foregroundStyle(isSelected ? Color.white : Color.sub)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+            .background(isSelected ? accent : Color.gray10)
+            .clipShape(Capsule())
+            .overlay {
+                Capsule().stroke(isSelected ? accent : Color.gray6.opacity(0.5), lineWidth: 1)
+            }
+            // 선택되지 않았는데 이미 잠긴(반대편이 선택된) 경우 dim 처리.
+            .opacity(isLocked && !isSelected ? 0.4 : 1)
+        }
+        .disabled(isLocked)
     }
 
     private func tagRow(_ tags: [PronunciationErrorType]) -> some View {
@@ -300,66 +370,77 @@ struct PronunciationErrorScriptView: View {
         }
     }
 
-    private var practiceButton: some View {
-        Button {
-            toggleDummyPractice()
+    private func practiceButton(_ sentence: PronunciationErrorSentence) -> some View {
+        let isBusy = practice.isAnalyzing
+        return Button {
+            togglePractice(sentence)
         } label: {
             HStack(spacing: 6) {
-                Image(systemName: "mic")
-                    .font(.system(size: 16, weight: .medium))
+                if isBusy {
+                    ProgressView()
+                        .progressViewStyle(.circular)
+                        .tint(Color.sub)
+                        .scaleEffect(0.8)
+                } else {
+                    Image(systemName: practice.isRecording ? "stop.fill" : "mic")
+                        .font(.system(size: 16, weight: .medium))
+                }
 
-                Text("발음 연습하기")
+                Text(practiceButtonTitle)
                     .font(.Pretendard.Medium.size16)
             }
-            .foregroundStyle(Color.sub.opacity(isRecording ? 0.5 : 1))
+            .foregroundStyle(Color.sub.opacity(isBusy ? 0.5 : 1))
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
             .background(Color.gray10)
             .clipShape(Capsule())
             .overlay {
                 Capsule()
-                    .stroke(Color.main.opacity(isRecording ? 0.5 : 1), lineWidth: 1)
+                    .stroke(Color.main.opacity(isBusy ? 0.5 : 1), lineWidth: 1)
             }
-            .opacity(isRecording ? 0.5 : 1)
+            .opacity(isBusy ? 0.5 : 1)
         }
+        .disabled(isBusy)
     }
 
-    private func toggleDummyPractice() {
-        // Temporary demo interaction. Real recording start/stop and silence detection
-        // will be connected by the pronunciation model/audio integration task.
-        if isRecording {
-            appendDummyAttempt()
-            withAnimation(.easeInOut(duration: 0.18)) {
-                isRecording = false
+    private var practiceButtonTitle: String {
+        if practice.isAnalyzing { return "분석 중…" }
+        if practice.isRecording { return "녹음 종료" }
+        return practice.attempts.isEmpty ? "발음 연습하기" : "다시 연습하기"
+    }
+
+    private func togglePractice(_ sentence: PronunciationErrorSentence) {
+        if practice.isRecording {
+            let referenceText = sentence.referenceText
+            let originalAttemptText = sentence.userAttemptSegments.map(\.text).joined()
+            Task {
+                await practice.stopAndAnalyze(
+                    referenceText: referenceText,
+                    originalAttemptText: originalAttemptText
+                )
             }
         } else {
-            withAnimation(.easeInOut(duration: 0.18)) {
-                isRecording = true
-            }
+            Task { await practice.start() }
         }
     }
 
-    private func appendDummyAttempt() {
-        guard let templates = selectedSentence?.dummyAttempts, !templates.isEmpty else { return }
-        attempts = [templates[nextAttemptIndex % templates.count]]
-        nextAttemptIndex += 1
+    private func selectDifficulty(_ difficulty: PracticeDifficulty, for sentenceID: UUID) {
+        withAnimation(.easeInOut(duration: 0.18)) {
+            practice.selectDifficulty(difficulty, for: sentenceID)
+        }
     }
 
     private func selectSentence(_ sentence: PronunciationErrorSentence) {
+        practice.reset()
         withAnimation(.spring(response: 0.28, dampingFraction: 0.88)) {
             selectedSentenceID = sentence.id
-            attempts = []
-            nextAttemptIndex = 0
-            isRecording = false
         }
     }
 
     private func dismissSelectedSentence() {
+        practice.reset()
         withAnimation(.spring(response: 0.28, dampingFraction: 0.88)) {
             selectedSentenceID = nil
-            attempts = []
-            nextAttemptIndex = 0
-            isRecording = false
         }
     }
 

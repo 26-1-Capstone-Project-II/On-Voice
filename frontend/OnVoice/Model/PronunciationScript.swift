@@ -71,13 +71,21 @@ struct PronunciationPracticeAttempt: Identifiable, Equatable {
     let segments: [PronunciationTextSegment]
 }
 
+/// 재연습 성공 후 사용자가 고르는 난이도 피드백. 메모리에만 보관된다(영구 저장소 없음).
+enum PracticeDifficulty: Equatable {
+    case easy
+    case hard
+}
+
 struct PronunciationErrorSentence: Identifiable, Equatable {
     let id = UUID()
     let originalSegments: [PronunciationTextSegment]
     let correctSegments: [PronunciationTextSegment]
     let userAttemptSegments: [PronunciationTextSegment]
     let errorTypes: [PronunciationErrorType]
-    let dummyAttempts: [PronunciationPracticeAttempt]
+    /// 재연습 재분석 시 intent(=의도된 표기) 텍스트로 재사용한다. originalSegments 가
+    /// 보여주는 표기 텍스트와 동일하지만, 재분석 G2P 입력으로 쓰려고 명시적으로 들고 있다.
+    let referenceText: String
 }
 
 struct PronunciationTranscriptSentence: Identifiable, Equatable {

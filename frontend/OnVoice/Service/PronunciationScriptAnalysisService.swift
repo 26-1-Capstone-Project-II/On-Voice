@@ -344,7 +344,7 @@ final class PronunciationScriptAnalysisService: PronunciationScriptAnalyzing {
             correctSegments: [.normal(correctText)],
             userAttemptSegments: mainSegments,
             errorTypes: errorTypes,
-            dummyAttempts: []
+            referenceText: originalText
         )
 
         return PronunciationTranscriptSentence(segments: mainSegments, errorDetail: errorDetail)
