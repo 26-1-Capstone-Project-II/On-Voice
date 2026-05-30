@@ -11,6 +11,7 @@ struct MyPageView: View {
     @Environment(\.openURL) private var openURL
     @Binding var userProfile: UserProfile
     let onLogout: () -> Void
+    let onWithdrawal: () -> Void
     @State private var showsImageSheet = false
     @State private var showsLogoutSheet = false
     @State private var showsWithdrawalSheet = false
@@ -537,6 +538,7 @@ struct MyPageView: View {
                     Button {
                         guard hasConfirmedWithdrawalWarning else { return }
                         closeWithdrawalSheet()
+                        onWithdrawal()
                     } label: {
                         Text("회원 탈퇴")
                             .font(.Pretendard.SemiBold.size16)
@@ -639,6 +641,10 @@ private struct MyPageMenuRow: View {
 
 #Preview {
     NavigationStack {
-        MyPageView(userProfile: .constant(.placeholder), onLogout: {})
+        MyPageView(
+            userProfile: .constant(.placeholder),
+            onLogout: {},
+            onWithdrawal: {}
+        )
     }
 }
