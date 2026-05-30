@@ -5,7 +5,7 @@
 
 import Foundation
 
-struct UserProfile: Equatable {
+struct UserProfile: Codable, Equatable {
     var nickname: String
     var defaultImageName: String
     var customImageData: Data?
@@ -36,5 +36,38 @@ struct UserProfile: Equatable {
 
     mutating func applyCustomImageData(_ imageData: Data) {
         customImageData = imageData
+    }
+}
+
+enum UserProfileStore {
+    private static let legacyProfileKey = "userProfile"
+    private static let profileKeyPrefix = "userProfile."
+
+    static func load(for userIdentifier: String) -> UserProfile? {
+        guard let data = UserDefaults.standard.data(forKey: profileKey(for: userIdentifier)) else { return nil }
+        return try? JSONDecoder().decode(UserProfile.self, from: data)
+    }
+
+    static func save(_ profile: UserProfile, for userIdentifier: String) {
+        guard let data = try? JSONEncoder().encode(profile) else { return }
+        UserDefaults.standard.set(data, forKey: profileKey(for: userIdentifier))
+    }
+
+    static func clear(for userIdentifier: String) {
+        UserDefaults.standard.removeObject(forKey: profileKey(for: userIdentifier))
+    }
+
+    static func migrateLegacyProfileIfNeeded(for userIdentifier: String) {
+        guard UserDefaults.standard.data(forKey: profileKey(for: userIdentifier)) == nil,
+              let legacyData = UserDefaults.standard.data(forKey: legacyProfileKey) else {
+            return
+        }
+
+        UserDefaults.standard.set(legacyData, forKey: profileKey(for: userIdentifier))
+        UserDefaults.standard.removeObject(forKey: legacyProfileKey)
+    }
+
+    private static func profileKey(for userIdentifier: String) -> String {
+        profileKeyPrefix + userIdentifier
     }
 }

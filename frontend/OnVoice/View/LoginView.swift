@@ -7,6 +7,7 @@
 
 import SwiftUI
 import Combine
+import AuthenticationServices
 
 struct LoginView: View {
     var onLogin: () -> Void = {}
@@ -14,6 +15,8 @@ struct LoginView: View {
     @State private var selectedPage = 0
     @State private var showsSplash = true
     @State private var lastManualSwipeAt: Date?
+    @State private var signInErrorMessage: String?
+    @State private var showsSignInError = false
 
     private let pages = LoginOnboardingPage.all
     private let autoScrollTimer = Timer.publish(every: 2.5, on: .main, in: .common).autoconnect()
@@ -34,7 +37,7 @@ struct LoginView: View {
             Color.bg.ignoresSafeArea()
 
             if showsSplash {
-                LoginSplashView()
+                MinglySplashView()
                     .transition(.opacity)
             } else {
                 onboardingContent
@@ -83,6 +86,11 @@ struct LoginView: View {
                     selectedPage = 0
                 }
             }
+        }
+        .alert("Apple 로그인에 실패했어요", isPresented: $showsSignInError) {
+            Button("확인", role: .cancel) {}
+        } message: {
+            Text(signInErrorMessage ?? "잠시 후 다시 시도해주세요.")
         }
     }
 
@@ -136,24 +144,12 @@ struct LoginView: View {
                 pageIndicator
                     .padding(.top, indicatorTopPadding)
 
-                appleButton(
-                    title: "Sign in with Apple",
-                    foregroundColor: .white,
-                    backgroundColor: .black,
-                    borderColor: .white.opacity(0.35),
-                    action: onLogin
-                )
+                appleSignInButton(type: .signIn, style: .black)
                 .frame(width: signInWidth, height: signInHeight)
                 .padding(.top, signInTopPadding)
                 .padding(.horizontal, signInHorizontalPadding)
 
-                appleButton(
-                    title: "Sign up with Apple",
-                    foregroundColor: .black,
-                    backgroundColor: .white,
-                    borderColor: .clear,
-                    action: {}
-                )
+                appleSignInButton(type: .signUp, style: .white)
                 .frame(width: signUpWidth, height: signUpHeight)
                 .padding(.top, signUpTopPadding)
                 .padding(.horizontal, signUpHorizontalPadding)
@@ -172,49 +168,71 @@ struct LoginView: View {
         }
     }
 
-    private func appleButton(
-        title: String,
-        foregroundColor: Color,
-        backgroundColor: Color,
-        borderColor: Color,
-        action: @escaping () -> Void
+    private func appleSignInButton(
+        type: SignInWithAppleButton.Label,
+        style: SignInWithAppleButton.Style
     ) -> some View {
-        Button(action: action) {
-            HStack(spacing: 8) {
-                Image(systemName: "apple.logo")
-                    .font(.system(size: 18, weight: .semibold))
-
-                Text(title)
-                    .font(.Pretendard.SemiBold.size20)
-            }
-            .foregroundStyle(foregroundColor)
-            .frame(maxWidth: .infinity)
-            .frame(height: 56)
-            .background(backgroundColor)
-            .overlay(
-                RoundedRectangle(cornerRadius: 15, style: .continuous)
-                    .stroke(borderColor, lineWidth: 2)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
+        SignInWithAppleButton(type) { request in
+            request.requestedScopes = [.fullName, .email]
+        } onCompletion: { result in
+            handleAppleSignInCompletion(result)
         }
-        .buttonStyle(.plain)
+        .signInWithAppleButtonStyle(style)
+        .clipShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
+    }
+
+    private func handleAppleSignInCompletion(_ result: Result<ASAuthorization, Error>) {
+        switch result {
+        case .success(let authorization):
+            guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential else {
+                presentSignInError("Apple 계정 정보를 확인할 수 없어요.")
+                return
+            }
+
+            AppleSignInSession.store(credential)
+            onLogin()
+        case .failure(let error):
+            guard (error as? ASAuthorizationError)?.code != .canceled else { return }
+            presentSignInError(error.localizedDescription)
+        }
+    }
+
+    private func presentSignInError(_ message: String) {
+        signInErrorMessage = message
+        showsSignInError = true
     }
 }
 
-private struct LoginSplashView: View {
-    var body: some View {
-        VStack(spacing: 16) {
-            Image("logo")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 92, height: 92)
+enum AppleSignInSession {
+    private static let userIdentifierKey = "appleSignInUserIdentifier"
+    private static let emailKey = "appleSignInEmail"
+    private static let fullNameKey = "appleSignInFullName"
 
-            Image("minglyWordmark")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 74, height: 27)
+    static var isSignedIn: Bool {
+        currentUserIdentifier != nil
+    }
+
+    static var currentUserIdentifier: String? {
+        UserDefaults.standard.string(forKey: userIdentifierKey)
+    }
+
+    static func store(_ credential: ASAuthorizationAppleIDCredential) {
+        UserDefaults.standard.set(credential.user, forKey: userIdentifierKey)
+
+        if let email = credential.email {
+            UserDefaults.standard.set(email, forKey: emailKey)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+        let fullName = PersonNameComponentsFormatter().string(from: credential.fullName ?? PersonNameComponents())
+        if !fullName.isEmpty {
+            UserDefaults.standard.set(fullName, forKey: fullNameKey)
+        }
+    }
+
+    static func clear() {
+        UserDefaults.standard.removeObject(forKey: userIdentifierKey)
+        UserDefaults.standard.removeObject(forKey: emailKey)
+        UserDefaults.standard.removeObject(forKey: fullNameKey)
     }
 }
 
