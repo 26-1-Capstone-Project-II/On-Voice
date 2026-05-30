@@ -43,28 +43,43 @@ enum UserProfileStore {
     private static let legacyProfileKey = "userProfile"
     private static let profileKeyPrefix = "userProfile."
 
-    static func load(for userIdentifier: String) -> UserProfile? {
-        guard let data = UserDefaults.standard.data(forKey: profileKey(for: userIdentifier)) else { return nil }
+    static func load(
+        for userIdentifier: String,
+        userDefaults: UserDefaults = .standard
+    ) -> UserProfile? {
+        guard let data = userDefaults.data(forKey: profileKey(for: userIdentifier)) else { return nil }
         return try? JSONDecoder().decode(UserProfile.self, from: data)
     }
 
-    static func save(_ profile: UserProfile, for userIdentifier: String) {
+    static func save(
+        _ profile: UserProfile,
+        for userIdentifier: String,
+        userDefaults: UserDefaults = .standard
+    ) {
+        guard !profile.displayNickname.isEmpty else { return }
         guard let data = try? JSONEncoder().encode(profile) else { return }
-        UserDefaults.standard.set(data, forKey: profileKey(for: userIdentifier))
+        userDefaults.set(data, forKey: profileKey(for: userIdentifier))
     }
 
-    static func clear(for userIdentifier: String) {
-        UserDefaults.standard.removeObject(forKey: profileKey(for: userIdentifier))
+    static func clear(
+        for userIdentifier: String,
+        userDefaults: UserDefaults = .standard
+    ) {
+        userDefaults.removeObject(forKey: profileKey(for: userIdentifier))
     }
 
-    static func migrateLegacyProfileIfNeeded(for userIdentifier: String) {
-        guard UserDefaults.standard.data(forKey: profileKey(for: userIdentifier)) == nil,
-              let legacyData = UserDefaults.standard.data(forKey: legacyProfileKey) else {
+    static func migrateLegacyProfileIfNeeded(
+        for userIdentifier: String,
+        userDefaults: UserDefaults = .standard
+    ) {
+        guard userDefaults.data(forKey: profileKey(for: userIdentifier)) == nil,
+              let legacyData = userDefaults.data(forKey: legacyProfileKey),
+              (try? JSONDecoder().decode(UserProfile.self, from: legacyData)) != nil else {
             return
         }
 
-        UserDefaults.standard.set(legacyData, forKey: profileKey(for: userIdentifier))
-        UserDefaults.standard.removeObject(forKey: legacyProfileKey)
+        userDefaults.set(legacyData, forKey: profileKey(for: userIdentifier))
+        userDefaults.removeObject(forKey: legacyProfileKey)
     }
 
     private static func profileKey(for userIdentifier: String) -> String {

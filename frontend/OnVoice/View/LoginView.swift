@@ -193,7 +193,7 @@ struct LoginView: View {
             onLogin()
         case .failure(let error):
             guard (error as? ASAuthorizationError)?.code != .canceled else { return }
-            presentSignInError(error.localizedDescription)
+            presentSignInError("잠시 후 다시 시도해주세요.")
         }
     }
 
@@ -205,12 +205,6 @@ struct LoginView: View {
 
 enum AppleSignInSession {
     private static let userIdentifierKey = "appleSignInUserIdentifier"
-    private static let emailKey = "appleSignInEmail"
-    private static let fullNameKey = "appleSignInFullName"
-
-    static var isSignedIn: Bool {
-        currentUserIdentifier != nil
-    }
 
     static var currentUserIdentifier: String? {
         UserDefaults.standard.string(forKey: userIdentifierKey)
@@ -218,21 +212,10 @@ enum AppleSignInSession {
 
     static func store(_ credential: ASAuthorizationAppleIDCredential) {
         UserDefaults.standard.set(credential.user, forKey: userIdentifierKey)
-
-        if let email = credential.email {
-            UserDefaults.standard.set(email, forKey: emailKey)
-        }
-
-        let fullName = PersonNameComponentsFormatter().string(from: credential.fullName ?? PersonNameComponents())
-        if !fullName.isEmpty {
-            UserDefaults.standard.set(fullName, forKey: fullNameKey)
-        }
     }
 
     static func clear() {
         UserDefaults.standard.removeObject(forKey: userIdentifierKey)
-        UserDefaults.standard.removeObject(forKey: emailKey)
-        UserDefaults.standard.removeObject(forKey: fullNameKey)
     }
 }
 
