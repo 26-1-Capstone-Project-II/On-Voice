@@ -108,6 +108,17 @@ final class AudioRecorderMutationTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: secondRecording.fileURL.path))
     }
 
+    func testDeleteAllRecordingsRemovesStaleRecordingWhenFileIsMissing() throws {
+        let recorder = AudioRecorder()
+        let recording = try makeRecording(named: "이미 사라진 녹음")
+        try FileManager.default.removeItem(at: recording.fileURL)
+        recorder.recordings = [recording]
+
+        try recorder.deleteAllRecordings()
+
+        XCTAssertTrue(recorder.recordings.isEmpty)
+    }
+
     func testInitializesWithPersistedWavRecordings() throws {
         let olderURL = try makePersistedFile(named: "Recording_20260414_090000", extension: "wav")
         let newerURL = try makePersistedFile(named: "Recording_20260415_090000", extension: "wav")

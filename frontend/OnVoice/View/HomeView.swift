@@ -12,7 +12,7 @@ struct HomeView: View {
     @Binding var selectedTab: OnVoiceTab
     @Binding var userProfile: UserProfile
     let onLogout: () -> Void
-    let onWithdrawal: () -> Void
+    let onWithdrawal: () throws -> Void
     @State private var isShowingSituationRecognition = false
     @State private var isShowingMyPage = false
     @State private var selectedRecording: Recording?

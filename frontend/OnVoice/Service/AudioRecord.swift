@@ -189,16 +189,24 @@ class AudioRecorder: ObservableObject {
     }
 
     func deleteAllRecordings() throws {
-        do {
-            for recording in recordings {
+        var remainingRecordings: [Recording] = []
+        var firstFailure: Error?
+
+        for recording in recordings {
+            do {
                 if FileManager.default.fileExists(atPath: recording.fileURL.path) {
                     try FileManager.default.removeItem(at: recording.fileURL)
                 }
+            } catch {
+                remainingRecordings.append(recording)
+                firstFailure = firstFailure ?? error
             }
+        }
 
-            recordings.removeAll()
-        } catch {
-            throw RecordingMutationError.fileOperationFailed(underlying: error)
+        recordings = remainingRecordings
+
+        if let firstFailure {
+            throw RecordingMutationError.fileOperationFailed(underlying: firstFailure)
         }
     }
 

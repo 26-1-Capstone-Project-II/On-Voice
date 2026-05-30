@@ -52,7 +52,7 @@ struct ContentView: View {
         }
         .animation(.easeInOut(duration: 0.25), value: showsLaunchSplash)
         .background(Color.bg)
-        .task {
+        .task(id: showsLaunchSplash) {
             guard showsLaunchSplash else { return }
             try? await Task.sleep(nanoseconds: 1_500_000_000)
             showsLaunchSplash = false
@@ -122,18 +122,30 @@ struct ContentView: View {
         showsLaunchSplash = false
     }
 
-    private func handleWithdrawal() {
-        if let userIdentifier = AppleSignInSession.currentUserIdentifier {
-            UserProfileStore.clear(for: userIdentifier)
+    private func handleWithdrawal() throws {
+        guard let userIdentifier = AppleSignInSession.currentUserIdentifier else {
+            throw WithdrawalError.missingSignedInUser
         }
 
-        try? recorder.deleteAllRecordings()
+        try recorder.deleteAllRecordings()
+        UserProfileStore.clear(for: userIdentifier)
         handleLogout()
     }
 
     private func saveProfile(_ profile: UserProfile) {
         guard let userIdentifier = AppleSignInSession.currentUserIdentifier else { return }
         UserProfileStore.save(profile, for: userIdentifier)
+    }
+
+    private enum WithdrawalError: LocalizedError {
+        case missingSignedInUser
+
+        var errorDescription: String? {
+            switch self {
+            case .missingSignedInUser:
+                return "로그인 정보를 확인할 수 없어요. 다시 로그인한 뒤 시도해 주세요."
+            }
+        }
     }
 }
 
