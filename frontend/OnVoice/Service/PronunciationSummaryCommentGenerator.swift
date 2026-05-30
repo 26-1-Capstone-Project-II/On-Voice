@@ -40,8 +40,14 @@ enum PronunciationSummaryCommentGenerator {
             return "ㄴ과 ㄹ 초성 구분을 가장 어려워하고 있어요.\n혀 끝의 위치를 다르게 느끼며\n짧은 단어부터 비교해 발음해보세요."
         case .initialLinking:
             return "어절 사이 연음을 가장 어려워하고 있어요.\n받침을 다음 음절의 초성으로 옮겨\n자연스럽게 이어 말해보세요."
-        case .finalTensification, .finalPalatalization, .finalNasalization, .finalLinking:
-            return "받침 발음을 가장 어려워하고 있어요.\n목소리에 힘을 주고, 단어를 끝까지 소리낸다는\n방식으로 발음을 연습해보면 좋을 것 같아요."
+        case .finalTensification:
+            return "받침 끝맺음 발음을 가장 어려워하고 있어요.\nㄱ, ㄷ, ㅂ 받침을 또렷이 막은 뒤\n다음 소리로 넘어가 보세요."
+        case .finalPalatalization:
+            return "받침과 ㅣ 모음이 만나는 발음을 가장 어려워하고 있어요.\nㄷ, ㅌ 받침을 ㅈ, ㅊ 소리로 부드럽게\n이어 발음해보세요."
+        case .finalNasalization:
+            return "받침의 콧소리 변화를 가장 어려워하고 있어요.\nㅁ, ㄴ 앞 받침을 콧소리(ㅇ, ㄴ, ㅁ)로\n자연스럽게 바꿔 발음해보세요."
+        case .finalLinking:
+            return "받침을 뒤로 넘기는 연음을 가장 어려워하고 있어요.\n모음으로 시작하는 다음 글자에\n받침을 자연스럽게 이어 발음해보세요."
         case .dropout:
             return "발음하지 않고 빠뜨리는 글자가 있어요.\n단어를 한 글자씩 나누어 읽고,\n마지막에 자연스럽게 이어 말해보세요."
         }
@@ -49,7 +55,10 @@ enum PronunciationSummaryCommentGenerator {
 
     // MARK: - Level-based fallback
 
-    private static func fallback(for level: PronunciationScoreLevel) -> String {
+    /// 분석 결과가 없거나(전사 실패 등 summaryComment 가 비어 있는 경우) 1위 카테고리를
+    /// 특정할 수 없을 때 쓰는 점수 등급 기반 코멘트. 화면(AnalysisSummaryView)도
+    /// 동일 fallback 을 공유하도록 internal 로 노출한다.
+    static func fallback(for level: PronunciationScoreLevel) -> String {
         switch level {
         case .low:
             return "조금 더 천천히, 단어를 끝까지 발음해보세요.\n반복 연습으로 또박또박 말하는\n습관을 만들어볼까요?"
