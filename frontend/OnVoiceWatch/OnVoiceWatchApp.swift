@@ -4,7 +4,7 @@ import SwiftUI
 struct OnVoiceWatchApp: App {
     var body: some Scene {
         WindowGroup {
-            WatchVoicePitchView()
+            WatchHomeView()
         }
     }
 }

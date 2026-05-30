@@ -26,6 +26,13 @@ final class WatchNoiseMeter {
     func startMetering() async {
         errorMessage = nil
 
+        let hasPermission = await requestMicrophonePermissionIfNeeded()
+        guard hasPermission else {
+            errorMessage = "마이크 권한을 허용해주세요."
+            stopMetering()
+            return
+        }
+
         do {
             try configureAudioSession()
             let recorder = try makeRecorder()
@@ -78,5 +85,22 @@ final class WatchNoiseMeter {
         ]
 
         return try AVAudioRecorder(url: url, settings: settings)
+    }
+
+    private func requestMicrophonePermissionIfNeeded() async -> Bool {
+        switch AVAudioSession.sharedInstance().recordPermission {
+        case .granted:
+            return true
+        case .denied:
+            return false
+        case .undetermined:
+            return await withCheckedContinuation { continuation in
+                AVAudioSession.sharedInstance().requestRecordPermission { isGranted in
+                    continuation.resume(returning: isGranted)
+                }
+            }
+        @unknown default:
+            return false
+        }
     }
 }
