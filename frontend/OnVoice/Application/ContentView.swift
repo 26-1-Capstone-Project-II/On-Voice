@@ -16,6 +16,7 @@ enum OnVoiceFlow: Equatable {
 }
 
 struct ContentView: View {
+    @EnvironmentObject private var recorder: AudioRecorder
     @State private var selectedTab: OnVoiceTab = .home
     @State private var flow: OnVoiceFlow
     @State private var userProfile: UserProfile
@@ -114,11 +115,11 @@ struct ContentView: View {
     }
 
     private func handleLogout() {
+        flow = .login
         AppleSignInSession.clear()
         userProfile = .placeholder
         selectedTab = .home
         showsLaunchSplash = false
-        flow = .login
     }
 
     private func handleWithdrawal() {
@@ -126,6 +127,7 @@ struct ContentView: View {
             UserProfileStore.clear(for: userIdentifier)
         }
 
+        try? recorder.deleteAllRecordings()
         handleLogout()
     }
 
