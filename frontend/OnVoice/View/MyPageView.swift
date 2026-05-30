@@ -11,7 +11,7 @@ struct MyPageView: View {
     @Environment(\.openURL) private var openURL
     @Binding var userProfile: UserProfile
     let onLogout: () -> Void
-    let onWithdrawal: () -> Void
+    let onWithdrawal: () throws -> Void
     @State private var showsImageSheet = false
     @State private var showsLogoutSheet = false
     @State private var showsWithdrawalSheet = false
@@ -20,6 +20,8 @@ struct MyPageView: View {
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var externalLinkAlertMessage = ""
     @State private var showsExternalLinkAlert = false
+    @State private var withdrawalErrorMessage = ""
+    @State private var showsWithdrawalErrorAlert = false
 
     private let baseScreenWidth: CGFloat = 393
     private let baseContentHeight: CGFloat = 772
@@ -97,6 +99,13 @@ struct MyPageView: View {
             Button("확인", role: .cancel) {}
         } message: {
             Text(externalLinkAlertMessage)
+        }
+        .alert("회원탈퇴에 실패했어요", isPresented: $showsWithdrawalErrorAlert) {
+            Button("확인", role: .cancel) {
+                withdrawalErrorMessage = ""
+            }
+        } message: {
+            Text(withdrawalErrorMessage)
         }
         .onChange(of: selectedPhotoItem) { newValue in
             guard let newValue else { return }
@@ -537,8 +546,7 @@ struct MyPageView: View {
 
                     Button {
                         guard hasConfirmedWithdrawalWarning else { return }
-                        closeWithdrawalSheet()
-                        onWithdrawal()
+                        commitWithdrawal()
                     } label: {
                         Text("회원 탈퇴")
                             .font(.Pretendard.SemiBold.size16)
@@ -571,6 +579,15 @@ struct MyPageView: View {
         hasConfirmedWithdrawalWarning = false
     }
 
+    private func commitWithdrawal() {
+        do {
+            try onWithdrawal()
+            closeWithdrawalSheet()
+        } catch {
+            withdrawalErrorMessage = error.localizedDescription
+            showsWithdrawalErrorAlert = true
+        }
+    }
 
     private func openAppSettings() {
         openExternalLink(

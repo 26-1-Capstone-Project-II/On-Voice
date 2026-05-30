@@ -74,11 +74,12 @@ enum UserProfileStore {
     ) {
         guard userDefaults.data(forKey: profileKey(for: userIdentifier)) == nil,
               let legacyData = userDefaults.data(forKey: legacyProfileKey),
-              (try? JSONDecoder().decode(UserProfile.self, from: legacyData)) != nil else {
+              let legacyProfile = try? JSONDecoder().decode(UserProfile.self, from: legacyData),
+              let migratedData = try? JSONEncoder().encode(legacyProfile) else {
             return
         }
 
-        userDefaults.set(legacyData, forKey: profileKey(for: userIdentifier))
+        userDefaults.set(migratedData, forKey: profileKey(for: userIdentifier))
         userDefaults.removeObject(forKey: legacyProfileKey)
     }
 

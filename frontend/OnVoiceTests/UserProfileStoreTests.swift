@@ -105,4 +105,28 @@ final class UserProfileStoreTests: XCTestCase {
         XCTAssertNotNil(userDefaults.data(forKey: "userProfile"))
         XCTAssertNil(UserProfileStore.load(for: "apple-user", userDefaults: userDefaults))
     }
+
+    func testDoesNotOverwriteUserSpecificProfileWhenLegacyProfileExists() throws {
+        let existingProfile = UserProfile(
+            nickname: "현재 유저",
+            defaultImageName: "profileDefaultYellow",
+            customImageData: nil
+        )
+        let legacyProfile = UserProfile(
+            nickname: "기존 유저",
+            defaultImageName: "profileDefaultPink",
+            customImageData: nil
+        )
+
+        UserProfileStore.save(existingProfile, for: "apple-user", userDefaults: userDefaults)
+        userDefaults.set(try JSONEncoder().encode(legacyProfile), forKey: "userProfile")
+
+        UserProfileStore.migrateLegacyProfileIfNeeded(for: "apple-user", userDefaults: userDefaults)
+
+        XCTAssertEqual(
+            UserProfileStore.load(for: "apple-user", userDefaults: userDefaults),
+            existingProfile
+        )
+        XCTAssertNotNil(userDefaults.data(forKey: "userProfile"))
+    }
 }
