@@ -21,6 +21,7 @@
 		D1A0B20F3000000000ABCDEF /* AnalysisResultAvailabilityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A0B20E3000000000ABCDEF /* AnalysisResultAvailabilityTests.swift */; };
 		D1A0B2113000000000ABCDEF /* RecordingAnalysisViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A0B2103000000000ABCDEF /* RecordingAnalysisViewModelTests.swift */; };
 		D1A0B2133000000000ABCDEF /* RepracticeColorizerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A0B2123000000000ABCDEF /* RepracticeColorizerTests.swift */; };
+		D1A0B2153000000000ABCDEF /* PronunciationDifficultyAggregatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A0B2143000000000ABCDEF /* PronunciationDifficultyAggregatorTests.swift */; };
 		F0A100012F90000100ABCD01 /* DynamicIsland.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = F0A100062F90000100ABCD01 /* DynamicIsland.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		F0A100022F90000100ABCD01 /* DynamicIslandBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2FE5DE2E30D69500C90F26 /* DynamicIslandBundle.swift */; };
 		F0A100032F90000100ABCD01 /* DynamicIslandLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE2FE5DF2E30D69500C90F26 /* DynamicIslandLiveActivity.swift */; };
@@ -90,6 +91,7 @@
 		D1A0B20E3000000000ABCDEF /* AnalysisResultAvailabilityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalysisResultAvailabilityTests.swift; sourceTree = "<group>"; };
 		D1A0B2103000000000ABCDEF /* RecordingAnalysisViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingAnalysisViewModelTests.swift; sourceTree = "<group>"; };
 		D1A0B2123000000000ABCDEF /* RepracticeColorizerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepracticeColorizerTests.swift; sourceTree = "<group>"; };
+		D1A0B2143000000000ABCDEF /* PronunciationDifficultyAggregatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PronunciationDifficultyAggregatorTests.swift; sourceTree = "<group>"; };
 		F0A100062F90000100ABCD01 /* DynamicIsland.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = DynamicIsland.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		F0A100072F90000100ABCD01 /* LiveActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = LiveActivityAttributes.swift; path = ../OnVoice/Model/LiveActivityAttributes.swift; sourceTree = "<group>"; };
 		F0A100142F90000100ABCD01 /* LiveActivityState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = LiveActivityState.swift; path = ../OnVoice/Model/LiveActivityState.swift; sourceTree = "<group>"; };
@@ -234,6 +236,7 @@
 				D1A0B20E3000000000ABCDEF /* AnalysisResultAvailabilityTests.swift */,
 				D1A0B2103000000000ABCDEF /* RecordingAnalysisViewModelTests.swift */,
 				D1A0B2123000000000ABCDEF /* RepracticeColorizerTests.swift */,
+			D1A0B2143000000000ABCDEF /* PronunciationDifficultyAggregatorTests.swift */,
 			);
 			path = OnVoiceTests;
 			sourceTree = "<group>";
@@ -435,6 +438,7 @@
 				D1A0B20F3000000000ABCDEF /* AnalysisResultAvailabilityTests.swift in Sources */,
 				D1A0B2113000000000ABCDEF /* RecordingAnalysisViewModelTests.swift in Sources */,
 				D1A0B2133000000000ABCDEF /* RepracticeColorizerTests.swift in Sources */,
+				D1A0B2153000000000ABCDEF /* PronunciationDifficultyAggregatorTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

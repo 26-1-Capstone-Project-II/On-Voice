@@ -8,6 +8,7 @@
 //
 
 import XCTest
+import SwiftUI
 @testable import OnVoice
 
 final class PronunciationDifficultyAggregatorTests: XCTestCase {
@@ -200,5 +201,66 @@ final class PronunciationDifficultyAggregatorTests: XCTestCase {
         XCTAssertEqual(items.count, 1)
         XCTAssertEqual(items[0].category, .vowelError)
         XCTAssertEqual(items[0].errorCount, 3)
+    }
+
+    // MARK: - 순위 배지 색상 (rank 기준)
+
+    /// 빈도가 서로 달라 1·2·3위가 명확히 갈리는 입력.
+    ///   vowelError(3) > dropout(2) > finalTensification(1)
+    /// 색은 카테고리가 아니라 "순위" 로 부여되므로 어떤 카테고리가 오든
+    /// 1위=#FFA0A0, 2위=#FFF79E, 3위=#B2B8FF 로 고정되어야 한다.
+    private func rankColorFixtureItems() -> [PronunciationDifficultyResult] {
+        let cells: [AlignmentCell] = [
+            substitutionCell(expected: "가", actual: "거"),   // vowelError
+            substitutionCell(expected: "가", actual: "거"),   // vowelError
+            substitutionCell(expected: "가", actual: "거"),   // vowelError
+            droppedCell("나", expectedIndex: 1),              // dropout
+            droppedCell("나", expectedIndex: 1),              // dropout
+            substitutionCell(expected: "각", actual: "간")    // finalTensification
+        ]
+        return PronunciationDifficultyAggregator.aggregate(
+            cells: cells,
+            expectedAll: [syl("가")]
+        )
+    }
+
+    func testRankBadgeColorFollowsRankNotCategory() {
+        let items = rankColorFixtureItems()
+        XCTAssertEqual(items.count, 3)
+        XCTAssertEqual(items[0].rank, 1)
+        XCTAssertEqual(items[0].accentColorHex, "#FFA0A0", "1위는 빨강(#FFA0A0)")
+        XCTAssertEqual(items[1].rank, 2)
+        XCTAssertEqual(items[1].accentColorHex, "#FFF79E", "2위는 노랑(#FFF79E)")
+        XCTAssertEqual(items[2].rank, 3)
+        XCTAssertEqual(items[2].accentColorHex, "#B2B8FF", "3위는 파랑(#B2B8FF)")
+    }
+
+    func testTopThreeColorsAreAllDistinct() {
+        // 회귀 방지: 카테고리별 색을 쓰던 과거 구현은 같은 슬롯 카테고리가 둘
+        // 노출되면 1위·3위가 같은 색이 됐다(예: 탈락·초성연음화 모두 빨강).
+        // 순위 기준 색은 상위 3개가 항상 서로 다른 색이어야 한다.
+        let hexes = rankColorFixtureItems().map(\.accentColorHex)
+        XCTAssertEqual(Set(hexes).count, hexes.count, "상위 3개 배지 색은 모두 달라야 한다")
+    }
+
+    func testAccentColorMatchesHex() {
+        // accentColor(Color) 가 accentColorHex 로부터 파생되는지 확인.
+        let item = rankColorFixtureItems()[0]
+        XCTAssertEqual(item.accentColor, Color(hex: item.accentColorHex))
+    }
+
+    // MARK: - 동률 결정성 (회귀 가드)
+
+    func testTieBreakIsDeterministic() {
+        // vowelError(1) 과 dropout(1) 이 동률. 입력이 같으면 출력 순서/내용도
+        // 항상 같아야 한다(Dictionary 순회 무작위성에 영향받지 않음).
+        let cells: [AlignmentCell] = [
+            substitutionCell(expected: "가", actual: "거"),   // vowelError
+            droppedCell("나", expectedIndex: 1)               // dropout
+        ]
+        let run1 = PronunciationDifficultyAggregator.aggregate(cells: cells, expectedAll: [syl("가")])
+        let run2 = PronunciationDifficultyAggregator.aggregate(cells: cells, expectedAll: [syl("가")])
+        XCTAssertEqual(run1.map(\.category), run2.map(\.category), "동률이라도 순서가 결정적이어야 함")
+        XCTAssertEqual(run1.map(\.rank), [1, 2], "동률이어도 순위는 1·2 로 구분 부여")
     }
 }
