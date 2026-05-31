@@ -87,9 +87,13 @@ enum PronunciationDifficultyAggregator {
         )
     }
 
-    /// 순위 배지 색상. 디자인(피그마 5-1)은 카테고리가 아니라 "순위" 로 색을 구분한다.
-    /// 1위 빨강 · 2위 노랑 · 3위 파랑. 상위 3개만 노출하므로 3색이면 충분하다.
+    /// 순위 배지 색상의 단일 source-of-truth. 디자인(피그마 5-1)은 카테고리가
+    /// 아니라 "순위" 로 색을 구분한다. 1위 빨강 · 2위 노랑 · 3위 파랑이며,
+    /// 상위 3개만 노출하므로 3색이면 충분하다.
     /// (카테고리에 색을 묶으면 서로 다른 순위가 같은 색으로 보이는 충돌이 생긴다.)
+    ///
+    /// 색을 바꾸려면 이 함수 한 곳만 수정하면 되고, accentColorHex → accentColor
+    /// 파생 경로를 통해 View/Service 양쪽 화면에 자동 반영된다.
     private static func accentColorHex(forRank rank: Int) -> String {
         switch rank {
         case 1:  return "#FFA0A0"   // 빨강
