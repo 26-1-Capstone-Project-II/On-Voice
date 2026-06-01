@@ -263,14 +263,19 @@ private struct WatchVolumeGauge: View {
 }
 
 private struct WatchLoadingDots: View {
-    @State private var activeIndex = 0
+    private let stepDuration: TimeInterval = 0.18
+    private let dotCount = 6
 
     var body: some View {
-        TimelineView(.periodic(from: .now, by: 0.18)) { context in
-            let tick = Int(context.date.timeIntervalSinceReferenceDate / 0.18)
+        TimelineView(.periodic(from: .now, by: stepDuration)) { context in
+            let activeIndex = Self.activeDotIndex(
+                at: context.date,
+                dotCount: dotCount,
+                stepDuration: stepDuration
+            )
 
             HStack(spacing: 4) {
-                ForEach(0..<6, id: \.self) { index in
+                ForEach(0..<dotCount, id: \.self) { index in
                     Circle()
                         .fill(
                             Color(
@@ -278,7 +283,7 @@ private struct WatchLoadingDots: View {
                                 red: 0.30,
                                 green: 0.47,
                                 blue: 0.96,
-                                opacity: index == tick % 6 ? 1 : 0.35
+                                opacity: index == activeIndex ? 1 : 0.35
                             )
                         )
                         .frame(width: 7, height: 7)
@@ -286,6 +291,21 @@ private struct WatchLoadingDots: View {
                 }
             }
         }
+    }
+
+    private static func activeDotIndex(
+        at date: Date,
+        dotCount: Int,
+        stepDuration: TimeInterval
+    ) -> Int {
+        guard dotCount > 0, stepDuration > 0 else { return 0 }
+
+        let cycleDuration = stepDuration * TimeInterval(dotCount)
+        let cyclePosition = date.timeIntervalSinceReferenceDate
+            .truncatingRemainder(dividingBy: cycleDuration)
+        let normalizedPosition = cyclePosition >= 0 ? cyclePosition : cyclePosition + cycleDuration
+
+        return min(dotCount - 1, Int(normalizedPosition / stepDuration))
     }
 }
 

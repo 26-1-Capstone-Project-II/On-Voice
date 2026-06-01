@@ -42,15 +42,21 @@ enum VoiceVolumeStateCalculator {
     }
 
     static func progress(for decibels: Float) -> Int {
+        guard decibels.isFinite else { return 0 }
+
         let normalizedDecibels = min(max(decibels / 120.0, 0.0), 1.0)
         return Int(normalizedDecibels * 100)
     }
 
     static func clampedDecibels(_ decibels: Float) -> Int {
-        Int(min(max(decibels, 0), 120))
+        guard decibels.isFinite else { return 0 }
+
+        return Int(min(max(decibels, 0), 120))
     }
 
     static func calibratedDecibels(from dbFS: Float) -> Float {
+        guard dbFS.isFinite else { return 0 }
+
         let referenceLevel: Float = 94.0
         let dbSPL = dbFS + referenceLevel
         return max(min(max(dbSPL, 0.0), 120.0) - 10, 0)
